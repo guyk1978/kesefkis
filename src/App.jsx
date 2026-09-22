@@ -438,8 +438,9 @@ const loadConversation = async (otherUserId, listingId) => {
 
   // התחברות באמצעות Google
 
+// התחברות באמצעות Google
 const handleGoogleLogin = async () => {
-  const redirectUrl = 'https://kesefkis.pages.dev/'
+  const redirectUrl = window.location.origin
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
