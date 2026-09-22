@@ -411,14 +411,19 @@ const loadConversation = async (otherUserId, listingId) => {
   }
 
   // התחברות באמצעות Google
-  const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    })
-    if (error) {
-      setAuthError(error.message)
+
+const handleGoogleLogin = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin
     }
+  })
+
+  if (error) {
+    setAuthError(error.message)
   }
+}
 
   // התנתקות מהמערכת
   const handleLogout = async () => {
