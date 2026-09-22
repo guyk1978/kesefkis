@@ -2,8 +2,33 @@ import React, { useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 
 export default function App() {
+
+  const categories = [
+  'תיקונים לבית',
+  'ניקיון',
+  'צבע ושיפוצים',
+  'הובלות',
+  'מחשבים ודיגיטל',
+  'חיות מחמד',
+  'ילדים ומשפחה',
+  'שיעורים פרטיים',
+  'גינה וחצר',
+  'רכב',
+  'אופניים וקורקינטים',
+  'שליחויות',
+  'עבודות מזדמנות',
+  'אחר'
+]
+
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // חיפוש וסינון מודעות
+const [searchTerm, setSearchTerm] = useState('')
+const [listingTypeFilter, setListingTypeFilter] = useState('all')
+const [categoryFilter, setCategoryFilter] = useState('all')
+const [locationFilter, setLocationFilter] = useState('all')
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -50,14 +75,15 @@ const [isSendingConversationMessage, setIsSendingConversationMessage] = useState
 
   // שדות הטופס ליצירת/עריכת מודעה (כולל קובץ תמונה)
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    category: 'עבודות מזדמנות',
-    location: '',
-    contact_name: '',
-    phone: ''
-  })
+  title: '',
+  description: '',
+  price: '',
+  listing_type: 'offer',
+  category: 'עבודות מזדמנות',
+  location: '',
+  contact_name: '',
+  phone: ''
+})
   const [imageFile, setImageFile] = useState(null)
   const [avatarFile, setAvatarFile] = useState(null)
 
@@ -459,143 +485,197 @@ const handleGoogleLogin = async () => {
     }
   }
 
-  // פתיחת מודל פרסום מודעה
-  const handleOpenPublishModal = () => {
-    if (!user) {
-      setAuthMode('login')
-      setIsAuthModalOpen(true)
-    } else {
-      setFormData({
-        title: '',
-        description: '',
-        price: '',
-        category: 'עבודות מזדמנות',
-        location: '',
-        contact_name: '',
-        phone: ''
-      })
-      setImageFile(null)
-      setIsModalOpen(true)
-    }
-  }
-
-  // שליחת מודעה חדשה (כולל תמונה)
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!user) return
-
-    setIsSubmitting(true)
-    try {
-      let imageUrl = null
-      if (imageFile) {
-        imageUrl = await uploadFileToStorage(imageFile, 'listings-images')
-      }
-
-      const newListing = {
-        title: formData.title,
-        description: formData.description,
-        price: formData.price ? parseFloat(formData.price) : null,
-        category: formData.category,
-        location: formData.location,
-        contact_name: formData.contact_name,
-        phone: formData.phone,
-        image_url: imageUrl,
-        user_id: user.id
-      }
-
-      const { error } = await supabase.from('listings').insert([newListing])
-      if (error) throw error
-
-      setIsModalOpen(false)
-      fetchListings()
-    } catch (error) {
-      alert('שגיאה בפרסום המודעה: ' + error.message)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // פתיחת מודל עריכה
-  const handleOpenEditModal = (item) => {
-    setEditingListing(item)
+ // פתיחת מודל פרסום מודעה
+const handleOpenPublishModal = () => {
+  if (!user) {
+    setAuthMode('login')
+    setIsAuthModalOpen(true)
+  } else {
     setFormData({
-      title: item.title || '',
-      description: item.description || '',
-      price: item.price || '',
-      category: item.category || 'עבודות מזדמנות',
-      location: item.location || '',
-      contact_name: item.contact_name || '',
-      phone: item.phone || ''
+      title: '',
+      description: '',
+      price: '',
+      listing_type: 'offer',
+      category: 'עבודות מזדמנות',
+      location: '',
+      contact_name: '',
+      phone: ''
     })
     setImageFile(null)
-    setIsEditModalOpen(true)
+    setIsModalOpen(true)
   }
+}
 
-  // שמירת שינויים בעריכת מודעה
-  // שמירת שינויים בעריכת מודעה
-  const handleUpdateListing = async (e) => {
-    e.preventDefault()
-    if (!editingListing) return
+// שליחת מודעה חדשה (כולל תמונה)
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  if (!user) return
 
-    setIsSubmitting(true)
-    try {
-      let imageUrl = editingListing.image_url
-      if (imageFile) {
-        imageUrl = await uploadFileToStorage(imageFile, 'listings-images')
-      }
+  setIsSubmitting(true)
 
-      const updatedData = {
-        title: formData.title,
-        description: formData.description,
-        price: formData.price ? parseFloat(formData.price) : null,
-        category: formData.category,
-        location: formData.location,
-        contact_name: formData.contact_name,
-        phone: formData.phone,
-        image_url: imageUrl
-      }
+  try {
+    let imageUrl = null
 
-      const { data, error } = await supabase
-        .from('listings')
-        .update(updatedData)
-        .eq('id', editingListing.id)
-        .select() // מוסיף את זה כדי לראות מה חזר מהשרת
-
-      if (error) {
-        throw error
-      }
-
-      console.log('Updated successfully:', data)
-      setIsEditModalOpen(false)
-      setEditingListing(null)
-      setImageFile(null)
-      await fetchListings() // מוודא טעינה מחדש של הנתונים מהשרת
-    } catch (error) {
-      console.error('Update error details:', error)
-      alert('שגיאה בעדכון המודעה: ' + (error.message || JSON.stringify(error)))
-    } finally {
-      setIsSubmitting(false)
+    if (imageFile) {
+      imageUrl = await uploadFileToStorage(imageFile, 'listings-images')
     }
-  }
 
-  // מחיקת מודעה
-  const handleDeleteListing = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק מודעה זו?')) return
+    const newListing = {
+      title: formData.title,
+      description: formData.description,
+      price: formData.price ? parseFloat(formData.price) : null,
+      listing_type: formData.listing_type,
+      category: formData.category,
+      location: formData.location,
+      contact_name: formData.contact_name,
+      phone: formData.phone,
+      image_url: imageUrl,
+      user_id: user.id
+    }
 
     const { error } = await supabase
       .from('listings')
-      .delete()
-      .eq('id', id)
+      .insert([newListing])
+
+    if (error) throw error
+
+    setIsModalOpen(false)
+    fetchListings()
+  } catch (error) {
+    alert('שגיאה בפרסום המודעה: ' + error.message)
+  } finally {
+    setIsSubmitting(false)
+  }
+}
+
+// פתיחת מודל עריכה
+const handleOpenEditModal = (item) => {
+  setEditingListing(item)
+
+  setFormData({
+    title: item.title || '',
+    description: item.description || '',
+    price: item.price || '',
+    listing_type: item.listing_type || 'offer',
+    category: item.category || 'עבודות מזדמנות',
+    location: item.location || '',
+    contact_name: item.contact_name || '',
+    phone: item.phone || ''
+  })
+
+  setImageFile(null)
+  setIsEditModalOpen(true)
+}
+
+// שמירת שינויים בעריכת מודעה
+const handleUpdateListing = async (e) => {
+  e.preventDefault()
+  if (!editingListing) return
+
+  setIsSubmitting(true)
+
+  try {
+    let imageUrl = editingListing.image_url
+
+    if (imageFile) {
+      imageUrl = await uploadFileToStorage(imageFile, 'listings-images')
+    }
+
+    const updatedData = {
+      title: formData.title,
+      description: formData.description,
+      price: formData.price ? parseFloat(formData.price) : null,
+      listing_type: formData.listing_type,
+      category: formData.category,
+      location: formData.location,
+      contact_name: formData.contact_name,
+      phone: formData.phone,
+      image_url: imageUrl
+    }
+
+    const { data, error } = await supabase
+      .from('listings')
+      .update(updatedData)
+      .eq('id', editingListing.id)
+      .select()
 
     if (error) {
-      alert('שגיאה במחיקת המודעה: ' + error.message)
-    } else {
-      fetchListings()
+      throw error
     }
-  }
 
-  const myListings = user ? listings.filter(item => item.user_id === user.id || !item.user_id) : []
-  const displayedListings = currentView === 'my-listings' ? myListings : listings
+    console.log('Updated successfully:', data)
+
+    setIsEditModalOpen(false)
+    setEditingListing(null)
+    setImageFile(null)
+
+    await fetchListings()
+  } catch (error) {
+    console.error('Update error details:', error)
+
+    alert(
+      'שגיאה בעדכון המודעה: ' +
+      (error.message || JSON.stringify(error))
+    )
+  } finally {
+    setIsSubmitting(false)
+  }
+}
+
+// מחיקת מודעה
+const handleDeleteListing = async (id) => {
+  if (!window.confirm('האם אתה בטוח שברצונך למחוק מודעה זו?')) return
+
+  const { error } = await supabase
+    .from('listings')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    alert('שגיאה במחיקת המודעה: ' + error.message)
+  } else {
+    fetchListings()
+  }
+}
+
+  const myListings = user
+  ? listings.filter(item => item.user_id === user.id || !item.user_id)
+  : []
+
+const baseListings =
+  currentView === 'my-listings'
+    ? myListings
+    : listings
+
+const displayedListings = baseListings.filter((item) => {
+  const search = searchTerm.trim().toLowerCase()
+
+  const matchesSearch =
+    !search ||
+    (item.title || '').toLowerCase().includes(search) ||
+    (item.description || '').toLowerCase().includes(search) ||
+    (item.category || '').toLowerCase().includes(search) ||
+    (item.location || '').toLowerCase().includes(search)
+
+  const matchesType =
+    listingTypeFilter === 'all' ||
+    item.listing_type === listingTypeFilter
+
+  const matchesCategory =
+    categoryFilter === 'all' ||
+    item.category === categoryFilter
+
+  const matchesLocation =
+    locationFilter === 'all' ||
+    item.location === locationFilter
+
+  return (
+    matchesSearch &&
+    matchesType &&
+    matchesCategory &&
+    matchesLocation
+  )
+})
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans pb-12">
@@ -709,6 +789,7 @@ const handleGoogleLogin = async () => {
 <main className="max-w-5xl mx-auto px-4 pt-8">
   <div className="mb-8 text-center md:text-right flex flex-col md:flex-row md:items-center md:justify-between">
     <div>
+        
       <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
         {currentView === 'my-listings'
           ? 'המודעות שפרסמתי'
@@ -732,6 +813,202 @@ const handleGoogleLogin = async () => {
     )}
   </div>
 
+
+{/* בחירת סוג מודעה */}
+{currentView === 'home' && (
+  <div className="mb-5">
+    <div className="text-center mb-3">
+      <h3 className="text-lg font-bold text-slate-800">
+        מה אתה מחפש?
+      </h3>
+      <p className="text-sm text-slate-500">
+        בחר את סוג המודעות שמעניין אותך
+      </p>
+    </div>
+
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+      {/* כל המודעות */}
+      <button
+        onClick={() => setListingTypeFilter('all')}
+        className={`rounded-2xl border-2 p-4 text-center transition ${
+          listingTypeFilter === 'all'
+            ? 'border-slate-700 bg-slate-100 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+        }`}
+      >
+        <div className="text-2xl mb-1">⚪</div>
+        <div className="font-bold text-slate-800">
+          כל המודעות
+        </div>
+        <div className="text-xs text-slate-500 mt-1">
+          הצעות ובקשות
+        </div>
+      </button>
+
+      {/* מציע עבודה */}
+      <button
+        onClick={() => setListingTypeFilter('offer')}
+        className={`rounded-2xl border-2 p-4 text-center transition ${
+          listingTypeFilter === 'offer'
+            ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
+        }`}
+      >
+        <div className="text-2xl mb-1">🟢</div>
+        <div className="font-bold text-slate-800">
+          מציע עבודה / שירות
+        </div>
+        <div className="text-xs text-slate-500 mt-1">
+          אנשים שמציעים שירות או עבודה
+        </div>
+      </button>
+
+      {/* מחפש עבודה */}
+      <button
+        onClick={() => setListingTypeFilter('request')}
+        className={`rounded-2xl border-2 p-4 text-center transition ${
+          listingTypeFilter === 'request'
+            ? 'border-blue-500 bg-blue-50 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+        }`}
+      >
+        <div className="text-2xl mb-1">🔵</div>
+        <div className="font-bold text-slate-800">
+          מחפש עבודה / משימה
+        </div>
+        <div className="text-xs text-slate-500 mt-1">
+          אנשים שמחפשים עבודה או משימה
+        </div>
+      </button>
+
+    </div>
+  </div>
+)}
+
+{currentView === 'home' && (
+  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5 mb-8">
+
+    {/* חיפוש */}
+    <div className="mb-4">
+      <label className="block text-sm font-semibold text-slate-700 mb-2">
+        🔎 חיפוש במודעות
+      </label>
+
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
+        className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
+      />
+    </div>
+
+    {/* מסננים */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+
+      {/* סוג מודעה */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+          סוג מודעה
+        </label>
+
+        <select
+          value={listingTypeFilter}
+          onChange={(e) => setListingTypeFilter(e.target.value)}
+          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">כל סוגי המודעות</option>
+          <option value="offer">🟢 מציע עבודה / שירות</option>
+          <option value="request">🔵 מחפש עבודה / משימה</option>
+        </select>
+      </div>
+
+      {/* קטגוריה */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+          קטגוריה
+        </label>
+
+        <select
+  value={categoryFilter}
+  onChange={(e) => setCategoryFilter(e.target.value)}
+  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+>
+  <option value="all">כל הקטגוריות</option>
+
+  {categories.map((category) => (
+    <option key={category} value={category}>
+      {category}
+    </option>
+  ))}
+</select>
+      </div>
+
+      {/* אזור */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+          אזור
+        </label>
+
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <option value="all">כל האזורים</option>
+
+          {[
+            ...new Set(
+              listings
+                .map((item) => item.location)
+                .filter(Boolean)
+            )
+          ]
+            .sort()
+            .map((location) => (
+              <option key={location} value={location}>
+                📍 {location}
+              </option>
+            ))}
+        </select>
+      </div>
+
+    </div>
+
+    {/* שורת תוצאות + ניקוי */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t border-slate-100">
+
+      <div className="text-sm text-slate-500">
+        נמצאו{' '}
+        <span className="font-bold text-slate-800">
+          {displayedListings.length}
+        </span>{' '}
+        מודעות
+      </div>
+
+      {(searchTerm ||
+        listingTypeFilter !== 'all' ||
+        categoryFilter !== 'all' ||
+        locationFilter !== 'all') && (
+        <button
+          onClick={() => {
+            setSearchTerm('')
+            setListingTypeFilter('all')
+            setCategoryFilter('all')
+            setLocationFilter('all')
+          }}
+          className="text-sm font-semibold text-red-500 hover:text-red-600 transition"
+        >
+          ✕ נקה סינון
+        </button>
+      )}
+
+    </div>
+  </div>
+)}
+  
+
   {/* רשימת המודעות */}
   {loading ? (
     <div className="text-center py-12 text-slate-500">
@@ -740,130 +1017,192 @@ const handleGoogleLogin = async () => {
   ) : displayedListings.length === 0 ? (
     <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
       <p className="text-lg text-slate-600 mb-4">
-        {currentView === 'my-listings'
-          ? 'עדיין לא פרסמת אף מודעה.'
-          : 'עדיין אין מודעות בלוח.'}
-      </p>
+  {currentView === 'my-listings'
+    ? 'עדיין לא פרסמת אף מודעה.'
+    : listings.length === 0
+      ? 'עדיין אין מודעות בלוח.'
+      : 'לא נמצאו מודעות התואמות לחיפוש או לסינון שבחרת.'}
+</p>
 
-      <button
-        onClick={handleOpenPublishModal}
-        className="text-emerald-600 font-semibold hover:underline"
-      >
-        {currentView === 'my-listings'
-          ? 'פרסם את המודעה הראשונה שלך!'
-          : 'היה הראשון לפרסם מודעה!'}
-      </button>
+      {currentView === 'my-listings' ? (
+  <button
+    onClick={handleOpenPublishModal}
+    className="text-emerald-600 font-semibold hover:underline"
+  >
+    פרסם את המודעה הראשונה שלך!
+  </button>
+) : listings.length === 0 ? (
+  <button
+    onClick={handleOpenPublishModal}
+    className="text-emerald-600 font-semibold hover:underline"
+  >
+    היה הראשון לפרסם מודעה!
+  </button>
+) : (
+  <button
+    onClick={() => {
+      setSearchTerm('')
+      setListingTypeFilter('all')
+      setCategoryFilter('all')
+      setLocationFilter('all')
+    }}
+    className="text-emerald-600 font-semibold hover:underline"
+  >
+    נקה את החיפוש והסינון
+  </button>
+)}
     </div>
   ) : (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {displayedListings.map((item) => {
-        const isOwner =
-          user && (item.user_id === user.id || !item.user_id)
+  {displayedListings.map((item) => {
+    const isOwner =
+      user && (item.user_id === user.id || !item.user_id)
 
-        return (
-          <div
-            key={item.id}
-            onClick={() => setSelectedListing(item)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                setSelectedListing(item)
-              }
-            }}
-            className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition duration-200 flex flex-col justify-between cursor-pointer"
-          >
-            <div>
-              {/* תמונת המודעה */}
-              {item.image_url ? (
-                <div className="w-full h-48 bg-slate-100 overflow-hidden">
-                  <img
-                    src={item.image_url}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition duration-300 hover:scale-105"
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-24 bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
-                  ללא תמונה
-                </div>
-              )}
-
-              <div className="p-5">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="bg-emerald-50 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded-md">
-                    {item.category || 'כללי'}
-                  </span>
-
-                  {item.price && (
-                    <span className="text-lg font-bold text-slate-900">
-                      ₪{item.price}
-                    </span>
-                  )}
-                </div>
-
-                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-1">
-                  {item.title}
-                </h3>
-
-                <p className="text-slate-600 text-sm mb-4 line-clamp-3">
-                  {item.description}
-                </p>
-
-                <div className="text-emerald-600 text-sm font-semibold">
-                  לצפייה בפרטים המלאים ←
-                </div>
-              </div>
+    return (
+      <div
+        key={item.id}
+        onClick={() => setSelectedListing(item)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setSelectedListing(item)
+          }
+        }}
+        className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col cursor-pointer"
+      >
+        {/* תמונת המודעה */}
+        <div className="relative">
+          {item.image_url ? (
+            <div className="w-full h-52 bg-slate-100 overflow-hidden">
+              <img
+                src={item.image_url}
+                alt={item.title}
+                className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+              />
             </div>
+          ) : (
+            <div className="w-full h-32 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+              <span className="text-slate-400 text-sm font-medium">
+                אין תמונה
+              </span>
+            </div>
+          )}
 
-            <div className="p-5 pt-0">
-              <div className="border-t border-slate-100 pt-3 mt-2 flex justify-between items-center text-xs text-slate-500 mb-2">
-                <div>
-                  {item.location && (
-                    <span>📍 {item.location}</span>
-                  )}
-                </div>
+          {/* תג סוג המודעה על התמונה */}
+          <div className="absolute top-3 right-3">
+            {item.listing_type === 'request' ? (
+              <span className="inline-flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                🔵 מחפש משימה
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                🟢 מציע שירות
+              </span>
+            )}
+          </div>
+        </div>
 
-                {item.phone && (
-                  <a
-                    href={`tel:${item.phone}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-lg font-medium transition"
-                  >
-                    📞 {item.phone}
-                  </a>
-                )}
-              </div>
+        {/* תוכן */}
+        <div className="p-5 flex-1 flex flex-col">
 
-              {isOwner && (
-                <div className="flex gap-2 pt-2 border-t border-slate-100">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleOpenEditModal(item)
-                    }}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-1.5 rounded-lg text-xs font-semibold transition"
-                  >
-                    עריכה ✏️
-                  </button>
+          {/* קטגוריה + מחיר */}
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <span className="inline-flex bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold px-2.5 py-1 rounded-lg">
+              {item.category || 'כללי'}
+            </span>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteListing(item.id)
-                    }}
-                    className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-1.5 rounded-lg text-xs font-semibold transition"
-                  >
-                    מחיקה 🗑️
-                  </button>
-                </div>
-              )}
+            {item.price ? (
+              <span className="text-xl font-extrabold text-slate-900 whitespace-nowrap">
+                ₪{item.price}
+              </span>
+            ) : (
+              <span className="text-xs text-slate-400 font-medium">
+                מחיר לא צוין
+              </span>
+            )}
+          </div>
+
+          {/* כותרת */}
+          <h3 className="text-xl font-extrabold text-slate-900 mb-2 line-clamp-2 leading-snug group-hover:text-emerald-700 transition">
+            {item.title}
+          </h3>
+
+          {/* תיאור */}
+          <p className="text-slate-600 text-sm leading-6 mb-4 line-clamp-3">
+            {item.description || 'ללא תיאור נוסף'}
+          </p>
+
+          {/* מיקום */}
+          {item.location && (
+            <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+              <span className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
+                📍
+              </span>
+              <span className="truncate">
+                {item.location}
+              </span>
+            </div>
+          )}
+
+          {/* צפייה בפרטים */}
+          <div className="mt-auto">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <span className="text-emerald-600 text-sm font-bold group-hover:translate-x-[-3px] transition-transform">
+                לצפייה בפרטים
+              </span>
+
+              <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition">
+                ←
+              </span>
             </div>
           </div>
-        )
-      })}
-    </div>
+        </div>
+
+        {/* אזור תחתון */}
+        <div className="px-5 pb-5">
+
+          {/* טלפון */}
+          {item.phone && (
+            <a
+              href={`tel:${item.phone}`}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold transition"
+            >
+              📞 {item.phone}
+            </a>
+          )}
+
+          {/* פעולות בעל המודעה */}
+          {isOwner && (
+            <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOpenEditModal(item)
+                }}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-bold transition"
+              >
+                ✏️ עריכה
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeleteListing(item.id)
+                }}
+                className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl text-xs font-bold transition"
+              >
+                🗑️ מחיקה
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  })}
+</div>
   )}
 </main>
 
@@ -1853,21 +2192,39 @@ const handleGoogleLogin = async () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">קטגוריה</label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="עבודות מזדמנות">עבודות מזדמנות</option>
-                  <option value="שירותים לבית">שירותים לבית</option>
-                  <option value="שיעורים פרטיים">שיעורים פרטיים</option>
-                  <option value="טיפול בילדים / חיות">טיפול בילדים / חיות</option>
-                  <option value="הובלות ואיסוף">הובלות ואיסוף</option>
-                  <option value="אחר">אחר</option>
-                </select>
-              </div>
+  <label className="block text-xs font-medium text-slate-700 mb-1">
+    סוג המודעה
+  </label>
+
+  <select
+    name="listing_type"
+    value={formData.listing_type}
+    onChange={handleChange}
+    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  >
+    <option value="offer">🟢 אני מציע עבודה / שירות</option>
+    <option value="request">🔵 אני מחפש עבודה / משימה</option>
+  </select>
+</div>
+
+<div>
+  <label className="block text-xs font-medium text-slate-700 mb-1">
+    קטגוריה
+  </label>
+
+  <select
+    name="category"
+    value={formData.category}
+    onChange={handleChange}
+    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  >
+    {categories.map((category) => (
+      <option key={category} value={category}>
+        {category}
+      </option>
+    ))}
+  </select>
+</div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
