@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
-export default function App() {
+function App() {
 
   const categories = [
   'תיקונים לבית',
@@ -19,6 +20,52 @@ export default function App() {
   'עבודות מזדמנות',
   'אחר'
 ]
+
+// ניווט בין עמודי האתר
+  const openPage = (page) => {
+    setCurrentView(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+const handleShareListing = async (listing) => {
+  if (!listing) return
+
+  const shareUrl =
+    `${window.location.origin}${window.location.pathname}` +
+    `?listing=${listing.id}`
+
+  const shareData = {
+    title: listing.title || 'מודעה בכסף כיס',
+    text: listing.description
+      ? `${listing.title}\n\n${listing.description}`
+      : listing.title || 'מודעה בכסף כיס',
+    url: shareUrl
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData)
+      return
+    }
+
+    await navigator.clipboard.writeText(shareUrl)
+
+    alert('הקישור למודעה הועתק בהצלחה.')
+  } catch (error) {
+    // המשתמש סגר את חלון השיתוף — לא צריך להציג שגיאה
+    if (error?.name === 'AbortError') {
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      alert('הקישור למודעה הועתק בהצלחה.')
+    } catch (clipboardError) {
+      console.error('שגיאה בשיתוף המודעה:', clipboardError)
+      alert('לא ניתן היה ליצור קישור לשיתוף.')
+    }
+  }
+}
 
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -38,6 +85,15 @@ const [locationFilter, setLocationFilter] = useState('all')
 
 
   const [selectedListing, setSelectedListing] = useState(null)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+const [reportReason, setReportReason] = useState('')
+const [reportDetails, setReportDetails] = useState('')
+
+const [reports, setReports] = useState([])
+const [isAdmin, setIsAdmin] = useState(false)
+const [showReportsAdmin, setShowReportsAdmin] = useState(false)
+const [reportsLoading, setReportsLoading] = useState(false)
+
   const [contactModalItem, setContactModalItem] = useState(null);
   const [contactListing, setContactListing] = useState(null);
 
@@ -89,18 +145,34 @@ const [isSendingConversationMessage, setIsSendingConversationMessage] = useState
 
     // מעקב אחר מצב ההתחברות של המשתמש
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-    })
+  supabase.auth.getSession().then(async ({ data: { session } }) => {
+    const currentUser = session?.user ?? null
 
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
+    setUser(currentUser)
 
-    return () => subscription.unsubscribe()
-  }, [])
+    if (currentUser) {
+      await checkAdmin(currentUser)
+    } else {
+      setIsAdmin(false)
+    }
+  })
+
+  const {
+    data: { subscription }
+  } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const currentUser = session?.user ?? null
+
+    setUser(currentUser)
+
+    if (currentUser) {
+      await checkAdmin(currentUser)
+    } else {
+      setIsAdmin(false)
+    }
+  })
+
+  return () => subscription.unsubscribe()
+}, [])
 
 
   // טעינת ההודעות של המשתמש
@@ -358,6 +430,130 @@ const loadConversation = async (otherUserId, listingId) => {
 
 
 
+
+const checkAdmin = async (currentUser) => {
+  if (!currentUser) {
+    setIsAdmin(false)
+    return false
+  }
+
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('user_id')
+    .eq('user_id', currentUser.id)
+    .maybeSingle()
+
+  if (error) {
+    console.error('שגיאה בבדיקת הרשאת מנהל:', error)
+    setIsAdmin(false)
+    return false
+  }
+
+  const admin = !!data
+  setIsAdmin(admin)
+
+  return admin
+}
+
+
+
+
+
+const fetchReports = async () => {
+  if (!isAdmin) return
+
+  setReportsLoading(true)
+
+  try {
+    const { data, error } = await supabase
+      .from('reports')
+      .select(`
+        id,
+        listing_id,
+        reporter_id,
+        reason,
+        details,
+        status,
+        admin_note,
+        created_at,
+        listings (
+          id,
+          title,
+          description,
+          category,
+          price,
+          location,
+          phone
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('שגיאה בטעינת דיווחים:', error)
+
+      alert(
+        'לא הצלחנו לטעון את הדיווחים.\n\n' +
+        error.message
+      )
+
+      return
+    }
+
+    setReports(data || [])
+  } catch (err) {
+    console.error('שגיאה לא צפויה בטעינת דיווחים:', err)
+
+    alert(
+      'אירעה שגיאה בטעינת הדיווחים.\n\n' +
+      (err?.message || 'שגיאה לא ידועה')
+    )
+  } finally {
+    setReportsLoading(false)
+  }
+}
+
+
+
+
+
+const updateReportStatus = async (reportId, status, adminNote = null) => {
+  if (!isAdmin) return
+
+  try {
+    const { error } = await supabase
+      .from('reports')
+      .update({
+        status,
+        admin_note: adminNote?.trim() || null,
+        handled_at: status === 'pending' ? null : new Date().toISOString()
+      })
+      .eq('id', reportId)
+
+    if (error) {
+      console.error('שגיאה בעדכון דיווח:', error)
+
+      alert(
+        'לא הצלחנו לעדכן את הדיווח.\n\n' +
+        error.message
+      )
+
+      return
+    }
+
+    await fetchReports()
+  } catch (err) {
+    console.error('שגיאה לא צפויה בעדכון דיווח:', err)
+
+    alert(
+      'אירעה שגיאה בעדכון הדיווח.\n\n' +
+      (err?.message || 'שגיאה לא ידועה')
+    )
+  }
+}
+
+
+
+
   // טעינת מודעות מ-Supabase
   const fetchListings = async () => {
     setLoading(true)
@@ -583,16 +779,17 @@ const handleUpdateListing = async (e) => {
     }
 
     const updatedData = {
-      title: formData.title,
-      description: formData.description,
-      price: formData.price ? parseFloat(formData.price) : null,
-      listing_type: formData.listing_type,
-      category: formData.category,
-      location: formData.location,
-      contact_name: formData.contact_name,
-      phone: formData.phone,
-      image_url: imageUrl
-    }
+  title: formData.title,
+  description: formData.description,
+  price: formData.price ? parseFloat(formData.price) : null,
+  listing_type: formData.listing_type,
+  category: formData.category,
+  location: formData.location,
+  contact_name: formData.contact_name,
+  phone: formData.phone,
+  image_url: imageUrl,
+  updated_at: new Date().toISOString()
+}
 
     const { data, error } = await supabase
       .from('listings')
@@ -713,100 +910,115 @@ const displayedListings = baseListings.filter((item) => {
     </div>
 
     <div className="flex items-center gap-3">
-      {user ? (
-        <div className="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+  {user ? (
+    <div className="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
 
-          {/* תמונת פרופיל בסרגל */}
-          <label
-            className="relative cursor-pointer group"
-            title="החלף תמונת פרופיל"
-          >
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleUpdateAvatar}
-              className="hidden"
-            />
-
-            {user.user_metadata?.avatar_url ? (
-              <img
-                src={user.user_metadata.avatar_url}
-                alt="Profile"
-                className="w-8 h-8 rounded-full object-cover border border-slate-300"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                {user.email?.charAt(0).toUpperCase()}
-              </div>
-            )}
-          </label>
-
-          <span className="text-xs text-slate-700 hidden sm:inline font-medium">
-            {user.email}
-          </span>
-
-          {/* המודעות שלי */}
-          <button
-            onClick={() =>
-              setCurrentView(
-                currentView === 'my-listings' ? 'home' : 'my-listings'
-              )
-            }
-            className={`text-xs font-semibold px-2 py-1 rounded-lg transition ${
-              currentView === 'my-listings'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-            }`}
-          >
-            {currentView === 'my-listings' ? 'כל הלוח' : 'המודעות שלי'}
-          </button>
-
-          {/* הודעות שלי */}
-          <button
-            onClick={() => setMessagesModalOpen(true)}
-            className="relative text-xs font-semibold px-2 py-1 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
-          >
-            הודעות שלי
-
-            {unreadMessagesCount > 0 && (
-              <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
-              </span>
-            )}
-          </button>
-
-          {/* התנתקות */}
-          <button
-            onClick={handleLogout}
-            className="text-xs text-red-600 hover:text-red-700 font-semibold transition"
-          >
-            התנתק
-          </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => {
-            setAuthMode('login')
-            setIsAuthModalOpen(true)
-          }}
-          className="text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2 rounded-lg transition"
-        >
-          התחברות / הרשמה
-        </button>
-      )}
-
-      <button
-        onClick={handleOpenPublishModal}
-        className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl shadow-sm transition duration-150 flex items-center gap-2 cursor-pointer"
+      {/* תמונת פרופיל בסרגל */}
+      <label
+        className="relative cursor-pointer group"
+        title="החלף תמונת פרופיל"
       >
-        <span>+</span> פרסם מודעה
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleUpdateAvatar}
+          className="hidden"
+        />
+
+        {user.user_metadata?.avatar_url ? (
+          <img
+            src={user.user_metadata.avatar_url}
+            alt="Profile"
+            className="w-8 h-8 rounded-full object-cover border border-slate-300"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+            {user.email?.charAt(0).toUpperCase()}
+          </div>
+        )}
+      </label>
+
+      <span className="text-xs text-slate-700 hidden sm:inline font-medium">
+        {user.email}
+      </span>
+
+      {/* המודעות שלי */}
+      <button
+        onClick={() =>
+          setCurrentView(
+            currentView === 'my-listings' ? 'home' : 'my-listings'
+          )
+        }
+        className={`text-xs font-semibold px-2 py-1 rounded-lg transition ${
+          currentView === 'my-listings'
+            ? 'bg-emerald-600 text-white'
+            : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+        }`}
+      >
+        {currentView === 'my-listings' ? 'כל הלוח' : 'המודעות שלי'}
+      </button>
+
+      {/* הודעות שלי */}
+      <button
+        onClick={() => setMessagesModalOpen(true)}
+        className="relative text-xs font-semibold px-2 py-1 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition"
+      >
+        הודעות שלי
+
+        {unreadMessagesCount > 0 && (
+          <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+            {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+          </span>
+        )}
+      </button>
+
+      {/* ניהול דיווחים - מנהל בלבד */}
+      {isAdmin && (
+  <button
+    type="button"
+    onClick={async () => {
+      setShowReportsAdmin(true)
+      await fetchReports()
+    }}
+    className="text-xs font-semibold px-2 py-1 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition"
+  >
+    🚨 ניהול דיווחים
+  </button>
+)}
+
+      {/* התנתקות */}
+      <button
+        onClick={handleLogout}
+        className="text-xs text-red-600 hover:text-red-700 font-semibold transition"
+      >
+        התנתק
       </button>
     </div>
+  ) : (
+    <button
+      onClick={() => {
+        setAuthMode('login')
+        setIsAuthModalOpen(true)
+      }}
+      className="text-sm font-medium text-slate-700 hover:text-slate-900 px-3 py-2 rounded-lg transition"
+    >
+      התחברות / הרשמה
+    </button>
+  )}
+
+  <button
+    onClick={handleOpenPublishModal}
+    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl shadow-sm transition duration-150 flex items-center gap-2 cursor-pointer"
+  >
+    <span>+</span> פרסם מודעה
+  </button>
+</div>
   </div>
 </header>
 
       {/* אזור מרכזי */}
 <main className="max-w-5xl mx-auto px-4 pt-8">
+ {(currentView === 'home' || currentView === 'my-listings') && (
   <div className="mb-8 text-center md:text-right flex flex-col md:flex-row md:items-center md:justify-between">
     <div>
         
@@ -832,6 +1044,24 @@ const displayedListings = baseListings.filter((item) => {
       </button>
     )}
   </div>
+)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 {/* בחירת סוג מודעה */}
@@ -1242,18 +1472,55 @@ const displayedListings = baseListings.filter((item) => {
       onClick={(e) => e.stopPropagation()}
     >
       {/* כותרת המודאל */}
-      <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
-        <h2 className="text-lg font-bold text-slate-900">
-          פרטי המודעה
-        </h2>
+      <div className="flex items-center justify-between gap-3 p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+            📋
+          </div>
 
-        <button
-          onClick={() => setSelectedListing(null)}
-          className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
-          aria-label="סגירת חלון"
-        >
-          ×
-        </button>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              פרטי המודעה
+            </h2>
+
+            <p className="text-xs text-slate-500 mt-0.5">
+              כסף כיס
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* שיתוף */}
+          <button
+            onClick={() => handleShareListing(selectedListing)}
+            className="h-10 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-sm transition flex items-center gap-2"
+            aria-label="שיתוף המודעה"
+          >
+            <span>🔗</span>
+            <span className="hidden sm:inline">שיתוף</span>
+          </button>
+
+          <button
+  type="button"
+  onClick={() => {
+    setReportReason('')
+    setReportDetails('')
+    setIsReportModalOpen(true)
+  }}
+  className="w-full mt-3 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-4 py-3 rounded-xl text-sm font-bold transition"
+>
+  ⚠️ דיווח על מודעה
+</button>
+
+          {/* סגירה */}
+          <button
+            onClick={() => setSelectedListing(null)}
+            className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
+            aria-label="סגירת חלון"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {/* תמונה */}
@@ -1266,33 +1533,47 @@ const displayedListings = baseListings.filter((item) => {
           />
         </div>
       ) : (
-        <div className="w-full h-32 bg-slate-100 flex items-center justify-center text-slate-400">
+        <div className="w-full h-32 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-400">
           ללא תמונה
         </div>
       )}
 
       <div className="p-6 md:p-8">
 
-        {/* קטגוריה ומחיר */}
-        <div className="flex justify-between items-start gap-4 mb-4">
-          <span className="bg-emerald-50 text-emerald-700 text-sm font-semibold px-3 py-1.5 rounded-lg">
-            {selectedListing.category || "כללי"}
-          </span>
+        {/* סוג המודעה + קטגוריה + מחיר */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedListing.listing_type === 'request' ? (
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-sm font-bold px-3 py-1.5 rounded-lg">
+                🔵 מחפש עבודה / משימה
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-sm font-bold px-3 py-1.5 rounded-lg">
+                🟢 מציע עבודה / שירות
+              </span>
+            )}
+
+            <span className="bg-slate-50 text-slate-700 border border-slate-200 text-sm font-semibold px-3 py-1.5 rounded-lg">
+              {selectedListing.category || 'כללי'}
+            </span>
+          </div>
 
           {selectedListing.price && (
-            <span className="text-2xl font-extrabold text-slate-900">
+            <span className="text-2xl font-extrabold text-slate-900 whitespace-nowrap">
               ₪{selectedListing.price}
             </span>
           )}
         </div>
 
         {/* כותרת */}
-        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-5">
+        <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-5 leading-tight">
           {selectedListing.title}
         </h2>
 
         {/* פרטי בסיס */}
         <div className="flex flex-wrap gap-3 mb-6 text-sm text-slate-600">
+
           {selectedListing.location && (
             <span className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
               📍 {selectedListing.location}
@@ -1301,12 +1582,24 @@ const displayedListings = baseListings.filter((item) => {
 
           {selectedListing.created_at && (
             <span className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
-              📅{" "}
+              📅 פורסם:{' '}
               {new Date(
                 selectedListing.created_at
-              ).toLocaleDateString("he-IL")}
+              ).toLocaleDateString('he-IL')}
             </span>
           )}
+
+          {selectedListing.updated_at &&
+            selectedListing.created_at &&
+            new Date(selectedListing.updated_at).getTime() >
+              new Date(selectedListing.created_at).getTime() + 60000 && (
+              <span className="bg-blue-50 border border-blue-100 text-blue-700 rounded-lg px-3 py-2">
+                🔄 עודכן:{' '}
+                {new Date(
+                  selectedListing.updated_at
+                ).toLocaleDateString('he-IL')}
+              </span>
+            )}
         </div>
 
         {/* תיאור מלא */}
@@ -1316,7 +1609,7 @@ const displayedListings = baseListings.filter((item) => {
           </h3>
 
           <p className="text-slate-600 leading-8 whitespace-pre-wrap">
-            {selectedListing.description || "לא נוסף תיאור למודעה."}
+            {selectedListing.description || 'לא נוסף תיאור למודעה.'}
           </p>
         </div>
 
@@ -1341,7 +1634,7 @@ const displayedListings = baseListings.filter((item) => {
 
             <div>
               <p className="font-bold text-slate-900">
-                {user?.user_metadata?.full_name || "משתמש רשום"}
+                {user?.user_metadata?.full_name || 'משתמש רשום'}
               </p>
 
               <p className="text-sm text-slate-500">
@@ -1350,20 +1643,516 @@ const displayedListings = baseListings.filter((item) => {
             </div>
           </div>
 
-          {/* כפתור יצירת קשר */}
-          {selectedListing.phone && (
+          {/* כפתורי פעולה */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+
+            {/* צור קשר */}
+            {selectedListing.phone && (
+              <button
+                onClick={() => setContactListing(selectedListing)}
+                className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition"
+              >
+                💬 צור קשר עם המפרסם
+              </button>
+            )}
+
+            {/* שיתוף */}
             <button
-              onClick={() => setContactListing(selectedListing)}
-              className="mt-4 flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition"
+              onClick={() => handleShareListing(selectedListing)}
+              className="flex items-center justify-center gap-2 w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3.5 rounded-xl transition"
             >
-              💬 צור קשר עם המפרסם
+              🔗 שתף את המודעה
             </button>
-          )}
+          </div>
         </div>
+
+        {/* סגירה */}
+        <button
+          onClick={() => setSelectedListing(null)}
+          className="w-full mt-4 py-3 text-sm font-semibold text-slate-500 hover:text-slate-800 transition"
+        >
+          סגור
+        </button>
       </div>
     </div>
   </div>
 )}
+
+
+
+{isReportModalOpen && (
+  <div
+    className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    onClick={() => setIsReportModalOpen(false)}
+  >
+    <div
+      dir="rtl"
+      className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="bg-gradient-to-br from-red-500 to-rose-600 px-6 py-6 text-white">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-3xl mb-2">
+              ⚠️
+            </div>
+
+            <h2 className="text-2xl font-extrabold">
+              דיווח על מודעה
+            </h2>
+
+            <p className="text-red-50 text-sm mt-1">
+              עזור לנו לשמור על לוח מודעות בטוח ואמין
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsReportModalOpen(false)}
+            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-xl transition"
+            aria-label="סגירה"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5">
+
+        {selectedListing && (
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <p className="text-xs text-slate-400 font-semibold mb-1">
+              המודעה שעליה מדווחים
+            </p>
+
+            <p className="font-extrabold text-slate-900 line-clamp-2">
+              {selectedListing.title}
+            </p>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-extrabold text-slate-800 mb-2">
+            סיבת הדיווח
+          </label>
+
+          <select
+            value={reportReason}
+            onChange={(e) => setReportReason(e.target.value)}
+            className="w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition"
+          >
+            <option value="">
+              בחר סיבה
+            </option>
+
+            <option value="תוכן אסור">
+              תוכן אסור
+            </option>
+
+            <option value="תוכן מיני">
+              תוכן מיני
+            </option>
+
+            <option value="הונאה או התחזות">
+              הונאה או התחזות
+            </option>
+
+            <option value="ספאם">
+              ספאם או פרסום לא רצוי
+            </option>
+
+            <option value="תוכן פוגעני">
+              תוכן פוגעני או מאיים
+            </option>
+
+            <option value="מידע מטעה">
+              מידע מטעה או שקרי
+            </option>
+
+            <option value="אחר">
+              סיבה אחרת
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-extrabold text-slate-800 mb-2">
+            פרטים נוספים
+            <span className="text-slate-400 font-normal mr-1">
+              (לא חובה)
+            </span>
+          </label>
+
+          <textarea
+            value={reportDetails}
+            onChange={(e) => setReportDetails(e.target.value)}
+            rows={4}
+            maxLength={1000}
+            placeholder="אפשר לפרט מה הבעיה במודעה..."
+            className="w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition resize-none"
+          />
+
+          <div className="text-left text-xs text-slate-400 mt-1">
+            {reportDetails.length}/1000
+          </div>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <p className="text-sm text-amber-800 leading-6">
+            הדיווח ייבדק על ידי מפעיל האתר. אין להשתמש במערכת הדיווחים
+            לצורך הטרדה או דיווחים כוזבים.
+          </p>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            type="button"
+            onClick={() => setIsReportModalOpen(false)}
+            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition"
+          >
+            ביטול
+          </button>
+
+          <button
+  type="button"
+  disabled={!reportReason}
+  onClick={async () => {
+    if (!reportReason || !selectedListing) return
+
+    if (!user) {
+      alert('כדי לדווח על מודעה צריך להתחבר לחשבון.')
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          listing_id: selectedListing.id,
+          reporter_id: user.id,
+          reason: reportReason,
+          details: reportDetails.trim() || null
+        })
+
+      if (error) {
+        console.error('שגיאה בשליחת דיווח:', error)
+
+        alert(
+          'לא הצלחנו לשלוח את הדיווח.\n\n' +
+          error.message
+        )
+
+        return
+      }
+
+      alert('הדיווח התקבל. תודה שעזרת לנו לשמור על האתר.')
+
+      setIsReportModalOpen(false)
+      setReportReason('')
+      setReportDetails('')
+    } catch (err) {
+      console.error('שגיאה לא צפויה בשליחת דיווח:', err)
+
+      alert(
+        'אירעה שגיאה בשליחת הדיווח.\n\n' +
+        (err?.message || 'שגיאה לא ידועה')
+      )
+    }
+  }}
+  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold transition"
+>
+  שליחת דיווח
+</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+
+{showReportsAdmin && (
+  <div
+    className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    onClick={() => setShowReportsAdmin(false)}
+  >
+    <div
+      dir="rtl"
+      className="w-full max-w-5xl max-h-[90vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+
+      {/* כותרת */}
+      <div className="bg-gradient-to-br from-red-600 to-rose-700 px-6 py-6 text-white flex items-center justify-between gap-4">
+        <div>
+          <div className="text-3xl mb-2">
+            🚨
+          </div>
+
+          <h2 className="text-2xl md:text-3xl font-extrabold">
+            ניהול דיווחים
+          </h2>
+
+          <p className="text-red-100 text-sm mt-1">
+            דיווחים שהתקבלו ממשתמשי האתר
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowReportsAdmin(false)}
+          className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-xl transition"
+          aria-label="סגירה"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* תוכן */}
+      <div className="p-6 overflow-y-auto">
+
+        {reportsLoading ? (
+          <div className="py-16 text-center">
+            <div className="text-4xl mb-4">
+              ⏳
+            </div>
+
+            <p className="text-slate-500 font-semibold">
+              טוען דיווחים...
+            </p>
+          </div>
+        ) : reports.length === 0 ? (
+          <div className="py-16 text-center">
+            <div className="text-5xl mb-4">
+              ✅
+            </div>
+
+            <h3 className="text-xl font-extrabold text-slate-900">
+              אין דיווחים
+            </h3>
+
+            <p className="text-slate-500 mt-2">
+              כרגע לא התקבלו דיווחים על מודעות.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+
+            {reports.map((report) => (
+              <div
+                key={report.id}
+                className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm"
+              >
+
+                {/* כותרת הדיווח */}
+                <div className="p-5 bg-slate-50 border-b border-slate-200">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+
+                        <span className="text-xs font-bold bg-red-100 text-red-700 px-2.5 py-1 rounded-lg">
+                          ⚠️ {report.reason}
+                        </span>
+
+                        <span
+                          className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
+                            report.status === 'pending'
+                              ? 'bg-amber-100 text-amber-700'
+                              : report.status === 'resolved'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {report.status === 'pending'
+                            ? 'ממתין לטיפול'
+                            : report.status === 'resolved'
+                              ? 'טופל'
+                              : 'נסגר'}
+                        </span>
+
+                      </div>
+
+                      <h3 className="text-lg font-extrabold text-slate-900">
+                        {report.listings?.title || 'המודעה אינה זמינה'}
+                      </h3>
+
+                      <p className="text-xs text-slate-400 mt-1">
+                        דווח בתאריך:{' '}
+                        {new Date(report.created_at).toLocaleString('he-IL')}
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* תוכן הדיווח */}
+                <div className="p-5 space-y-4">
+
+                  {report.listings && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                      <p className="text-xs font-bold text-slate-400 mb-2">
+                        פרטי המודעה
+                      </p>
+
+                      <p className="font-bold text-slate-900">
+                        {report.listings.title}
+                      </p>
+
+                      {report.listings.description && (
+                        <p className="text-sm text-slate-600 mt-2 leading-6">
+                          {report.listings.description}
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 mt-3">
+
+                        {report.listings.category && (
+                          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg">
+                            {report.listings.category}
+                          </span>
+                        )}
+
+                        {report.listings.location && (
+                          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg">
+                            📍 {report.listings.location}
+                          </span>
+                        )}
+
+                        {report.listings.price && (
+                          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-lg">
+                            ₪{report.listings.price}
+                          </span>
+                        )}
+
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 mb-1">
+                      פרטי הדיווח
+                    </p>
+
+                    <p className="text-sm text-slate-700 leading-6">
+                      {report.details || 'המשתמש לא הוסיף פרטים נוספים.'}
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+  <p className="text-xs font-bold text-blue-600 mb-1">
+    מזהה המדווח
+  </p>
+
+  <p className="text-xs text-blue-800 break-all font-mono">
+    {report.reporter_id || 'לא זמין'}
+  </p>
+</div>
+
+<div className="border-t border-slate-200 pt-4 mt-4">
+
+  <label className="block text-xs font-extrabold text-slate-500 mb-2">
+    הערה פנימית למנהל
+  </label>
+
+  <textarea
+    defaultValue={report.admin_note || ''}
+    id={`report-note-${report.id}`}
+    rows={3}
+    placeholder="לדוגמה: בדקתי את המודעה ונראה שהכול תקין..."
+    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 resize-none"
+  />
+
+  <div className="flex flex-wrap gap-2 mt-3">
+
+    <button
+      type="button"
+      onClick={() => {
+        const note =
+          document.getElementById(`report-note-${report.id}`)?.value || ''
+
+        updateReportStatus(
+          report.id,
+          'resolved',
+          note
+        )
+      }}
+      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition"
+    >
+      🟢 סמן כטופל
+    </button>
+
+    <button
+      type="button"
+      onClick={() => {
+        const note =
+          document.getElementById(`report-note-${report.id}`)?.value || ''
+
+        updateReportStatus(
+          report.id,
+          'dismissed',
+          note
+        )
+      }}
+      className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2.5 rounded-xl text-sm font-bold transition"
+    >
+      ⚪ סגור ללא פעולה
+    </button>
+
+    {report.status !== 'pending' && (
+      <button
+        type="button"
+        onClick={() => {
+          const note =
+            document.getElementById(`report-note-${report.id}`)?.value || ''
+
+          updateReportStatus(
+            report.id,
+            'pending',
+            note
+          )
+        }}
+        className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-4 py-2.5 rounded-xl text-sm font-bold transition"
+      >
+        ↩️ החזר להמתנה
+      </button>
+    )}
+
+  </div>
+
+</div>
+
+                </div>
+
+              </div>
+            ))}
+
+          </div>
+        )}
+
+      </div>
+
+      {/* תחתית */}
+      <div className="border-t border-slate-200 p-4 bg-slate-50 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowReportsAdmin(false)}
+          className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-2.5 rounded-xl font-bold transition"
+        >
+          סגור
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
+
+
+
 
 
 {/* =========================================================
@@ -2517,7 +3306,1212 @@ const displayedListings = baseListings.filter((item) => {
             </form>
           </div>
         </div>
-      )}
+            )}
+
+      {/* =========================================================
+          FOOTER
+      ========================================================= */}
+      <footer className="mt-16 bg-white border-t border-slate-200">
+        <div className="max-w-5xl mx-auto px-4 py-8">
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+
+            {/* שם האתר */}
+            <div className="text-center md:text-right">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <span className="text-2xl">💰</span>
+
+                <span className="text-lg font-extrabold text-slate-900">
+                  כסף כיס
+                </span>
+              </div>
+
+              <p className="text-sm text-slate-500 mt-1">
+                לוח עבודות ושירותים מקומיים
+              </p>
+            </div>
+
+            {/* קישורים */}
+            <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm">
+  <Link
+    to="/"
+    className="text-slate-600 hover:text-emerald-600 transition"
+  >
+    לוח המודעות
+  </Link>
+
+  <Link
+    to="/contact"
+    className="text-slate-600 hover:text-emerald-600 transition"
+  >
+    צור קשר
+  </Link>
+
+  <Link
+    to="/terms"
+    className="text-slate-600 hover:text-emerald-600 transition"
+  >
+    תנאי שימוש
+  </Link>
+
+  <Link
+    to="/privacy"
+    className="text-slate-600 hover:text-emerald-600 transition"
+  >
+    מדיניות פרטיות
+  </Link>
+</nav>
+
+          </div>
+
+          <div className="border-t border-slate-100 mt-6 pt-5 text-center">
+            <p className="text-xs text-slate-400">
+              © {new Date().getFullYear()} כסף כיס. כל הזכויות שמורות.
+            </p>
+          </div>
+
+        </div>
+      </footer>
+
     </div>
+  )
+}
+
+function ContactPage() {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  })
+
+  const [sending, setSending] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    setSuccess('')
+    setError('')
+
+    if (
+      !formData.name.trim() ||
+      !formData.email.trim() ||
+      !formData.subject.trim() ||
+      !formData.message.trim()
+    ) {
+      setError('נא למלא את כל השדות.')
+      return
+    }
+
+    setSending(true)
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke(
+        'send-contact-email',
+        {
+          body: {
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message
+          }
+        }
+      )
+
+      if (invokeError) {
+        throw invokeError
+      }
+
+      if (data?.error) {
+        throw new Error(data.error)
+      }
+
+      setSuccess('הפנייה נשלחה בהצלחה! נחזור אליך בהקדם.')
+
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+      })
+    } catch (err) {
+      console.error('שגיאה בשליחת טופס צור קשר:', err)
+
+      setError(
+        err?.message ||
+        'אירעה שגיאה בשליחת הפנייה. נסה שוב בעוד כמה רגעים.'
+      )
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div
+      dir="rtl"
+      className="min-h-screen bg-slate-50 text-slate-900"
+    >
+      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+
+        <div className="mb-8">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition"
+          >
+            ← חזרה ללוח המודעות
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white">
+            <div className="text-4xl mb-4">
+              💬
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-3">
+              צור קשר
+            </h1>
+
+            <p className="text-emerald-50 text-base md:text-lg leading-8">
+              יש לך שאלה, הצעה לשיפור או דיווח על בעיה?
+              אפשר לשלוח לנו הודעה ישירות דרך הטופס.
+            </p>
+          </div>
+
+          <form
+            onSubmit={handleSubmit}
+            className="p-6 md:p-10 space-y-6"
+          >
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  שם
+                </label>
+
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      name: e.target.value
+                    })
+                  }
+                  placeholder="השם שלך"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  אימייל
+                </label>
+
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      email: e.target.value
+                    })
+                  }
+                  placeholder="name@example.com"
+                  dir="ltr"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  required
+                />
+              </div>
+
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                נושא הפנייה
+              </label>
+
+              <input
+                type="text"
+                value={formData.subject}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    subject: e.target.value
+                  })
+                }
+                placeholder="במה אפשר לעזור?"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                הודעה
+              </label>
+
+              <textarea
+                value={formData.message}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    message: e.target.value
+                  })
+                }
+                placeholder="כתוב כאן את הפנייה שלך..."
+                rows={7}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 resize-y"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                {success}
+              </div>
+            )}
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={sending}
+                className="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white px-8 py-3.5 font-bold transition shadow-sm"
+              >
+                {sending ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    שולח...
+                  </>
+                ) : (
+                  <>
+                    📩 שליחת פנייה
+                  </>
+                )}
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-6">
+              הפרטים שתמסור בטופס ישמשו לצורך מענה לפנייה שלך.
+            </p>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
+
+function TermsPage() {
+  return (
+    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+
+        <div className="mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition"
+          >
+            ← חזרה ללוח המודעות
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white">
+            <div className="text-4xl mb-4">
+              📋
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-3">
+              תנאי שימוש
+            </h1>
+
+            <p className="text-emerald-50 text-sm md:text-base">
+              תנאי השימוש באתר כסף כיס
+            </p>
+          </div>
+
+          <div className="p-6 md:p-10 space-y-8 text-slate-700 leading-8">
+
+            <div>
+              <p className="text-sm text-slate-400 mb-6">
+                עודכן לאחרונה: ספטמבר 2026
+              </p>
+
+              <p>
+                ברוכים הבאים לאתר <strong>כסף כיס</strong> (להלן:
+                "האתר"). האתר נועד לשמש לוח מקוון המאפשר למשתמשים
+                לפרסם, למצוא וליצור קשר בנוגע לעבודות, שירותים ומשימות שונות.
+              </p>
+
+              <p className="mt-4">
+                השימוש באתר, לרבות גלישה בו, יצירת חשבון, פרסום מודעה,
+                שליחת הודעה או יצירת קשר עם משתמש אחר, מהווה הסכמה לתנאי
+                שימוש אלה.
+              </p>
+            </div>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                1. הגדרות
+              </h2>
+
+              <p>
+                <strong>"האתר"</strong> – אתר כסף כיס וכל השירותים המקוונים
+                המופעלים במסגרתו.
+              </p>
+
+              <p className="mt-2">
+                <strong>"משתמש"</strong> – כל אדם הגולש באתר או עושה בו שימוש.
+              </p>
+
+              <p className="mt-2">
+                <strong>"מודעה"</strong> – כל פרסום, הצעה, בקשה או תוכן
+                שמועלה לאתר על ידי משתמש.
+              </p>
+
+              <p className="mt-2">
+                <strong>"שירות"</strong> – מערכת, כלי או אפשרות המוצעים
+                באמצעות האתר, לרבות פרסום מודעות, חיפוש מודעות, יצירת קשר
+                והודעות בין משתמשים.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                2. השימוש באתר
+              </h2>
+
+              <p>האתר מיועד לשימוש חוקי בלבד.</p>
+
+              <p className="mt-3">
+                המשתמש מתחייב שלא להשתמש באתר לצורך:
+              </p>
+
+              <ul className="list-disc pr-6 mt-2 space-y-1">
+                <li>פעילות בלתי חוקית.</li>
+                <li>הונאה, התחזות או הטעיה.</li>
+                <li>פרסום מידע כוזב ביודעין.</li>
+                <li>פגיעה, איום או הטרדה של משתמשים אחרים.</li>
+                <li>הפצת תוכן פוגעני, בלתי חוקי או מפר זכויות.</li>
+                <li>איסוף אוטומטי או שיטתי של מידע ממשתמשים ללא הרשאה.</li>
+                <li>ניסיון לפגוע בפעילות האתר, במערכותיו או באבטחתו.</li>
+                <li>שימוש באתר לצורך שליחת הודעות ספאם או פרסום בלתי רצוי.</li>
+              </ul>
+
+              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+                <h3 className="text-lg font-extrabold text-red-800 mb-3">
+                  תוכן מיני ותוכן אסור
+                </h3>
+
+                <p className="text-red-900">
+                  אין לפרסם באתר, להעלות אליו או להעביר באמצעותו תוכן בעל
+                  אופי מיני או פורנוגרפי.
+                </p>
+
+                <p className="mt-3 text-red-900">
+                  האיסור כולל, בין היתר:
+                </p>
+
+                <ul className="list-disc pr-6 mt-2 space-y-1 text-red-900">
+                  <li>הצעה או פרסום של שירותי מין.</li>
+                  <li>
+                    הצעה או פרסום של מפגשים בעלי אופי מיני בתשלום.
+                  </li>
+                  <li>תמונות עירום או תמונות בעלות אופי מיני בוטה.</li>
+                  <li>סרטונים או הקלטות בעלי אופי מיני.</li>
+                  <li>תוכן פורנוגרפי.</li>
+                  <li>
+                    פרסום תמונה, סרטון או הקלטה של אדם אחר ללא הסכמתו.
+                  </li>
+                  <li>
+                    תוכן מיני הקשור לקטינים או המתאר קטינים.
+                  </li>
+                  <li>
+                    הצעות, הודעות או פניות בעלות אופי מיני המפרות את החוק
+                    או את זכויותיו של אדם אחר.
+                  </li>
+                </ul>
+
+                <p className="mt-4 text-red-900">
+                  מפעיל האתר רשאי להסיר ללא הודעה מוקדמת כל תוכן המפר
+                  סעיף זה, וכן להגביל או להשעות את חשבון המשתמש שפרסם אותו.
+                </p>
+
+                <p className="mt-3 text-red-900">
+                  במקרים שבהם הדבר נדרש לפי דין, ניתן יהיה להעביר מידע
+                  לרשויות המוסמכות.
+                </p>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                3. חשבון משתמש
+              </h2>
+
+              <p>
+                חלק מהשירותים באתר עשויים לדרוש התחברות באמצעות חשבון משתמש.
+              </p>
+
+              <p className="mt-3">
+                המשתמש אחראי לשמירה על הגישה לחשבונו ועל הפעולות המתבצעות
+                באמצעותו.
+              </p>
+
+              <p className="mt-3">
+                אין להעביר לאחרים פרטי התחברות או לאפשר שימוש בלתי מורשה
+                בחשבון.
+              </p>
+
+              <p className="mt-3">
+                במקרה של חשד לשימוש בלתי מורשה בחשבון, מומלץ לפנות לאתר
+                בהקדם.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                4. פרסום מודעות
+              </h2>
+
+              <p>
+                המשתמש אחראי באופן מלא לתוכן המודעה שהוא מפרסם.
+              </p>
+
+              <p className="mt-3">
+                בעת פרסום מודעה, המשתמש מתחייב כי:
+              </p>
+
+              <ul className="list-disc pr-6 mt-2 space-y-1">
+                <li>המידע שמסר נכון ככל הידוע לו.</li>
+                <li>המודעה אינה מטעה.</li>
+                <li>התוכן אינו מפר את החוק.</li>
+                <li>התוכן אינו מפר זכויות של אדם או גוף אחר.</li>
+                <li>
+                  אין לפרסם פרטים אישיים של אדם אחר ללא הרשאה מתאימה.
+                </li>
+                <li>
+                  אין לפרסם תוכן פוגעני, מאיים או בלתי חוקי.
+                </li>
+              </ul>
+
+              <p className="mt-3">
+                האתר רשאי להסיר מודעה או להגביל את החשבון של משתמש במקרה
+                של הפרת תנאים אלה, שימוש לרעה באתר או חשש להפרת החוק.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                5. אחריות על עסקאות והתקשרויות בין משתמשים
+              </h2>
+
+              <p>
+                האתר משמש כפלטפורמה לפרסום וקישור בין משתמשים.
+              </p>
+
+              <p className="mt-3">
+                האתר <strong>אינו צד להתקשרות</strong> בין משתמשים ואינו
+                אחראי לעסקה, עבודה, שירות, תשלום או הסכמה שנוצרו בעקבות מודעה.
+              </p>
+
+              <p className="mt-3">
+                כל התקשרות בין משתמשים נעשית באחריותם הבלעדית.
+              </p>
+
+              <p className="mt-3">
+                המשתמשים אחראים בעצמם לבדוק את זהות הצד השני, את פרטי
+                העבודה או השירות, את המחיר, את תנאי ההתקשרות ואת התאמתם
+                לצורכיהם.
+              </p>
+
+              <p className="mt-3">
+                האתר אינו מתחייב כי כל מודעה, משתמש, שירות או הצעה המופיעים
+                באתר הם אמינים, זמינים, מתאימים או נטולי סיכון.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                6. תשלומים
+              </h2>
+
+              <p>
+                האתר אינו מבצע, נכון למועד פרסום תנאים אלה, תשלומים או
+                סליקה בין משתמשים עבור העסקאות המבוצעות בעקבות מודעות.
+              </p>
+
+              <p className="mt-3">
+                כל תשלום בין משתמשים, אם יבוצע, הוא באחריות הצדדים
+                המעורבים בלבד.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                7. תוכן שמועלה על ידי משתמשים
+              </h2>
+
+              <p>
+                תוכן שמועלה לאתר על ידי משתמשים עשוי להיות גלוי למשתמשים
+                אחרים בהתאם לאופן השימוש באתר.
+              </p>
+
+              <p className="mt-3">
+                המשתמש אחראי לכך שיש לו את הזכויות וההרשאות הדרושות
+                להעלאת התוכן.
+              </p>
+
+              <p className="mt-3">
+                אין להעלות תמונות, טקסטים או חומרים השייכים לאחרים ללא
+                הרשאה מתאימה.
+              </p>
+
+              <p className="mt-3">
+                האתר רשאי להסיר תוכן אשר לדעתו מפר את תנאי השימוש, את
+                החוק או את זכויותיהם של אחרים.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                8. הודעות ותקשורת בין משתמשים
+              </h2>
+
+              <p>
+                האתר עשוי לאפשר למשתמשים לשלוח הודעות פרטיות זה לזה.
+              </p>
+
+              <p className="mt-3">
+                אין להשתמש במערכת ההודעות לצורך הטרדה, איום, הונאה,
+                ספאם או פעילות בלתי חוקית.
+              </p>
+
+              <p className="mt-3">
+                המשתמש אחראי לתוכן ההודעות שהוא שולח.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                9. זמינות האתר
+              </h2>
+
+              <p>
+                האתר מופעל במטרה לספק שירות זמין ותקין, אולם לא ניתן
+                להבטיח זמינות רציפה או פעולה ללא תקלות.
+              </p>
+
+              <p className="mt-3">
+                ייתכנו הפסקות זמניות עקב תחזוקה, תקלות טכניות, עדכונים,
+                בעיות תשתית או גורמים שאינם בשליטת מפעיל האתר.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                10. קישורים ושירותים של צדדים שלישיים
+              </h2>
+
+              <p>
+                האתר עשוי לעשות שימוש בשירותים חיצוניים או להפנות לשירותים
+                ואתרים של צדדים שלישיים.
+              </p>
+
+              <p className="mt-3">
+                השימוש בשירות חיצוני עשוי להיות כפוף לתנאים ולמדיניות
+                הפרטיות של אותו גורם.
+              </p>
+
+              <p className="mt-3">
+                האתר אינו אחראי לתוכן, לזמינות או להתנהלות של שירותים
+                חיצוניים שאינם בשליטתו.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                11. זכויות באתר
+              </h2>
+
+              <p>
+                האתר, לרבות העיצוב, הקוד, המבנה, הלוגו, השם, הגרפיקה
+                ורכיבים מקוריים אחרים, עשוי להיות מוגן בזכויות לפי כל דין.
+              </p>
+
+              <p className="mt-3">
+                אין להעתיק, לשכפל, להפיץ, למכור או לעשות שימוש מסחרי
+                בתוכן או ברכיבים השייכים לאתר ללא הרשאה מתאימה.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                12. הגבלת אחריות
+              </h2>
+
+              <p>
+                האתר מסופק כפי שהוא (AS IS), בכפוף להוראות כל דין.
+              </p>
+
+              <p className="mt-3">
+                מפעיל האתר אינו מתחייב כי המידע המופיע במודעות יהיה מדויק,
+                מלא או עדכני בכל עת.
+              </p>
+
+              <p className="mt-3">
+                מפעיל האתר אינו אחראי לתוצאות של התקשרות, עבודה, שירות,
+                עסקה או מפגש בין משתמשים.
+              </p>
+
+              <p className="mt-3">
+                אין באמור בסעיף זה כדי לגרוע מאחריות שלא ניתן להגביל או
+                לשלול על פי דין.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                13. פרטיות
+              </h2>
+
+              <p>
+                השימוש במידע אישי במסגרת האתר נעשה בהתאם למדיניות הפרטיות
+                של האתר.
+              </p>
+
+              <p className="mt-3">
+                ניתן לעיין במדיניות הפרטיות בעמוד
+                {' '}
+                <Link
+                  to="/privacy"
+                  className="font-bold text-emerald-600 hover:text-emerald-700"
+                >
+                  מדיניות פרטיות
+                </Link>
+                {' '}
+                באתר.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                14. שינויים באתר ובתנאים
+              </h2>
+
+              <p>
+                מפעיל האתר רשאי לשנות, לעדכן, להוסיף או להסיר תכונות
+                ושירותים באתר מעת לעת.
+              </p>
+
+              <p className="mt-3">
+                כמו כן, ניתן לעדכן תנאי שימוש אלה מעת לעת בהתאם לשינויים
+                באתר, בדין או באופן הפעלתו.
+              </p>
+
+              <p className="mt-3">
+                תאריך העדכון האחרון יופיע בראש מסמך זה.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                15. דין וסמכות שיפוט
+              </h2>
+
+              <p>
+                על השימוש באתר ועל תנאי שימוש אלה יחולו דיני מדינת ישראל.
+              </p>
+
+              <p className="mt-3">
+                כל מחלוקת הנוגעת לשימוש באתר תהיה כפופה לסמכותם של בתי
+                המשפט המוסמכים בישראל, בכפוף להוראות הדין.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                16. יצירת קשר
+              </h2>
+
+              <p>
+                לשאלות, דיווח על תוכן בעייתי, פנייה בנושא האתר או בירור
+                בנוגע לתנאי השימוש ניתן לפנות דרך עמוד
+                {' '}
+                <Link
+                  to="/contact"
+                  className="font-bold text-emerald-600 hover:text-emerald-700"
+                >
+                  צור קשר
+                </Link>
+                {' '}
+                באתר.
+              </p>
+            </section>
+
+            <div className="border-t border-slate-200 pt-6 mt-10">
+              <p className="text-sm text-slate-400">
+                כסף כיס – לוח עבודות ושירותים מקומיים
+              </p>
+
+              <p className="text-xs text-slate-400 mt-1">
+                תאריך עדכון: ספטמבר 2026
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
+
+
+function PrivacyPage() {
+  return (
+    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+
+        <div className="mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition"
+          >
+            ← חזרה ללוח המודעות
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white">
+            <div className="text-4xl mb-4">
+              🔒
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold mb-3">
+              מדיניות פרטיות
+            </h1>
+
+            <p className="text-emerald-50 text-sm md:text-base">
+              כיצד כסף כיס אוסף, משתמש ושומר מידע אישי
+            </p>
+          </div>
+
+          <div className="p-6 md:p-10 space-y-8 text-slate-700 leading-8">
+
+            <div>
+              <p className="text-sm text-slate-400 mb-6">
+                עודכן לאחרונה: ספטמבר 2026
+              </p>
+
+              <p>
+                אתר <strong>כסף כיס</strong> מכבד את פרטיות המשתמשים שלו.
+                מדיניות זו מסבירה איזה מידע עשוי להיאסף במסגרת השימוש באתר,
+                כיצד נעשה בו שימוש, עם אילו ספקי שירות הוא עשוי להיות מעובד
+                ומהן האפשרויות העומדות לרשות המשתמשים.
+              </p>
+
+              <p className="mt-4">
+                מדיניות זו חלה על השימוש באתר ובשירותים המופעלים במסגרתו.
+              </p>
+            </div>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                1. איזה מידע עשוי להיאסף?
+              </h2>
+
+              <p>
+                בהתאם לאופן השימוש באתר, עשוי להיאסף או להימסר מידע כגון:
+              </p>
+
+              <ul className="list-disc pr-6 mt-3 space-y-1">
+                <li>שם או שם תצוגה של המשתמש.</li>
+                <li>כתובת דואר אלקטרוני.</li>
+                <li>מספר טלפון, כאשר המשתמש בוחר לפרסם אותו במודעה.</li>
+                <li>תוכן מודעות שהמשתמש מפרסם.</li>
+                <li>קטגוריה, מחיר, מיקום ותיאור של מודעה.</li>
+                <li>תמונות שהמשתמש בוחר להעלות למודעה.</li>
+                <li>הודעות הנשלחות באמצעות מערכת ההודעות באתר.</li>
+                <li>פרטים שנמסרים באמצעות טופס "צור קשר".</li>
+                <li>מידע טכני הנדרש להפעלת האתר, אבטחתו ושיפור השירות.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                2. התחברות באמצעות Google
+              </h2>
+
+              <p>
+                האתר מאפשר התחברות באמצעות חשבון Google.
+              </p>
+
+              <p className="mt-3">
+                כאשר משתמש בוחר להתחבר באמצעות Google, האתר עשוי לקבל מ-Google
+                פרטי חשבון בסיסיים הנדרשים ליצירת וניהול חשבון המשתמש באתר,
+                בהתאם להרשאות ולמידע ש-Google מאפשרת להעביר.
+              </p>
+
+              <p className="mt-3">
+                השימוש של Google במידע כפוף למדיניות הפרטיות ולתנאי השימוש
+                של Google.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                3. מידע שמופיע במודעות
+              </h2>
+
+              <p>
+                כאשר משתמש מפרסם מודעה, הוא עשוי לבחור לפרסם מידע כגון שם,
+                מספר טלפון, מיקום, מחיר, תיאור ותמונה.
+              </p>
+
+              <p className="mt-3">
+                מידע שהמשתמש בוחר להציג במסגרת מודעה עשוי להיות גלוי למשתמשים
+                אחרים באתר.
+              </p>
+
+              <p className="mt-3">
+                לכן מומלץ שלא לפרסם במודעות מידע אישי שאינו נחוץ לצורך
+                המודעה, כגון מספרי תעודות, סיסמאות, פרטי אשראי או מידע
+                אישי רגיש אחר.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                4. מערכת ההודעות
+              </h2>
+
+              <p>
+                האתר מאפשר למשתמשים לשלוח הודעות פרטיות למשתמשים אחרים
+                בקשר למודעות.
+              </p>
+
+              <p className="mt-3">
+                הודעות אלה עשויות להישמר במערכות האתר לצורך הפעלת שירות
+                ההודעות, הצגת שיחות קודמות, סימון הודעות שנקראו ותפעול
+                השירות.
+              </p>
+
+              <p className="mt-3">
+                אין לשלוח באמצעות מערכת ההודעות מידע שאינו נדרש לצורך
+                ההתקשרות או מידע רגיש שאינך מעוניין להעביר לצד השני.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                5. טופס "צור קשר"
+              </h2>
+
+              <p>
+                כאשר משתמש שולח פנייה באמצעות טופס "צור קשר", המידע שהוא
+                מוסר בטופס עשוי לכלול שם, כתובת דואר אלקטרוני, נושא ותוכן
+                ההודעה.
+              </p>
+
+              <p className="mt-3">
+                המידע משמש לצורך קבלת הפנייה, טיפול בה ומתן מענה למשתמש.
+              </p>
+
+              <p className="mt-3">
+                הפנייה נשלחת לכתובת הדואר האלקטרוני של מפעיל האתר.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                6. מטרות השימוש במידע
+              </h2>
+
+              <p>
+                המידע שנאסף או נמסר במסגרת השימוש באתר עשוי לשמש, בהתאם
+                לנסיבות, למטרות הבאות:
+              </p>
+
+              <ul className="list-disc pr-6 mt-3 space-y-1">
+                <li>יצירת וניהול חשבון משתמש.</li>
+                <li>הפעלת שירותי האתר.</li>
+                <li>פרסום והצגת מודעות.</li>
+                <li>אפשרות ליצור קשר בין משתמשים.</li>
+                <li>הפעלת מערכת ההודעות.</li>
+                <li>מענה לפניות שירות ותמיכה.</li>
+                <li>טיפול בתקלות ובבעיות טכניות.</li>
+                <li>אבטחת האתר ומניעת שימוש לרעה.</li>
+                <li>שיפור השירות והתפקוד של האתר.</li>
+                <li>עמידה בדרישות הדין, כאשר הדבר נדרש.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                7. שירותים וספקים חיצוניים
+              </h2>
+
+              <p>
+                לצורך הפעלת האתר עשויים להיות בשימוש ספקי שירות חיצוניים
+                המספקים תשתיות טכנולוגיות, אחסון, אימות משתמשים, שירותי
+                דואר אלקטרוני או שירותים טכניים אחרים.
+              </p>
+
+              <p className="mt-3">
+                נכון למועד עדכון מדיניות זו, האתר משתמש בין היתר בשירותי
+                <strong> Supabase </strong>
+                לצורך תשתיות backend, מסד נתונים ואימות משתמשים, ובשירותי
+                <strong> Resend </strong>
+                לצורך שליחת הודעות דואר אלקטרוני מטופס "צור קשר".
+              </p>
+
+              <p className="mt-3">
+                ספקים אלה עשויים לעבד מידע בהתאם לשירות שהם מספקים ולתנאים
+                ולמדיניות הפרטיות החלים עליהם.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                8. שמירת מידע
+              </h2>
+
+              <p>
+                מידע עשוי להישמר למשך התקופה הנדרשת לצורך המטרות שלשמן נאסף,
+                לצורך הפעלת השירות, שמירה על אבטחתו, טיפול במחלוקות או
+                בהתאם לדרישות הדין.
+              </p>
+
+              <p className="mt-3">
+                כאשר מידע אינו נדרש עוד למטרות אלה, ניתן למחוק אותו או
+                להפוך אותו למידע שאינו מאפשר זיהוי, בכפוף למגבלות טכניות
+                ולדרישות הדין.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                9. אבטחת מידע
+              </h2>
+
+              <p>
+                אנו נוקטים אמצעים סבירים ומתאימים במטרה להגן על המידע
+                שבמערכות האתר מפני גישה בלתי מורשית, שימוש לרעה, שינוי,
+                אובדן או חשיפה.
+              </p>
+
+              <p className="mt-3">
+                עם זאת, אין מערכת מקוונת שניתן להבטיח שתהיה חסינה לחלוטין
+                מפני כל סיכון אבטחה.
+              </p>
+
+              <p className="mt-3">
+                במקרה של אירוע אבטחה המחייב פעולה או דיווח בהתאם לדין,
+                יינקטו הצעדים הנדרשים לפי הוראות הדין.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                10. מסירת מידע לצדדים שלישיים
+              </h2>
+
+              <p>
+                האתר אינו מוכר מידע אישי של משתמשים לצדדים שלישיים לצורך
+                מכירת מאגרי מידע.
+              </p>
+
+              <p className="mt-3">
+                מידע עשוי להיות מועבר או להיות נגיש לספקי שירות הנדרשים
+                להפעלת האתר, כמפורט במדיניות זו.
+              </p>
+
+              <p className="mt-3">
+                מידע עשוי להימסר גם כאשר הדבר נדרש או מותר על פי דין,
+                לרבות בעקבות דרישה של רשות מוסמכת.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                11. מידע ציבורי
+              </h2>
+
+              <p>
+                מידע שמשתמש בוחר לפרסם במודעה, לרבות פרטי התקשרות, עשוי
+                להיות מידע גלוי למשתמשים אחרים באתר.
+              </p>
+
+              <p className="mt-3">
+                המשתמש אחראי לבחירת המידע שהוא מפרסם במסגרת מודעה.
+              </p>
+
+              <p className="mt-3">
+                לאחר פרסום מידע בפומבי, ייתכן שמשתמשים אחרים יוכלו להעתיק,
+                לשמור או לעשות בו שימוש בהתאם לנסיבות. לכן מומלץ להימנע
+                מפרסום מידע אישי שאינו נדרש לצורך המודעה.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                12. עוגיות וטכנולוגיות דומות
+              </h2>
+
+              <p>
+                האתר עשוי להשתמש בעוגיות (Cookies), אחסון מקומי או
+                טכנולוגיות דומות הנדרשות להפעלת האתר, לשמירת העדפות,
+                לניהול התחברות ולשיפור חוויית השימוש.
+              </p>
+
+              <p className="mt-3">
+                ניתן לשנות הגדרות מסוימות בדפדפן בנוגע לעוגיות, אולם
+                חסימתן עשויה להשפיע על חלק מהפונקציות באתר.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                13. זכויות המשתמש
+              </h2>
+
+              <p>
+                בהתאם להוראות הדין, עשויות לעמוד לאדם זכויות ביחס למידע
+                אישי הנוגע אליו, לרבות זכויות עיון ותיקון, והכול בכפוף
+                לתנאים, לסייגים ולחריגים הקבועים בדין.
+              </p>
+
+              <p className="mt-3">
+                בקשות הנוגעות למידע אישי ניתן להפנות באמצעות עמוד
+                <Link
+                  to="/contact"
+                  className="font-bold text-emerald-600 hover:text-emerald-700 mx-1"
+                >
+                  צור קשר
+                </Link>
+                באתר.
+              </p>
+
+              <p className="mt-3">
+                כדי שנוכל לטפל בבקשה, ייתכן שנבקש פרטים סבירים הדרושים
+                לצורך זיהוי הפונה ובדיקת הבקשה.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                14. מחיקת חשבון ומידע
+              </h2>
+
+              <p>
+                משתמש המעוניין למחוק את חשבונו או לבקש את מחיקת מידע
+                אישי הנוגע אליו יכול לפנות באמצעות עמוד "צור קשר".
+              </p>
+
+              <p className="mt-3">
+                בקשת מחיקה תיבחן בהתאם להוראות הדין, לצרכים התפעוליים של
+                האתר ולחובות שמירת מידע החלות, ככל שישנן.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                15. מידע של קטינים
+              </h2>
+
+              <p>
+                האתר אינו מיועד לאיסוף מכוון של מידע אישי מילדים או קטינים
+                ללא הסכמה או אישור הנדרשים לפי דין.
+              </p>
+
+              <p className="mt-3">
+                אם נודע לנו כי נאסף מידע אישי של קטין בניגוד לדין, ניתן
+                לפנות אלינו באמצעות עמוד "צור קשר".
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                16. עדכונים למדיניות הפרטיות
+              </h2>
+
+              <p>
+                אנו עשויים לעדכן מדיניות זו מעת לעת, למשל בעקבות שינוי
+                בשירותי האתר, בטכנולוגיה, באופן השימוש במידע או בדרישות
+                הדין.
+              </p>
+
+              <p className="mt-3">
+                תאריך העדכון האחרון יופיע בראש מדיניות זו.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-extrabold text-slate-900 mb-3">
+                17. יצירת קשר בנושא פרטיות
+              </h2>
+
+              <p>
+                לשאלות, בקשות או פניות הנוגעות לפרטיות ולמידע אישי ניתן
+                לפנות באמצעות עמוד
+                <Link
+                  to="/contact"
+                  className="font-bold text-emerald-600 hover:text-emerald-700 mx-1"
+                >
+                  צור קשר
+                </Link>
+                באתר.
+              </p>
+            </section>
+
+            <div className="border-t border-slate-200 pt-6 mt-10">
+              <p className="text-sm text-slate-400">
+                כסף כיס – לוח עבודות ושירותים מקומיים
+              </p>
+
+              <p className="text-xs text-slate-400 mt-1">
+                תאריך עדכון: ספטמבר 2026
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+export default function AppRouter() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="*" element={<App />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
