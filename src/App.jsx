@@ -626,15 +626,34 @@ const handleUpdateListing = async (e) => {
 const handleDeleteListing = async (id) => {
   if (!window.confirm('האם אתה בטוח שברצונך למחוק מודעה זו?')) return
 
-  const { error } = await supabase
-    .from('listings')
-    .delete()
-    .eq('id', id)
+  try {
+    const { error } = await supabase
+      .from('listings')
+      .delete()
+      .eq('id', id)
 
-  if (error) {
-    alert('שגיאה במחיקת המודעה: ' + error.message)
-  } else {
-    fetchListings()
+    if (error) {
+      console.error('שגיאה במחיקת מודעה:', error)
+
+      alert(
+        'שגיאה במחיקת המודעה:\n\n' +
+        error.message
+      )
+
+      return
+    }
+
+    // רענון הרשימה לאחר מחיקה מוצלחת
+    await fetchListings()
+
+    alert('המודעה נמחקה בהצלחה.')
+  } catch (err) {
+    console.error('שגיאה לא צפויה במחיקת מודעה:', err)
+
+    alert(
+      'אירעה שגיאה לא צפויה במחיקת המודעה.\n\n' +
+      (err?.message || 'שגיאה לא ידועה')
+    )
   }
 }
 
@@ -2333,34 +2352,83 @@ const displayedListings = baseListings.filter((item) => {
             <h3 className="text-xl font-bold text-slate-900 mb-4">עריכת מודעה</h3>
 
             <form onSubmit={handleUpdateListing} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">כותרת המודעה *</label>
-                <input
-                  type="text"
-                  name="title"
-                  required
-                  value={formData.title}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+              {/* סוג המודעה */}
+<div>
+  <label className="block text-xs font-medium text-slate-700 mb-2">
+    סוג המודעה
+  </label>
+
+  <div className="grid grid-cols-2 gap-3">
+    <button
+      type="button"
+      onClick={() =>
+        setFormData((prev) => ({
+          ...prev,
+          listing_type: 'request'
+        }))
+      }
+      className={`p-3 rounded-xl border-2 text-sm font-bold transition ${
+        formData.listing_type === 'request'
+          ? 'border-blue-500 bg-blue-50 text-blue-700'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200'
+      }`}
+    >
+      🔵 מחפש עבודה / משימה
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        setFormData((prev) => ({
+          ...prev,
+          listing_type: 'offer'
+        }))
+      }
+      className={`p-3 rounded-xl border-2 text-sm font-bold transition ${
+        formData.listing_type === 'offer'
+          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200'
+      }`}
+    >
+      🟢 מציע עבודה / שירות
+    </button>
+  </div>
+</div>
+
+{/* כותרת */}
+<div>
+  <label className="block text-xs font-medium text-slate-700 mb-1">
+    כותרת המודעה *
+  </label>
+
+  <input
+    type="text"
+    name="title"
+    required
+    value={formData.title}
+    onChange={handleChange}
+    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  />
+</div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">קטגוריה</label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="עבודות מזדמנות">עבודות מזדמנות</option>
-                  <option value="שירותים לבית">שירותים לבית</option>
-                  <option value="שיעורים פרטיים">שיעורים פרטיים</option>
-                  <option value="טיפול בילדים / חיות">טיפול בילדים / חיות</option>
-                  <option value="הובלות ואיסוף">הובלות ואיסוף</option>
-                  <option value="אחר">אחר</option>
-                </select>
-              </div>
+  <label className="block text-xs font-medium text-slate-700 mb-1">
+    קטגוריה
+  </label>
+
+  <select
+    name="category"
+    value={formData.category}
+    onChange={handleChange}
+    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  >
+    {categories.map((category) => (
+      <option key={category} value={category}>
+        {category}
+      </option>
+    ))}
+  </select>
+</div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
