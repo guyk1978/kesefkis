@@ -3718,66 +3718,180 @@ const displayedListings = baseListings.filter((item) => {
           FOOTER
       ========================================================= */}
       <footer className="mt-16 bg-white border-t border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 py-8">
+  <div className="max-w-5xl mx-auto px-4 py-10">
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
 
-            {/* שם האתר */}
-            <div className="text-center md:text-right">
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                <span className="text-2xl">💰</span>
+      {/* לוגו ותיאור */}
+      <div className="text-center md:text-right">
+        <div className="flex items-center justify-center md:justify-start gap-2">
+          <span className="text-3xl">💰</span>
+          <span className="text-xl font-extrabold text-slate-900">
+            כסף כיס
+          </span>
+        </div>
 
-                <span className="text-lg font-extrabold text-slate-900">
-                  כסף כיס
-                </span>
-              </div>
+        <p className="text-sm text-slate-500 mt-2 leading-6">
+          לוח עבודות ושירותים מקומיים
+        </p>
 
-              <p className="text-sm text-slate-500 mt-1">
-                לוח עבודות ושירותים מקומיים
-              </p>
-            </div>
+        <p className="text-xs text-slate-400 mt-1">
+          מפרסמים, מחפשים ומתחברים.
+        </p>
+      </div>
 
-            {/* קישורים */}
-            <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm">
-  <Link
-    to="/"
-    className="text-slate-600 hover:text-emerald-600 transition"
-  >
-    לוח המודעות
-  </Link>
+      {/* שיתוף האתר */}
+      <div className="text-center">
+        <h3 className="text-sm font-extrabold text-slate-900 mb-2">
+          📣 שתפו את כסף כיס
+        </h3>
 
-  <Link
-    to="/contact"
-    className="text-slate-600 hover:text-emerald-600 transition"
-  >
-    צור קשר
-  </Link>
+        <p className="text-xs text-slate-500 leading-5 mb-4">
+          מכירים מישהו שמחפש עבודה או שירות?
+          <br />
+          שתפו את הלוח והגיעו לעוד אנשים.
+        </p>
 
-  <Link
-    to="/terms"
-    className="text-slate-600 hover:text-emerald-600 transition"
-  >
-    תנאי שימוש
-  </Link>
+        <div className="flex items-center justify-center gap-2 flex-wrap">
 
-  <Link
-    to="/privacy"
-    className="text-slate-600 hover:text-emerald-600 transition"
-  >
-    מדיניות פרטיות
-  </Link>
-</nav>
+          {/* WhatsApp */}
+          <button
+            type="button"
+            onClick={() => {
+              const text =
+                'כסף כיס – לוח עבודות ושירותים מקומיים. מציעים עבודה או מחפשים שירות? בואו לראות:'
+              const url = window.location.origin
 
-          </div>
+              window.open(
+                `https://wa.me/?text=${encodeURIComponent(
+                  `${text} ${url}`
+                )}`,
+                '_blank',
+                'noopener,noreferrer'
+              )
+            }}
+            className="w-10 h-10 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
+            aria-label="שתף בוואטסאפ"
+            title="שתף בוואטסאפ"
+          >
+            💬
+          </button>
 
-          <div className="border-t border-slate-100 mt-6 pt-5 text-center">
-            <p className="text-xs text-slate-400">
-              © {new Date().getFullYear()} כסף כיס. כל הזכויות שמורות.
-            </p>
-          </div>
+          {/* Facebook */}
+          <button
+            type="button"
+            onClick={() => {
+              const url = window.location.origin
+
+              window.open(
+                `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                  url
+                )}`,
+                '_blank',
+                'width=600,height=500,noopener,noreferrer'
+              )
+            }}
+            className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center text-lg font-bold transition hover:-translate-y-0.5"
+            aria-label="שתף בפייסבוק"
+            title="שתף בפייסבוק"
+          >
+            f
+          </button>
+
+          {/* Telegram */}
+          <button
+            type="button"
+            onClick={() => {
+              const url = window.location.origin
+              const text = 'כסף כיס – לוח עבודות ושירותים מקומיים'
+
+              window.open(
+                `https://t.me/share/url?url=${encodeURIComponent(
+                  url
+                )}&text=${encodeURIComponent(text)}`,
+                '_blank',
+                'noopener,noreferrer'
+              )
+            }}
+            className="w-10 h-10 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
+            aria-label="שתף בטלגרם"
+            title="שתף בטלגרם"
+          >
+            ✈️
+          </button>
+
+          {/* העתקת קישור */}
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(
+                  window.location.origin
+                )
+                alert('הקישור לאתר הועתק בהצלחה.')
+              } catch (error) {
+                console.error('שגיאה בהעתקת הקישור:', error)
+                alert('לא הצלחנו להעתיק את הקישור.')
+              }
+            }}
+            className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
+            aria-label="העתק קישור לאתר"
+            title="העתק קישור"
+          >
+            🔗
+          </button>
 
         </div>
-      </footer>
+      </div>
+
+      {/* ניווט */}
+      <div className="text-center md:text-right">
+        <h3 className="text-sm font-extrabold text-slate-900 mb-3">
+          קישורים
+        </h3>
+
+        <nav className="flex flex-col gap-2 text-sm">
+          <Link
+            to="/"
+            className="text-slate-600 hover:text-emerald-600 transition"
+          >
+            לוח המודעות
+          </Link>
+
+          <Link
+            to="/contact"
+            className="text-slate-600 hover:text-emerald-600 transition"
+          >
+            צור קשר
+          </Link>
+
+          <Link
+            to="/terms"
+            className="text-slate-600 hover:text-emerald-600 transition"
+          >
+            תנאי שימוש
+          </Link>
+
+          <Link
+            to="/privacy"
+            className="text-slate-600 hover:text-emerald-600 transition"
+          >
+            מדיניות פרטיות
+          </Link>
+        </nav>
+      </div>
+
+    </div>
+
+    {/* תחתית */}
+    <div className="border-t border-slate-100 mt-8 pt-5 text-center">
+      <p className="text-xs text-slate-400">
+        © {new Date().getFullYear()} כסף כיס. כל הזכויות שמורות.
+      </p>
+    </div>
+
+  </div>
+</footer>
 
     </div>
   )
