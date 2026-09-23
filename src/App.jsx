@@ -21,6 +21,89 @@ function App() {
   'אחר'
 ]
 
+
+const israeliLocations = [
+  'אבו גוש',
+  'אבו סנאן',
+  'אופקים',
+  'אור יהודה',
+  'אור עקיבא',
+  'אילת',
+  'אלעד',
+  'אריאל',
+  'אשדוד',
+  'אשקלון',
+  'באקה אל-גרבייה',
+  'באר שבע',
+  'בית שאן',
+  'בית שמש',
+  'ביתר עילית',
+  'בני ברק',
+  'בנימינה-גבעת עדה',
+  'בת ים',
+  'גבעת זאב',
+  'גבעת שמואל',
+  'גבעתיים',
+  'גדרה',
+  'דאלית אל-כרמל',
+  'דימונה',
+  'הוד השרון',
+  'הרצליה',
+  'זכרון יעקב',
+  'חדרה',
+  'חולון',
+  'חיפה',
+  'טבריה',
+  'טייבה',
+  'טירה',
+  'טירת כרמל',
+  'יבנה',
+  'יהוד-מונוסון',
+  'יקנעם עילית',
+  'ירושלים',
+  'כפר יאסיף',
+  'כפר סבא',
+  'כפר קאסם',
+  'כפר קרע',
+  'כרמיאל',
+  'לוד',
+  'מגדל העמק',
+  'מודיעין-מכבים-רעות',
+  'מעלות-תרשיחא',
+  'מגדל',
+  'נהריה',
+  'נצרת',
+  'נצרת עילית',
+  'נס ציונה',
+  'נתיבות',
+  'נתניה',
+  'עכו',
+  'עפולה',
+  'ערד',
+  'פתח תקווה',
+  'פרדס חנה-כרכור',
+  'צפת',
+  'קריית אונו',
+  'קריית אתא',
+  'קריית ביאליק',
+  'קריית גת',
+  'קריית ים',
+  'קריית מוצקין',
+  'קריית מלאכי',
+  'קריית שמונה',
+  'ראש העין',
+  'ראשון לציון',
+  'רהט',
+  'רחובות',
+  'רמלה',
+  'רמת גן',
+  'רמת השרון',
+  'רעננה',
+  'שדרות',
+  'שפרעם',
+  'תל אביב-יפו'
+]
+
 // ניווט בין עמודי האתר
   const openPage = (page) => {
     setCurrentView(page)
@@ -68,6 +151,31 @@ const handleShareListing = async (listing) => {
 }
 
   const [listings, setListings] = useState([])
+
+// =========================================================
+// מודעות שאהבתי
+// =========================================================
+
+const [favoriteListings, setFavoriteListings] = useState(() => {
+  try {
+    const savedFavorites = localStorage.getItem('kesefkis-favorites')
+    return savedFavorites ? JSON.parse(savedFavorites) : []
+  } catch (error) {
+    console.error('שגיאה בטעינת מועדפים:', error)
+    return []
+  }
+})
+
+
+useEffect(() => {
+  localStorage.setItem(
+    'kesefkis-favorites',
+    JSON.stringify(favoriteListings)
+  )
+}, [favoriteListings])
+
+
+
   const [loading, setLoading] = useState(true)
 
   // חיפוש וסינון מודעות
@@ -820,6 +928,24 @@ const handleUpdateListing = async (e) => {
   }
 }
 
+
+
+// =========================================================
+// הוספה או הסרה ממודעות שאהבתי
+// =========================================================
+
+const toggleFavorite = (listingId) => {
+  setFavoriteListings((previousFavorites) => {
+    if (previousFavorites.includes(listingId)) {
+      return previousFavorites.filter((id) => id !== listingId)
+    }
+
+    return [...previousFavorites, listingId]
+  })
+}
+
+
+
 // מחיקת מודעה
 const handleDeleteListing = async (id) => {
   if (!window.confirm('האם אתה בטוח שברצונך למחוק מודעה זו?')) return
@@ -862,7 +988,9 @@ const handleDeleteListing = async (id) => {
 const baseListings =
   currentView === 'my-listings'
     ? myListings
-    : listings
+    : currentView === 'favorites'
+      ? listings.filter(item => favoriteListings.includes(item.id))
+      : listings
 
 const displayedListings = baseListings.filter((item) => {
   const search = searchTerm.trim().toLowerCase()
@@ -925,13 +1053,26 @@ const displayedListings = baseListings.filter((item) => {
           className="hidden"
         />
 
-        {user.user_metadata?.avatar_url ? (
-          <img
-            src={user.user_metadata.avatar_url}
-            alt="Profile"
-            className="w-8 h-8 rounded-full object-cover border border-slate-300"
-          />
-        ) : (
+        {(
+  user.user_metadata?.avatar_url ||
+  user.user_metadata?.picture ||
+  user.identities?.[0]?.identity_data?.avatar_url ||
+  user.identities?.[0]?.identity_data?.picture
+) ? (
+  <img
+    src={
+      user.user_metadata?.avatar_url ||
+      user.user_metadata?.picture ||
+      user.identities?.[0]?.identity_data?.avatar_url ||
+      user.identities?.[0]?.identity_data?.picture
+    }
+    alt="Profile"
+    className="w-8 h-8 rounded-full object-cover border border-slate-300"
+    onError={(e) => {
+      e.currentTarget.style.display = 'none'
+    }}
+  />
+) : (
           <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
             {user.email?.charAt(0).toUpperCase()}
           </div>
@@ -957,6 +1098,32 @@ const displayedListings = baseListings.filter((item) => {
       >
         {currentView === 'my-listings' ? 'כל הלוח' : 'המודעות שלי'}
       </button>
+
+
+{/* מודעות שאהבתי */}
+<button
+  onClick={() =>
+    setCurrentView(
+      currentView === 'favorites' ? 'home' : 'favorites'
+    )
+  }
+  className={`relative text-xs font-semibold px-2 py-1 rounded-lg transition ${
+    currentView === 'favorites'
+      ? 'bg-red-500 text-white'
+      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+  }`}
+>
+  ❤️ שאהבתי
+
+  {favoriteListings.length > 0 && (
+    <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+      {favoriteListings.length > 99
+        ? '99+'
+        : favoriteListings.length}
+    </span>
+  )}
+</button>
+
 
       {/* הודעות שלי */}
       <button
@@ -1202,26 +1369,18 @@ const displayedListings = baseListings.filter((item) => {
         </label>
 
         <select
-          value={locationFilter}
-          onChange={(e) => setLocationFilter(e.target.value)}
-          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          <option value="all">כל האזורים</option>
+  value={locationFilter}
+  onChange={(e) => setLocationFilter(e.target.value)}
+  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+>
+  <option value="all">כל האזורים</option>
 
-          {[
-            ...new Set(
-              listings
-                .map((item) => item.location)
-                .filter(Boolean)
-            )
-          ]
-            .sort()
-            .map((location) => (
-              <option key={location} value={location}>
-                📍 {location}
-              </option>
-            ))}
-        </select>
+  {israeliLocations.map((location) => (
+    <option key={location} value={location}>
+      📍 {location}
+    </option>
+  ))}
+</select>
       </div>
 
     </div>
@@ -1339,6 +1498,23 @@ const displayedListings = baseListings.filter((item) => {
               </span>
             </div>
           )}
+
+          {/* כפתור מועדפים */}
+<button
+  type="button"
+  onClick={(e) => {
+    e.stopPropagation()
+    toggleFavorite(item.id)
+  }}
+  aria-label={
+    favoriteListings.includes(item.id)
+      ? 'הסר מהמועדפים'
+      : 'הוסף למועדפים'
+  }
+  className="absolute top-3 left-3 z-10 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center text-2xl hover:scale-110 transition-transform"
+>
+  {favoriteListings.includes(item.id) ? '❤️' : '🤍'}
+</button>
 
           {/* תג סוג המודעה על התמונה */}
           <div className="absolute top-3 right-3">
@@ -3049,14 +3225,20 @@ const displayedListings = baseListings.filter((item) => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">עיר / אזור</label>
-                  <input
-                    type="text"
-                    name="location"
-                    placeholder="למשל: תל אביב"
-                    value={formData.location}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+                  <select
+  name="location"
+  value={formData.location}
+  onChange={handleChange}
+  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+>
+  <option value="">בחר עיר / יישוב</option>
+
+  {israeliLocations.map((location) => (
+    <option key={location} value={location}>
+      {location}
+    </option>
+  ))}
+</select>
                 </div>
               </div>
 
@@ -3232,15 +3414,25 @@ const displayedListings = baseListings.filter((item) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">עיר / אזור</label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
+  <label className="block text-xs font-medium text-slate-700 mb-1">
+    עיר / אזור
+  </label>
+
+  <select
+    name="location"
+    value={formData.location}
+    onChange={handleChange}
+    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  >
+    <option value="">בחר עיר / יישוב</option>
+
+    {israeliLocations.map((location) => (
+      <option key={location} value={location}>
+        {location}
+      </option>
+    ))}
+  </select>
+</div>
               </div>
 
               <div>
