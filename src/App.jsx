@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { israeliLocations } from './data/israeliLocations'
 import { supabase } from './supabaseClient'
 
 function App() {
@@ -22,87 +23,7 @@ function App() {
 ]
 
 
-const israeliLocations = [
-  'אבו גוש',
-  'אבו סנאן',
-  'אופקים',
-  'אור יהודה',
-  'אור עקיבא',
-  'אילת',
-  'אלעד',
-  'אריאל',
-  'אשדוד',
-  'אשקלון',
-  'באקה אל-גרבייה',
-  'באר שבע',
-  'בית שאן',
-  'בית שמש',
-  'ביתר עילית',
-  'בני ברק',
-  'בנימינה-גבעת עדה',
-  'בת ים',
-  'גבעת זאב',
-  'גבעת שמואל',
-  'גבעתיים',
-  'גדרה',
-  'דאלית אל-כרמל',
-  'דימונה',
-  'הוד השרון',
-  'הרצליה',
-  'זכרון יעקב',
-  'חדרה',
-  'חולון',
-  'חיפה',
-  'טבריה',
-  'טייבה',
-  'טירה',
-  'טירת כרמל',
-  'יבנה',
-  'יהוד-מונוסון',
-  'יקנעם עילית',
-  'ירושלים',
-  'כפר יאסיף',
-  'כפר סבא',
-  'כפר קאסם',
-  'כפר קרע',
-  'כרמיאל',
-  'לוד',
-  'מגדל העמק',
-  'מודיעין-מכבים-רעות',
-  'מעלות-תרשיחא',
-  'מגדל',
-  'נהריה',
-  'נצרת',
-  'נצרת עילית',
-  'נס ציונה',
-  'נתיבות',
-  'נתניה',
-  'עכו',
-  'עפולה',
-  'ערד',
-  'פתח תקווה',
-  'פרדס חנה-כרכור',
-  'צפת',
-  'קריית אונו',
-  'קריית אתא',
-  'קריית ביאליק',
-  'קריית גת',
-  'קריית ים',
-  'קריית מוצקין',
-  'קריית מלאכי',
-  'קריית שמונה',
-  'ראש העין',
-  'ראשון לציון',
-  'רהט',
-  'רחובות',
-  'רמלה',
-  'רמת גן',
-  'רמת השרון',
-  'רעננה',
-  'שדרות',
-  'שפרעם',
-  'תל אביב-יפו'
-]
+
 
 // ניווט בין עמודי האתר
   const openPage = (page) => {
@@ -1332,10 +1253,10 @@ const displayedListings = baseListings.filter((item) => {
       >
         <div className="text-2xl mb-1">🔵</div>
         <div className="font-bold text-slate-800">
-          מחפש עבודה / משימה
+          מחפש שירות / עזרה
         </div>
         <div className="text-xs text-slate-500 mt-1">
-          אנשים שמחפשים עבודה או משימה
+          אנשים שמחפשים שירות או עזרה
         </div>
       </button>
 
@@ -1377,7 +1298,7 @@ const displayedListings = baseListings.filter((item) => {
         >
           <option value="all">כל סוגי המודעות</option>
           <option value="offer">🟢 מציע עבודה / שירות</option>
-          <option value="request">🔵 מחפש עבודה / משימה</option>
+          <option value="request">🔵 מחפש שירות / עזרה</option>
         </select>
       </div>
 
@@ -1408,19 +1329,68 @@ const displayedListings = baseListings.filter((item) => {
           אזור
         </label>
 
-        <select
-  value={locationFilter}
-  onChange={(e) => setLocationFilter(e.target.value)}
-  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
->
-  <option value="all">כל האזורים</option>
+        <div className="relative">
+  <input
+    type="text"
+    value={locationFilter === 'all' ? '' : locationFilter}
+    onChange={(e) => {
+      setLocationFilter(e.target.value)
+    }}
+    placeholder="חפש עיר או יישוב..."
+    autoComplete="off"
+    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  />
 
-  {israeliLocations.map((location) => (
-    <option key={location} value={location}>
-      📍 {location}
-    </option>
-  ))}
-</select>
+  {locationFilter !== 'all' && locationFilter.trim().length > 0 && (
+    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+      {israeliLocations
+        .filter((location) =>
+          location
+            .toLowerCase()
+            .includes(locationFilter.trim().toLowerCase())
+        )
+        .slice(0, 12)
+        .map((location) => (
+          <button
+            key={location}
+            type="button"
+            onClick={() => setLocationFilter(location)}
+            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+          >
+            📍 {location}
+          </button>
+        ))}
+
+      {israeliLocations.filter((location) =>
+        location
+          .toLowerCase()
+          .includes(locationFilter.trim().toLowerCase())
+      ).length === 0 && (
+        <div className="px-4 py-3 text-sm text-slate-500">
+          לא נמצא יישוב מתאים
+        </div>
+      )}
+    </div>
+  )}
+
+  {locationFilter === 'all' && (
+    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-sm">
+      כל האזורים
+    </div>
+  )}
+
+  {locationFilter !== 'all' && (
+    <button
+      type="button"
+      onClick={() => setLocationFilter('all')}
+      className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-sm transition"
+      aria-label="נקה אזור"
+      title="נקה אזור"
+    >
+      ×
+    </button>
+  )}
+</div>
       </div>
 
     </div>
@@ -1560,7 +1530,7 @@ const displayedListings = baseListings.filter((item) => {
           <div className="absolute top-3 right-3">
             {item.listing_type === 'request' ? (
               <span className="inline-flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-                🔵 מחפש משימה
+                🔵 מחפש שירות
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
@@ -1762,7 +1732,7 @@ const displayedListings = baseListings.filter((item) => {
           <div className="flex flex-wrap items-center gap-2">
             {selectedListing.listing_type === 'request' ? (
               <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-sm font-bold px-3 py-1.5 rounded-lg">
-                🔵 מחפש עבודה / משימה
+                🔵 מחפש שירות / עזרה
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-sm font-bold px-3 py-1.5 rounded-lg">
@@ -3228,7 +3198,7 @@ const displayedListings = baseListings.filter((item) => {
     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
   >
     <option value="offer">🟢 אני מציע עבודה / שירות</option>
-    <option value="request">🔵 אני מחפש עבודה / משימה</option>
+    <option value="request">🔵 אני מחפש שירות / עזרה</option>
   </select>
 </div>
 
@@ -3265,20 +3235,54 @@ const displayedListings = baseListings.filter((item) => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">עיר / אזור</label>
-                  <select
-  name="location"
-  value={formData.location}
-  onChange={handleChange}
-  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
->
-  <option value="">בחר עיר / יישוב</option>
+                  <div className="relative">
+  <input
+    type="text"
+    name="location"
+    value={formData.location}
+    onChange={handleChange}
+    placeholder="הקלד עיר או יישוב..."
+    autoComplete="off"
+    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  />
 
-  {israeliLocations.map((location) => (
-    <option key={location} value={location}>
-      {location}
-    </option>
-  ))}
-</select>
+  {formData.location.trim().length > 0 && (
+    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+      {israeliLocations
+        .filter((location) =>
+          location
+            .toLowerCase()
+            .includes(formData.location.trim().toLowerCase())
+        )
+        .slice(0, 12)
+        .map((location) => (
+          <button
+            key={location}
+            type="button"
+            onClick={() =>
+              setFormData((previous) => ({
+                ...previous,
+                location
+              }))
+            }
+            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+          >
+            📍 {location}
+          </button>
+        ))}
+
+      {israeliLocations.filter((location) =>
+        location
+          .toLowerCase()
+          .includes(formData.location.trim().toLowerCase())
+      ).length === 0 && (
+        <div className="px-4 py-3 text-sm text-slate-500">
+          לא נמצא יישוב מתאים
+        </div>
+      )}
+    </div>
+  )}
+</div>
                 </div>
               </div>
 
@@ -3385,7 +3389,7 @@ const displayedListings = baseListings.filter((item) => {
           : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200'
       }`}
     >
-      🔵 מחפש עבודה / משימה
+      🔵 מחפש שירות / עזרה
     </button>
 
     <button
@@ -3601,14 +3605,14 @@ const displayedListings = baseListings.filter((item) => {
 
             <div>
               <h3 className="text-lg font-extrabold text-slate-900">
-                מחפש עבודה / משימה
+                מחפש שירות / עזרה
               </h3>
 
               <p className="text-sm text-slate-700 mt-2 leading-6">
-                צריך שמישהו יבצע עבורך עבודה או שירות?
-                חפש בלוח לפי תחום, אזור וסוג מודעה,
-                פתח את המודעה שמעניינת אותך ושלח למפרסם הודעה.
-              </p>
+  צריך שמישהו יבצע עבורך עבודה, משימה או שירות?
+  חפש בלוח לפי תחום, אזור וסוג מודעה,
+  פתח את המודעה שמעניינת אותך ושלח למפרסם הודעה.
+</p>
             </div>
           </div>
         </div>
