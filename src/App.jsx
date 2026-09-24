@@ -667,14 +667,21 @@ const updateReportStatus = async (reportId, status, adminNote = null) => {
     setIsSubmitting(true)
 
     if (authMode === 'signup') {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) {
-        setAuthError(error.message)
-      } else {
-        alert('נרשמת בהצלחה! כעת תוכל להתחבר.')
-        setAuthMode('login')
-      }
-    } else {
+  const { error } = await supabase.auth.signUp({ email, password })
+
+  if (error) {
+    setAuthError(error.message)
+  } else {
+    if (window.gtag) {
+      window.gtag('event', 'sign_up', {
+        method: 'email'
+      })
+    }
+
+    alert('נרשמת בהצלחה! כעת תוכל להתחבר.')
+    setAuthMode('login')
+  }
+} else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         setAuthError(error.message)
