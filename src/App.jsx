@@ -1,4 +1,24 @@
 import React, { useEffect, useState } from 'react'
+
+function loadGoogleAnalytics() {
+  if (window.__kesefkisGA) return
+
+  window.dataLayer = window.dataLayer || []
+
+  window.gtag = function() {
+    window.dataLayer.push(arguments)
+  }
+
+  window.gtag('js', new Date())
+  window.gtag('config', 'G-RD0QFQGNSW')
+
+  const script = document.createElement('script')
+  script.async = true
+  script.src = 'https://www.googletagmanager.com/gtag/js?id=G-RD0QFQGNSW'
+  document.head.appendChild(script)
+
+  window.__kesefkisGA = true
+}
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
 import { israeliLocations } from './data/israeliLocations'
 import { supabase } from './supabaseClient'
@@ -93,6 +113,16 @@ const handleShareListing = async (listing) => {
 }
 
   const [listings, setListings] = useState([])
+
+  const [analyticsConsent, setAnalyticsConsent] = useState(() => {
+    return localStorage.getItem('kesefkis-analytics-consent') || ''
+  })
+
+  useEffect(() => {
+    if (analyticsConsent === 'accepted') {
+      loadGoogleAnalytics()
+    }
+  }, [analyticsConsent])
 
 // =========================================================
 // מודעות שאהבתי
@@ -4550,6 +4580,50 @@ const displayedListings = baseListings.filter((item) => {
 
   </div>
 </footer>
+
+      {analyticsConsent === '' && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 md:p-4">
+          <div className="max-w-5xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 md:p-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="text-right">
+                <h3 className="font-extrabold text-slate-900 mb-1">פרטיות ושימוש בנתוני גלישה</h3>
+                <p className="text-sm text-slate-600 leading-6">
+                  אנו משתמשים ב-Google Analytics כדי להבין כיצד משתמשים באתר ולשפר אותו. ניתן לאשר או לדחות שימוש זה. השימוש באתר עצמו אינו תלוי בהסכמה.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                <button
+                  onClick={() => {
+                    localStorage.setItem('kesefkis-analytics-consent', 'accepted')
+                    setAnalyticsConsent('accepted')
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition"
+                >
+                  אישור ניתוח נתונים
+                </button>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem('kesefkis-analytics-consent', 'rejected')
+                    setAnalyticsConsent('rejected')
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition"
+                >
+                  דחייה
+                </button>
+
+                <Link
+                  to="/privacy"
+                  className="px-5 py-2.5 rounded-xl text-center text-emerald-700 font-bold hover:bg-emerald-50 transition"
+                >
+                  מדיניות פרטיות
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
