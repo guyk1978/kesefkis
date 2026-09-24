@@ -201,29 +201,61 @@ const [galleryImage, setGalleryImage] = useState(null)
     // מעקב אחר מצב ההתחברות של המשתמש
   useEffect(() => {
   supabase.auth.getSession().then(async ({ data: { session } }) => {
-    const currentUser = session?.user ?? null
+  const currentUser = session?.user ?? null
 
-    setUser(currentUser)
+  setUser(currentUser)
 
-    if (currentUser) {
-      await checkAdmin(currentUser)
-    } else {
-      setIsAdmin(false)
-    }
-  })
+  if (currentUser) {
+    await checkAdmin(currentUser)
+  } else {
+    setIsAdmin(false)
+  }
+})
 
   const {
     data: { subscription }
   } = supabase.auth.onAuthStateChange(async (_event, session) => {
     const currentUser = session?.user ?? null
 
-    setUser(currentUser)
+setUser(currentUser)
 
-    if (currentUser) {
-      await checkAdmin(currentUser)
-    } else {
-      setIsAdmin(false)
+if (currentUser) {
+  await checkAdmin(currentUser)
+
+  if (_event === 'SIGNED_IN') {
+    const googleOAuthStarted = localStorage.getItem('kesefkis-google-oauth-started')
+
+    if (googleOAuthStarted === '1') {
+      localStorage.removeItem('kesefkis-google-oauth-started')
+
+      const googleIdentity = currentUser.identities?.find(
+        identity => identity.provider === 'google'
+      )
+
+      if (googleIdentity) {
+        const oauthStartedAt = Number(
+          localStorage.getItem('kesefkis-google-oauth-time') || '0'
+        )
+
+        const identityCreatedAt = new Date(
+          googleIdentity.created_at
+        ).getTime()
+
+        localStorage.removeItem('kesefkis-google-oauth-time')
+
+        if (oauthStartedAt && identityCreatedAt >= oauthStartedAt - 60000) {
+          if (window.gtag) {
+            window.gtag('event', 'sign_up', {
+              method: 'google'
+            })
+          }
+        }
+      }
     }
+  }
+} else {
+  setIsAdmin(false)
+}
   })
 
   return () => subscription.unsubscribe()
@@ -700,6 +732,9 @@ const updateReportStatus = async (reportId, status, adminNote = null) => {
 const handleGoogleLogin = async () => {
   const redirectUrl = window.location.origin
 
+  localStorage.setItem('kesefkis-google-oauth-started', '1')
+  localStorage.setItem('kesefkis-google-oauth-time', String(Date.now()))
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -708,6 +743,8 @@ const handleGoogleLogin = async () => {
   })
 
   if (error) {
+    localStorage.removeItem('kesefkis-google-oauth-started')
+    localStorage.removeItem('kesefkis-google-oauth-time')
     setAuthError(error.message)
   }
 }
