@@ -851,15 +851,16 @@ const handleOpenPublishModal = () => {
     setIsAuthModalOpen(true)
   } else {
     setFormData({
-      title: '',
-      description: '',
-      price: '',
-      listing_type: 'offer',
-      category: 'עבודות מזדמנות',
-      location: '',
-      contact_name: '',
-      phone: ''
-    })
+  title: '',
+  description: '',
+  price: '',
+  payment_type: 'cash',
+  listing_type: 'offer',
+  category: 'עבודות מזדמנות',
+  location: '',
+  contact_name: '',
+  phone: ''
+})
     setImageFile(null)
     setIsModalOpen(true)
   }
@@ -894,20 +895,21 @@ const handleSubmit = async (e) => {
     }
 
     const newListing = {
-      title: formData.title,
-      description: formData.description,
-      price: formData.price
-        ? parseFloat(formData.price)
-        : null,
-      listing_type: formData.listing_type,
-      category: formData.category,
-      location: formData.location,
-      contact_name: formData.contact_name,
-      phone: formData.phone,
-      image_url: imageUrl,
-      image_urls: imageUrls,
-      user_id: user.id
-    }
+  title: formData.title,
+  description: formData.description,
+  price: formData.price
+    ? parseFloat(formData.price)
+    : null,
+  payment_type: formData.payment_type,
+  listing_type: formData.listing_type,
+  category: formData.category,
+  location: formData.location,
+  contact_name: formData.contact_name,
+  phone: formData.phone,
+  image_url: imageUrl,
+  image_urls: imageUrls,
+  user_id: user.id
+}
 
     const { error } = await supabase
       .from('listings')
@@ -1774,22 +1776,46 @@ const displayedListings = baseListings.filter((item) => {
         {/* תוכן */}
         <div className="p-5 flex-1 flex flex-col">
 
-          {/* קטגוריה + מחיר */}
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <span className="inline-flex bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold px-2.5 py-1 rounded-lg">
-              {item.category || 'כללי'}
-            </span>
+          
+{/* קטגוריה + תמורה */}
+<div className="flex items-center justify-between gap-3 mb-3">
+  <span className="inline-flex bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold px-2.5 py-1 rounded-lg">
+    {item.category || 'כללי'}
+  </span>
 
-            {item.price ? (
-              <span className="text-xl font-extrabold text-slate-900 whitespace-nowrap">
-                ₪{item.price}
-              </span>
-            ) : (
-              <span className="text-xs text-slate-400 font-medium">
-                מחיר לא צוין
-              </span>
-            )}
-          </div>
+  <div className="flex flex-col items-end gap-1">
+    {item.payment_type === 'barter' ? (
+      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
+        🔄 ברטר
+      </span>
+    ) : item.payment_type === 'cash_or_barter' ? (
+      <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
+        💵🔄 תשלום או ברטר
+      </span>
+    ) : item.price ? (
+      <span className="text-xl font-extrabold text-slate-900 whitespace-nowrap">
+        ₪{item.price}
+      </span>
+    ) : (
+      <span className="text-xs text-slate-400 font-medium">
+        מחיר לא צוין
+      </span>
+    )}
+
+    {item.payment_type === 'cash_or_barter' && item.price && (
+      <span className="text-xs text-slate-500">
+        ₪{item.price} או ברטר
+      </span>
+    )}
+
+    {item.payment_type === 'barter' && (
+      <span className="text-xs text-slate-500">
+        תמורה לפי סיכום
+      </span>
+    )}
+  </div>
+</div>
+
 
           {/* כותרת */}
           <h3 className="text-xl font-extrabold text-slate-900 mb-2 line-clamp-2 leading-snug group-hover:text-emerald-700 transition">
@@ -3534,265 +3560,429 @@ const displayedListings = baseListings.filter((item) => {
         </div>
       )}
 
-      {/* מודאל פרסום מודעה חדשה */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 text-xl font-bold"
-            >
-              ✕
-            </button>
+      ```jsx
+{/* מודאל פרסום מודעה חדשה */}
+{isModalOpen && (
+  <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
 
-            <h3 className="text-xl font-bold text-slate-900 mb-4">פרסום מודעה חדשה</h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">כותרת המודעה *</label>
-                <input
-                  type="text"
-                  name="title"
-                  required
-                  placeholder="למשל: דרוש בייביסיטר לערב / תיקון צבע בסלון"
-                  value={formData.title}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-  <label className="block text-xs font-medium text-slate-700 mb-1">
-    סוג המודעה
-  </label>
-
-  <select
-    name="listing_type"
-    value={formData.listing_type}
-    onChange={handleChange}
-    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-  >
-    <option value="offer">🟢 אני מציע עבודה / שירות</option>
-    <option value="request">🔵 אני מחפש שירות / עזרה</option>
-  </select>
-</div>
-
-<div>
-  <label className="block text-xs font-medium text-slate-700 mb-1">
-    קטגוריה
-  </label>
-
-  <select
-    name="category"
-    value={formData.category}
-    onChange={handleChange}
-    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-  >
-    {categories.map((category) => (
-      <option key={category} value={category}>
-        {category}
-      </option>
-    ))}
-  </select>
-</div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">מחיר (₪)</label>
-                  <input
-                    type="number"
-                    name="price"
-                    placeholder="למשל: 150"
-                    value={formData.price}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">עיר / אזור</label>
-                  <div className="relative">
-  <input
-    type="text"
-    name="location"
-    value={formData.location}
-    onChange={handleChange}
-    placeholder="הקלד עיר או יישוב..."
-    autoComplete="off"
-    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-  />
-
-  {formData.location.trim().length > 0 && (
-    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-      {israeliLocations
-        .filter((location) =>
-          location
-            .toLowerCase()
-            .includes(formData.location.trim().toLowerCase())
-        )
-        .slice(0, 12)
-        .map((location) => (
-          <button
-            key={location}
-            type="button"
-            onClick={() =>
-              setFormData((previous) => ({
-                ...previous,
-                location
-              }))
-            }
-            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
-          >
-            📍 {location}
-          </button>
-        ))}
-
-      {israeliLocations.filter((location) =>
-        location
-          .toLowerCase()
-          .includes(formData.location.trim().toLowerCase())
-      ).length === 0 && (
-        <div className="px-4 py-3 text-sm text-slate-500">
-          לא נמצא יישוב מתאים
-        </div>
-      )}
-    </div>
-  )}
-</div>
-                </div>
-              </div>
-
-              <div>
-  <label className="block text-xs font-medium text-slate-700 mb-1">
-    תמונה ראשית
-  </label>
-
-  <input
-    type="file"
-    accept="image/*"
-    onChange={(e) => setImageFile(e.target.files[0] || null)}
-    className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-  />
-
-  <p className="text-xs text-slate-400 mt-1">
-    התמונה הזו תופיע כתמונה הראשית של המודעה.
-  </p>
-</div>
-
-<div>
-  <label className="block text-xs font-medium text-slate-700 mb-1">
-    תמונות נוספות
-  </label>
-
-  <input
-    type="file"
-    accept="image/*"
-    multiple
-    onChange={(e) => {
-  const selectedFiles = Array.from(e.target.files || [])
-
-  setAdditionalImageFiles((previousFiles) => {
-    const combinedFiles = [...previousFiles, ...selectedFiles]
-
-    return combinedFiles.slice(0, 4)
-  })
-
-  e.target.value = ''
-}}
-    className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-  />
-
-  {additionalImageFiles.length > 0 && (
-  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-    {additionalImageFiles.map((file, index) => (
-      <div
-        key={`${file.name}-${index}`}
-        className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50"
+      <button
+        onClick={() => setIsModalOpen(false)}
+        className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 text-xl font-bold"
       >
-        <img
-          src={URL.createObjectURL(file)}
-          alt={`תמונה נוספת ${index + 1}`}
-          className="w-full h-24 object-cover"
-        />
+        ✕
+      </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setAdditionalImageFiles((previousFiles) =>
-              previousFiles.filter((_, fileIndex) => fileIndex !== index)
-            )
-          }}
-          className="absolute top-1 left-1 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold shadow"
-          title="הסר תמונה"
-        >
-          ×
-        </button>
-      </div>
-    ))}
-  </div>
-)}
+      <h3 className="text-xl font-bold text-slate-900 mb-4">
+        פרסום מודעה חדשה
+      </h3>
 
-  <p className="text-xs text-slate-400 mt-1">
-    ניתן להוסיף עד 4 תמונות נוספות.
-  </p>
-</div>
+      <form onSubmit={handleSubmit} className="space-y-4">
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">תיאור מפורט</label>
-                <textarea
-                  name="description"
-                  rows="3"
-                  placeholder="פרט מה העבודה כוללת, ימים, שעות וכו'..."
-                  value={formData.description}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                ></textarea>
-              </div>
+        {/* כותרת */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            כותרת המודעה *
+          </label>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">שם איש קשר</label>
-                  <input
-                    type="text"
-                    name="contact_name"
-                    placeholder="שמך"
-                    value={formData.contact_name}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+          <input
+            type="text"
+            name="title"
+            required
+            placeholder="למשל: דרוש בייביסיטר לערב / תיקון צבע בסלון"
+            value={formData.title}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+
+        {/* סוג המודעה */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            סוג המודעה
+          </label>
+
+          <select
+            name="listing_type"
+            value={formData.listing_type}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            <option value="offer">
+              🟢 אני מציע עבודה / שירות
+            </option>
+
+            <option value="request">
+              🔵 אני מחפש שירות / עזרה
+            </option>
+          </select>
+        </div>
+
+        {/* קטגוריה */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            קטגוריה
+          </label>
+
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* מחיר + עיר */}
+        <div className="grid grid-cols-2 gap-3">
+
+          {/* מחיר */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              מחיר (₪)
+            </label>
+
+            <input
+              type="number"
+              name="price"
+              placeholder="למשל: 150"
+              value={formData.price}
+              onChange={handleChange}
+              disabled={formData.payment_type === 'barter'}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400"
+            />
+
+            {formData.payment_type === 'barter' && (
+              <p className="text-xs text-slate-400 mt-1">
+                בברטר אין צורך לציין מחיר
+              </p>
+            )}
+          </div>
+
+          {/* עיר / אזור */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              עיר / אזור
+            </label>
+
+            <div className="relative">
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="הקלד עיר או יישוב..."
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+
+              {formData.location.trim().length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+
+                  {israeliLocations
+                    .filter((location) =>
+                      location
+                        .toLowerCase()
+                        .includes(
+                          formData.location.trim().toLowerCase()
+                        )
+                    )
+                    .slice(0, 12)
+                    .map((location) => (
+                      <button
+                        key={location}
+                        type="button"
+                        onClick={() =>
+                          setFormData((previous) => ({
+                            ...previous,
+                            location
+                          }))
+                        }
+                        className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                      >
+                        📍 {location}
+                      </button>
+                    ))}
+
+                  {israeliLocations.filter((location) =>
+                    location
+                      .toLowerCase()
+                      .includes(
+                        formData.location.trim().toLowerCase()
+                      )
+                  ).length === 0 && (
+                    <div className="px-4 py-3 text-sm text-slate-500">
+                      לא נמצא יישוב מתאים
+                    </div>
+                  )}
+
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">מספר טלפון</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    placeholder="050-0000000"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end space-x-2 space-x-reverse">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm"
-                >
-                  ביטול
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition disabled:opacity-50"
-                >
-                  {isSubmitting ? 'מפרסם...' : 'פרסם כעת'}
-                </button>
-              </div>
-            </form>
+              )}
+            </div>
           </div>
         </div>
-      )}
+
+        {/* אופן התמורה */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-2">
+            אופן התמורה
+          </label>
+
+          <div className="grid grid-cols-3 gap-2">
+
+            {/* תשלום */}
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((previous) => ({
+                  ...previous,
+                  payment_type: 'cash'
+                }))
+              }
+              className={`px-2 py-3 rounded-xl border text-sm font-medium transition ${
+                formData.payment_type === 'cash'
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-200'
+                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span className="text-lg">💵</span>
+              <span className="block mt-1">
+                תשלום
+              </span>
+            </button>
+
+            {/* ברטר */}
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((previous) => ({
+                  ...previous,
+                  payment_type: 'barter',
+                  price: ''
+                }))
+              }
+              className={`px-2 py-3 rounded-xl border text-sm font-medium transition ${
+                formData.payment_type === 'barter'
+                  ? 'border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200'
+                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span className="text-lg">🔄</span>
+              <span className="block mt-1">
+                ברטר
+              </span>
+            </button>
+
+            {/* תשלום או ברטר */}
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((previous) => ({
+                  ...previous,
+                  payment_type: 'cash_or_barter'
+                }))
+              }
+              className={`px-2 py-3 rounded-xl border text-sm font-medium transition ${
+                formData.payment_type === 'cash_or_barter'
+                  ? 'border-purple-500 bg-purple-50 text-purple-700 ring-2 ring-purple-200'
+                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span className="text-lg">💵🔄</span>
+              <span className="block mt-1">
+                תשלום או ברטר
+              </span>
+            </button>
+
+          </div>
+
+          {formData.payment_type === 'barter' && (
+            <p className="text-xs text-amber-600 mt-2">
+              🔄 המודעה מיועדת לברטר. ציין בתיאור מה תרצה לקבל בתמורה.
+            </p>
+          )}
+
+          {formData.payment_type === 'cash_or_barter' && (
+            <p className="text-xs text-purple-600 mt-2">
+              💵🔄 ניתן להציע תשלום או שירות / מוצר בתמורה.
+            </p>
+          )}
+        </div>
+
+        {/* תמונה ראשית */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            תמונה ראשית
+          </label>
+
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) =>
+              setImageFile(e.target.files[0] || null)
+            }
+            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+          />
+
+          <p className="text-xs text-slate-400 mt-1">
+            התמונה הזו תופיע כתמונה הראשית של המודעה.
+          </p>
+        </div>
+
+        {/* תמונות נוספות */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            תמונות נוספות
+          </label>
+
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => {
+              const selectedFiles = Array.from(
+                e.target.files || []
+              )
+
+              setAdditionalImageFiles((previousFiles) => {
+                const combinedFiles = [
+                  ...previousFiles,
+                  ...selectedFiles
+                ]
+
+                return combinedFiles.slice(0, 4)
+              })
+
+              e.target.value = ''
+            }}
+            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+          />
+
+          {additionalImageFiles.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {additionalImageFiles.map((file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50"
+                >
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`תמונה נוספת ${index + 1}`}
+                    className="w-full h-24 object-cover"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdditionalImageFiles((previousFiles) =>
+                        previousFiles.filter(
+                          (_, fileIndex) =>
+                            fileIndex !== index
+                        )
+                      )
+                    }}
+                    className="absolute top-1 left-1 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold shadow"
+                    title="הסר תמונה"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-xs text-slate-400 mt-1">
+            ניתן להוסיף עד 4 תמונות נוספות.
+          </p>
+        </div>
+
+        {/* תיאור */}
+        <div>
+          <label className="block text-xs font-medium text-slate-700 mb-1">
+            תיאור מפורט
+          </label>
+
+          <textarea
+            name="description"
+            rows="3"
+            placeholder={
+              formData.payment_type === 'barter'
+                ? 'פרט מה אתה מציע ומה תרצה לקבל בתמורה...'
+                : 'פרט מה העבודה כוללת, ימים, שעות וכו\'...'
+            }
+            value={formData.description}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          ></textarea>
+        </div>
+
+        {/* איש קשר */}
+        <div className="grid grid-cols-2 gap-3">
+
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              שם איש קשר
+            </label>
+
+            <input
+              type="text"
+              name="contact_name"
+              placeholder="שמך"
+              value={formData.contact_name}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              מספר טלפון
+            </label>
+
+            <input
+              type="tel"
+              name="phone"
+              placeholder="050-0000000"
+              value={formData.phone}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+        </div>
+
+        {/* כפתורים */}
+        <div className="pt-2 flex justify-end space-x-2 space-x-reverse">
+
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(false)}
+            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm"
+          >
+            ביטול
+          </button>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition disabled:opacity-50"
+          >
+            {isSubmitting ? 'מפרסם...' : 'פרסם כעת'}
+          </button>
+
+        </div>
+
+      </form>
+    </div>
+  </div>
+)}
+```
+
 
       {/* מודאל עריכת מודעה */}
       {/* מודאל עריכת מודעה */}
