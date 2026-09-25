@@ -25,6 +25,39 @@ import { supabase } from './supabaseClient'
 
 function App() {
 
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault()
+      setDeferredPrompt(event)
+    }
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return
+
+    deferredPrompt.prompt()
+
+    const { outcome } = await deferredPrompt.userChoice
+
+    console.log(`PWA install result: ${outcome}`)
+
+    setDeferredPrompt(null)
+  }
+
   const categories = [
   'תיקונים לבית',
   'ניקיון',
@@ -1152,9 +1185,20 @@ const displayedListings = baseListings.filter((item) => {
       </div>
 
       {/* צד ימין / מרכז */}
-      <div className="flex items-center gap-2 flex-wrap justify-end">
+<div className="flex items-center gap-2 flex-wrap justify-end">
 
-        {/* משתמש מחובר */}
+  {/* התקנת האפליקציה */}
+  {deferredPrompt && (
+    <button
+      type="button"
+      onClick={handleInstallApp}
+      className="text-xs font-bold px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition whitespace-nowrap shadow-sm"
+    >
+      📱 התקנת כסף כיס
+    </button>
+  )}
+
+  {/* משתמש מחובר */}
         {user ? (
           <div className="flex items-center gap-2 bg-slate-100 px-2 py-1.5 rounded-xl border border-slate-200">
 
