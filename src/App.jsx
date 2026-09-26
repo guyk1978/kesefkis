@@ -706,21 +706,39 @@ const updateReportStatus = async (reportId, status, adminNote = null) => {
 
   // טעינת מודעות מ-Supabase
   const fetchListings = async () => {
-    setLoading(true)
+  setLoading(true)
 
-    const { data, error } = await supabase
-      .from('listings')
-      .select('*')
-      .order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('listings')
+    .select(`
+      *,
+      profiles (
+        id,
+        full_name,
+        avatar_url
+      )
+    `)
+    .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching listings:', error)
-    } else {
-      setListings(data || [])
-    }
+  if (error) {
+    console.error('Error fetching listings:', error)
+  } else {
+    const listingsWithAdvertiser = (data || []).map((listing) => ({
+      ...listing,
+      advertiser_name:
+        listing.profiles?.full_name ||
+        listing.contact_name ||
+        'משתמש רשום',
+      advertiser_avatar:
+        listing.profiles?.avatar_url ||
+        null
+    }))
 
-    setLoading(false)
+    setListings(listingsWithAdvertiser)
   }
+
+  setLoading(false)
+}
 
 
   useEffect(() => {
@@ -819,30 +837,43 @@ const handleGoogleLogin = async () => {
   }
 
   // העלאת תמונת פרופיל למשתמש המחובר
-  const handleUpdateAvatar = async (e) => {
-    const file = e.target.files[0]
-    if (!file || !user) return
+ const handleUpdateAvatar = async (e) => {
+  const file = e.target.files[0]
+  if (!file || !user) return
 
-    try {
-      setIsSubmitting(true)
-      const avatarUrl = await uploadFileToStorage(file, 'avatars')
-      
-      const { error } = await supabase.auth.updateUser({
-        data: { avatar_url: avatarUrl }
+  try {
+    setIsSubmitting(true)
+
+    const avatarUrl = await uploadFileToStorage(file, 'avatars')
+
+    // שמירת התמונה גם בפרופיל המשתמש
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        avatar_url: avatarUrl
       })
 
-      if (error) throw error
-      
-      // רענון מצב המשתמש המקומי
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      alert('תמונת הפרופיל עודכנה בהצלחה!')
-    } catch (error) {
-      alert('שגיאה בעדכון תמונת הפרופיל: ' + error.message)
-    } finally {
-      setIsSubmitting(false)
-    }
+    if (profileError) throw profileError
+
+    // שמירה גם ב-Supabase Auth כדי שהכותרת והפרופיל הקיימים ימשיכו לעבוד
+    const { error: authError } = await supabase.auth.updateUser({
+      data: { avatar_url: avatarUrl }
+    })
+
+    if (authError) throw authError
+
+    // רענון המשתמש המחובר
+    const { data: { session } } = await supabase.auth.getSession()
+    setUser(session?.user ?? null)
+
+    alert('תמונת הפרופיל עודכנה בהצלחה!')
+  } catch (error) {
+    alert('שגיאה בעדכון תמונת הפרופיל: ' + error.message)
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
  // פתיחת מודל פרסום מודעה
 const handleOpenPublishModal = () => {
@@ -2173,29 +2204,32 @@ const displayedListings = baseListings.filter((item) => {
 
           <div className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4">
 
-            {user?.user_metadata?.avatar_url ? (
-              <img
-                src={user.user_metadata.avatar_url}
-                alt="תמונת פרופיל"
-                className="w-14 h-14 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
-                👤
-              </div>
-            )}
+  {selectedListing.advertiser_avatar ? (
+    <img
+      src={selectedListing.advertiser_avatar}
+      alt="תמונת פרופיל"
+      className="w-14 h-14 rounded-full object-cover"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none'
+      }}
+    />
+  ) : (
+    <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
+      {(selectedListing.advertiser_name || 'משתמש').charAt(0).toUpperCase()}
+    </div>
+  )}
 
-            <div>
-              <p className="font-bold text-slate-900">
-                {user?.user_metadata?.full_name || 'משתמש רשום'}
-              </p>
+  <div>
+    <p className="font-bold text-slate-900">
+      {selectedListing.advertiser_name || 'משתמש רשום'}
+    </p>
 
-              <p className="text-sm text-slate-500">
-                מפרסם מודעה בלוח המקומי
-              </p>
-            </div>
+    <p className="text-sm text-slate-500">
+      מפרסם מודעה בלוח המקומי
+    </p>
+  </div>
 
-          </div>
+</div>
 
           {/* כפתורי פעולה */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
