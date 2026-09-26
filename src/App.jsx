@@ -1849,9 +1849,17 @@ const displayedListings = baseListings.filter((item) => {
 
 
           {/* כותרת */}
-          <h3 className="text-xl font-extrabold text-slate-900 mb-2 line-clamp-2 leading-snug group-hover:text-emerald-700 transition">
-            {item.title}
-          </h3>
+<div className="mb-2">
+  {item.is_demo && (
+    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-3 py-1 text-xs font-bold mb-2">
+      💡 מודעת דוגמה
+    </span>
+  )}
+
+  <h3 className="text-xl font-extrabold text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition">
+    {item.title}
+  </h3>
+</div>
 
           {/* תיאור */}
           <p className="text-slate-600 text-sm leading-6 mb-4 line-clamp-3">
@@ -2196,38 +2204,48 @@ const displayedListings = baseListings.filter((item) => {
         </div>
 
         {/* פרטי מפרסם */}
-        <div className="border-t border-slate-200 pt-6">
 
-          <h3 className="text-lg font-bold text-slate-900 mb-4">
-            👤 פרטי המפרסם
-          </h3>
+<div className="border-t border-slate-200 pt-6">
 
-          <div className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4">
+  <h3 className="text-lg font-bold text-slate-900 mb-4">
+    {selectedListing.is_demo ? '💡 מודעת דוגמה' : '👤 פרטי המפרסם'}
+  </h3>
 
-  {selectedListing.advertiser_avatar ? (
-    <img
-      src={selectedListing.advertiser_avatar}
-      alt="תמונת פרופיל"
-      className="w-14 h-14 rounded-full object-cover"
-      onError={(e) => {
-        e.currentTarget.style.display = 'none'
-      }}
-    />
-  ) : (
-    <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
-      {(selectedListing.advertiser_name || 'משתמש').charAt(0).toUpperCase()}
-    </div>
-  )}
+  <div className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4">
 
-  <div>
-    <p className="font-bold text-slate-900">
-      {selectedListing.advertiser_name || 'משתמש רשום'}
-    </p>
 
-    <p className="text-sm text-slate-500">
-      מפרסם מודעה בלוח המקומי
-    </p>
+{selectedListing.is_demo ? (
+  <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
+    💡
   </div>
+) : selectedListing.advertiser_avatar ? (
+  <img
+    src={selectedListing.advertiser_avatar}
+    alt="תמונת פרופיל"
+    className="w-14 h-14 rounded-full object-cover"
+    onError={(e) => {
+      e.currentTarget.style.display = 'none'
+    }}
+  />
+) : (
+  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
+    {(selectedListing.advertiser_name || 'משתמש').charAt(0).toUpperCase()}
+  </div>
+)}
+
+<div>
+  <p className="font-bold text-slate-900">
+    {selectedListing.is_demo
+      ? 'מודעת דוגמה'
+      : selectedListing.advertiser_name || 'משתמש רשום'}
+  </p>
+
+  <p className="text-sm text-slate-500">
+    {selectedListing.is_demo
+      ? 'מודעה לדוגמה לצורך המחשת השימוש באתר'
+      : 'מפרסם מודעה בלוח המקומי'}
+  </p>
+</div>
 
 </div>
 
