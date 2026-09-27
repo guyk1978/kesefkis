@@ -19,11 +19,14 @@ function loadGoogleAnalytics() {
 
   window.__kesefkisGA = true
 }
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { israeliLocations } from './data/israeliLocations'
 import { supabase } from './supabaseClient'
 
 function App() {
+
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const [deferredPrompt, setDeferredPrompt] = useState(null)
 
@@ -184,10 +187,100 @@ useEffect(() => {
   const [loading, setLoading] = useState(true)
 
   // חיפוש וסינון מודעות
-const [searchTerm, setSearchTerm] = useState('')
-const [listingTypeFilter, setListingTypeFilter] = useState('all')
-const [categoryFilter, setCategoryFilter] = useState('all')
-const [locationFilter, setLocationFilter] = useState('all')
+const [searchTerm, setSearchTerm] = useState(() => {
+  const params = new URLSearchParams(location.search)
+  return params.get('search') || ''
+})
+
+const [listingTypeFilter, setListingTypeFilter] = useState(() => {
+  const params = new URLSearchParams(location.search)
+  return params.get('type') || 'all'
+})
+
+const [categoryFilter, setCategoryFilter] = useState(() => {
+  const params = new URLSearchParams(location.search)
+
+  const pathParts = decodeURIComponent(location.pathname)
+    .split('/')
+    .filter(Boolean)
+
+  if (
+    pathParts.length === 2 &&
+    pathParts[0] === 'קטגוריה'
+  ) {
+    const categorySlug = pathParts[1]
+
+    const category = categories.find((item) => {
+      const slug = item
+        .trim()
+        .replace(/\s+/g, '-')
+
+      return slug === categorySlug
+    })
+
+    if (category) {
+      return category
+    }
+  }
+
+  return params.get('category') || 'all'
+})
+
+const [locationFilter, setLocationFilter] = useState(() => {
+  const params = new URLSearchParams(location.search)
+
+  const pathParts = decodeURIComponent(location.pathname)
+    .split('/')
+    .filter(Boolean)
+
+  if (
+    pathParts.length === 2 &&
+    pathParts[0] === 'מיקום'
+  ) {
+    const locationSlug = pathParts[1]
+
+    return locationSlug.replace(/-/g, ' ')
+  }
+
+  return params.get('location') || 'all'
+})
+
+
+
+useEffect(() => {
+  const params = new URLSearchParams()
+
+  if (searchTerm.trim()) {
+    params.set('search', searchTerm.trim())
+  }
+
+  if (listingTypeFilter !== 'all') {
+    params.set('type', listingTypeFilter)
+  }
+
+  if (categoryFilter !== 'all') {
+    params.set('category', categoryFilter)
+  }
+
+  if (locationFilter !== 'all') {
+    params.set('location', locationFilter)
+  }
+
+  const query = params.toString()
+  const newUrl = query ? `/?${query}` : '/'
+
+  if (
+  location.pathname === '/' &&
+  location.search !== `?${query}`
+) {
+  navigate(newUrl, { replace: true })
+}
+}, [
+  searchTerm,
+  listingTypeFilter,
+  categoryFilter,
+  locationFilter
+])
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -195,6 +288,7 @@ const [locationFilter, setLocationFilter] = useState('all')
 
   // ניהול תצוגה: 'home' ללוח הראשי, 'my-listings' למודעות שלי
   const [currentView, setCurrentView] = useState('home')
+  const [showAllCategories, setShowAllCategories] = useState(false)
 
 
   const [selectedListing, setSelectedListing] = useState(null)
@@ -744,6 +838,203 @@ const updateReportStatus = async (reportId, status, adminNote = null) => {
   useEffect(() => {
     fetchListings()
   }, [])
+
+
+useEffect(() => {
+  if (!listings.length) return
+
+  const pathParts = decodeURIComponent(location.pathname).split('/').filter(Boolean)
+
+  if (pathParts.length !== 2) return
+
+  const listingId = pathParts[1]
+
+  const listing = listings.find(
+    (item) => String(item.id) === String(listingId)
+  )
+
+  if (listing) {
+    setSelectedListing(listing)
+  }
+}, [listings, location.pathname])
+
+
+
+
+useEffect(() => {
+  const pathParts = decodeURIComponent(location.pathname)
+    .split('/')
+    .filter(Boolean)
+
+  const isCategoryPage =
+    pathParts.length === 2 &&
+    pathParts[0] === 'קטגוריה'
+
+  const isLocationPage =
+    pathParts.length === 2 &&
+    pathParts[0] === 'מיקום'
+
+  let categoryFromUrl = null
+
+  if (isCategoryPage) {
+    const categorySlug = pathParts[1]
+
+    categoryFromUrl = categories.find((item) => {
+      const slug = item
+        .trim()
+        .replace(/\s+/g, '-')
+
+      return slug === categorySlug
+    })
+  }
+
+  let locationFromUrl = null
+
+  if (isLocationPage) {
+    locationFromUrl = pathParts[1]
+      .replace(/-/g, ' ')
+  }
+
+  if (selectedListing) {
+    document.title = `${selectedListing.title} | כסף כיס`
+    return
+  }
+
+  if (categoryFromUrl) {
+    document.title = `${categoryFromUrl} - מודעות, עבודות ושירותים | כסף כיס`
+    return
+  }
+
+  if (locationFromUrl) {
+    document.title = `מודעות ועבודות ב${locationFromUrl} | כסף כיס`
+    return
+  }
+
+  const titleParts = []
+
+  if (categoryFilter !== 'all') {
+    titleParts.push(categoryFilter)
+  }
+
+  if (locationFilter !== 'all') {
+    titleParts.push(locationFilter)
+  }
+
+  if (listingTypeFilter === 'offer') {
+    titleParts.push('שירותים')
+  } else if (listingTypeFilter === 'request') {
+    titleParts.push('בקשות')
+  }
+
+  if (titleParts.length > 0) {
+    document.title = `${titleParts.join(' ב')} | כסף כיס`
+    return
+  }
+
+  if (searchTerm.trim()) {
+    document.title = `חיפוש: ${searchTerm.trim()} | כסף כיס`
+    return
+  }
+
+  document.title = 'כסף כיס - לוח מודעות ועבודות מזדמנות'
+}, [
+  selectedListing,
+  searchTerm,
+  listingTypeFilter,
+  categoryFilter,
+  locationFilter,
+  location.pathname
+])
+
+
+
+useEffect(() => {
+  const defaultDescription =
+    'כסף כיס - לוח מודעות לעבודות מזדמנות, שירותים ועזרה בין אנשים.'
+
+  const pathParts = decodeURIComponent(location.pathname)
+    .split('/')
+    .filter(Boolean)
+
+  const isCategoryPage =
+    pathParts.length === 2 &&
+    pathParts[0] === 'קטגוריה'
+
+  let categoryFromUrl = null
+
+  if (isCategoryPage) {
+    const categorySlug = pathParts[1]
+
+    categoryFromUrl = categories.find((item) => {
+      const slug = item
+        .trim()
+        .replace(/\s+/g, '-')
+
+      return slug === categorySlug
+    })
+  }
+
+  let description = defaultDescription
+
+  if (selectedListing) {
+    const parts = [
+      selectedListing.title,
+      selectedListing.category,
+      selectedListing.location
+    ].filter(Boolean)
+
+    description = `${parts.join(' | ')} - כסף כיס`
+  } else if (categoryFromUrl) {
+  description =
+    `מודעות, עבודות ושירותים בתחום ${categoryFromUrl} - חיפוש ומציאת עבודות ושירותים בכסף כיס`
+} else if (locationFilter !== 'all') {
+  description =
+    `מודעות, עבודות ושירותים ב${locationFilter} - חיפוש ומציאת עבודות ושירותים מקומיים בכסף כיס`
+  } else {
+    const parts = []
+
+    if (categoryFilter !== 'all') {
+      parts.push(categoryFilter)
+    }
+
+    if (locationFilter !== 'all') {
+      parts.push(locationFilter)
+    }
+
+    if (listingTypeFilter === 'offer') {
+      parts.push('שירותים')
+    } else if (listingTypeFilter === 'request') {
+      parts.push('בקשות')
+    }
+
+    if (searchTerm.trim()) {
+      parts.push(`חיפוש: ${searchTerm.trim()}`)
+    }
+
+    if (parts.length > 0) {
+      description =
+        `${parts.join(' | ')} - מודעות, שירותים ועבודות מזדמנות בכסף כיס`
+    }
+  }
+
+  let meta = document.querySelector('meta[name="description"]')
+
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.setAttribute('name', 'description')
+    document.head.appendChild(meta)
+  }
+
+  meta.setAttribute('content', description)
+}, [
+  selectedListing,
+  searchTerm,
+  listingTypeFilter,
+  categoryFilter,
+  locationFilter,
+  location.pathname
+])
+
 
   // טיפול בשינוי קלט בטופס
   const handleChange = (e) => {
@@ -1415,16 +1706,24 @@ const displayedListings = baseListings.filter((item) => {
     <div>
         
       <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
-        {currentView === 'my-listings'
-          ? 'המודעות שפרסמתי'
-          : 'לוח עבודות ושירותים מקומיים'}
-      </h2>
+  {currentView === 'my-listings'
+    ? 'המודעות שפרסמתי'
+    : categoryFilter !== 'all'
+      ? categoryFilter
+      : locationFilter !== 'all'
+        ? `מודעות ועבודות ב${locationFilter}`
+        : 'לוח עבודות ושירותים מקומיים'}
+</h2>
 
-      <p className="text-slate-600">
-        {currentView === 'my-listings'
-          ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
-          : 'מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך'}
-      </p>
+<p className="text-slate-600">
+  {currentView === 'my-listings'
+    ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
+    : categoryFilter !== 'all'
+      ? `מודעות, עבודות ושירותים בתחום ${categoryFilter}`
+      : locationFilter !== 'all'
+        ? `מצאו עבודות, שירותים ומודעות מקומיות ב${locationFilter}`
+        : 'מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך'}
+</p>
     </div>
 
     {currentView === 'my-listings' && (
@@ -1690,6 +1989,78 @@ const displayedListings = baseListings.filter((item) => {
     </div>
   </div>
 )}
+
+
+
+  {/* קטגוריות SEO */}
+{currentView === 'home' && (
+  <section className="mb-8">
+    <div className="flex items-end justify-between gap-4 mb-4">
+      <div>
+        <h2 className="text-xl font-extrabold text-slate-900">
+          קטגוריות
+        </h2>
+        <p className="text-sm text-slate-500 mt-1">
+          מצאו עבודות, שירותים ועזרה לפי תחום
+        </p>
+      </div>
+
+      {categoryFilter !== 'all' && (
+        <button
+          onClick={() => {
+            setCategoryFilter('all')
+            navigate('/')
+          }}
+          className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 transition"
+        >
+          הצג את כל הקטגוריות
+        </button>
+      )}
+    </div>
+
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+      {(showAllCategories ? categories : categories.slice(0, 12)).map((category) => {
+        const slug = category
+          .trim()
+          .replace(/\s+/g, '-')
+
+        const isActive = categoryFilter === category
+
+        return (
+          <button
+            key={category}
+            onClick={() => {
+              setCategoryFilter(category)
+              navigate(`/קטגוריה/${slug}`)
+            }}
+            className={`px-3 py-2.5 rounded-xl border text-sm font-semibold text-right transition ${
+              isActive
+                ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
+                : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700'
+            }`}
+          >
+            {category}
+          </button>
+        )
+      })}
+    </div>
+
+    {categories.length > 12 && (
+      <div className="flex justify-center mt-4">
+        <button
+          onClick={() => setShowAllCategories((prev) => !prev)}
+          className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
+        >
+          {showAllCategories
+            ? '▲ הצג פחות קטגוריות'
+            : `▼ הצג את כל הקטגוריות (${categories.length})`}
+        </button>
+      </div>
+    )}
+  </section>
+)}
+
+
   
 
   {/* רשימת המודעות */}
@@ -1744,14 +2115,18 @@ const displayedListings = baseListings.filter((item) => {
     return (
       <div
         key={item.id}
-        onClick={() => setSelectedListing(item)}
+        onClick={() => {
+  setSelectedListing(item)
+  navigate(`/מודעה/${item.id}`)
+}}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            setSelectedListing(item)
-          }
+  e.preventDefault()
+  setSelectedListing(item)
+  navigate(`/מודעה/${item.id}`)
+}
         }}
         className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col cursor-pointer"
       >
@@ -1946,7 +2321,10 @@ const displayedListings = baseListings.filter((item) => {
 {selectedListing && (
   <div
     className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
-    onClick={() => setSelectedListing(null)}
+    onClick={() => {
+  setSelectedListing(null)
+  navigate('/')
+}}
   >
     <div
       className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl"
@@ -2000,7 +2378,10 @@ const displayedListings = baseListings.filter((item) => {
 
           {/* סגירה */}
           <button
-            onClick={() => setSelectedListing(null)}
+            onClick={() => {
+  setSelectedListing(null)
+  navigate('/')
+}}
             className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
             aria-label="סגירת חלון"
           >
@@ -2275,7 +2656,10 @@ const displayedListings = baseListings.filter((item) => {
 
         {/* סגירה */}
         <button
-          onClick={() => setSelectedListing(null)}
+          onClick={() => {
+  setSelectedListing(null)
+  navigate('/')
+}}
           className="w-full mt-4 py-3 text-sm font-semibold text-slate-500 hover:text-slate-800 transition"
         >
           סגור
