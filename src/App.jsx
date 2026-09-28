@@ -1520,15 +1520,15 @@ const displayedListings = baseListings.filter((item) => {
 
       </div>
 
-      <div className="hidden min-[390px]:block text-right leading-tight">
-        <div className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
-          כסף כיס
-        </div>
+      <div className="block text-right leading-tight">
+  <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight whitespace-nowrap">
+    כסף כיס
+  </div>
 
-        <div className="hidden sm:block text-[10px] sm:text-[11px] font-medium text-slate-500 mt-0.5">
-          עבודות • שירותים • אנשים
-        </div>
-      </div>
+  <div className="hidden sm:block text-[10px] sm:text-[11px] font-medium text-slate-500 mt-0.5">
+    עבודות • שירותים • אנשים
+  </div>
+</div>
     </button>
 
 
