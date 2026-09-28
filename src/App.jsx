@@ -1491,250 +1491,618 @@ const displayedListings = baseListings.filter((item) => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans pb-12">
       {/* סרגל עליון Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-  <div className="max-w-6xl mx-auto px-4 py-3">
+      <header
+  className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
+>
+  <div className="max-w-6xl mx-auto px-2.5 sm:px-4">
 
-    <div className="flex flex-wrap items-center justify-between gap-3">
 
-      {/* לוגו */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-3xl">💰</span>
+<div className="min-h-[54px] sm:min-h-[60px] flex items-center justify-between gap-2">
 
-        <h1
-          onClick={() => setCurrentView('home')}
-          className="text-2xl font-extrabold text-slate-900 tracking-tight cursor-pointer"
-        >
-          כסף כיס
-        </h1>
-      </div>
+  {/* =========================================
+      צד ימין - לוגו + משתמש
+      ========================================= */}
+  <div className="flex items-center gap-2 sm:gap-4 min-w-0 shrink-0">
 
-      {/* צד ימין / מרכז */}
-<div className="flex items-center gap-2 flex-wrap justify-end">
-
-  {/* התקנת האפליקציה */}
-  {deferredPrompt && (
+    {/* לוגו */}
     <button
       type="button"
-      onClick={handleInstallApp}
-      className="text-xs font-bold px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition whitespace-nowrap shadow-sm"
+      onClick={() => setCurrentView('home')}
+      className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0"
     >
-      📱 התקנת כסף כיס
+      <div className="relative shrink-0">
+
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-950/30 group-hover:scale-105 group-hover:rotate-1 transition-all duration-200">
+          <span className="text-xl sm:text-3xl leading-none">
+            💰
+          </span>
+        </div>
+
+      </div>
+
+      <div className="hidden min-[390px]:block text-right leading-tight">
+        <div className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
+          כסף כיס
+        </div>
+
+        <div className="hidden sm:block text-[10px] sm:text-[11px] font-medium text-slate-500 mt-0.5">
+          עבודות • שירותים • אנשים
+        </div>
+      </div>
     </button>
-  )}
 
-  {/* משתמש מחובר */}
-        {user ? (
-          <div className="flex items-center gap-2 bg-slate-100 px-2 py-1.5 rounded-xl border border-slate-200">
 
-            {/* תמונת פרופיל */}
-            <label
-              className="relative cursor-pointer group shrink-0"
-              title="החלף תמונת פרופיל"
-            >
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleUpdateAvatar}
-                className="hidden"
-              />
+    {/* =========================================
+        משתמש מחובר
+        ========================================= */}
+    {user ? (
+      <div className="relative shrink-0">
 
-              {(
-                user.user_metadata?.avatar_url ||
-                user.user_metadata?.picture ||
-                user.identities?.[0]?.identity_data?.avatar_url ||
-                user.identities?.[0]?.identity_data?.picture
-              ) ? (
-                <img
-                  src={
+        <details className="relative">
+
+          {/* תמונת המשתמש - לחיצה פותחת תפריט */}
+          <summary
+            className="list-none cursor-pointer outline-none select-none"
+            title="תפריט המשתמש"
+          >
+            <div className="relative group">
+
+              <div className="p-[2px] rounded-full bg-gradient-to-br from-emerald-300 via-emerald-500 to-slate-500 shadow-lg shadow-black/20 group-hover:shadow-emerald-400/20 group-hover:scale-105 transition-all duration-200">
+
+                {(
+                  user.user_metadata?.avatar_url ||
+                  user.user_metadata?.picture ||
+                  user.identities?.[0]?.identity_data?.avatar_url ||
+                  user.identities?.[0]?.identity_data?.picture
+                ) ? (
+                  <img
+                    src={
+                      user.user_metadata?.avatar_url ||
+                      user.user_metadata?.picture ||
+                      user.identities?.[0]?.identity_data?.avatar_url ||
+                      user.identities?.[0]?.identity_data?.picture
+                    }
+                    alt="Profile"
+                    className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm border-2 border-slate-900">
+                    {user.email?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+
+              </div>
+
+              {/* נקודת סטטוס */}
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-400 rounded-full border-2 border-white shadow-sm" />
+
+            </div>
+          </summary>
+
+
+          {/* =========================================
+              תפריט המשתמש
+              ========================================= */}
+          <div
+            className="absolute right-0 mt-3 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden z-[100]"
+            dir="rtl"
+          >
+
+            {/* פרטי המשתמש */}
+            <div className="px-4 py-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
+
+              <div className="flex items-center gap-3">
+
+                <div className="p-[2px] rounded-full bg-gradient-to-br from-emerald-400 to-slate-300 shrink-0">
+
+                  {(
                     user.user_metadata?.avatar_url ||
                     user.user_metadata?.picture ||
                     user.identities?.[0]?.identity_data?.avatar_url ||
                     user.identities?.[0]?.identity_data?.picture
-                  }
-                  alt="Profile"
-                  className="w-9 h-9 rounded-full object-cover border border-slate-300"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
-                  {user.email?.charAt(0).toUpperCase()}
+                  ) ? (
+                    <img
+                      src={
+                        user.user_metadata?.avatar_url ||
+                        user.user_metadata?.picture ||
+                        user.identities?.[0]?.identity_data?.avatar_url ||
+                        user.identities?.[0]?.identity_data?.picture
+                      }
+                      alt="Profile"
+                      className="w-11 h-11 rounded-full object-cover border-2 border-white"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm border-2 border-white">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
                 </div>
-              )}
-            </label>
 
-            {/* מייל - רק במסכים גדולים */}
-            <span className="text-xs text-slate-600 hidden lg:inline max-w-[150px] truncate">
-              {user.email}
-            </span>
+                <div className="min-w-0">
 
-            {/* המודעות שלי */}
-            <button
-              onClick={() =>
-                setCurrentView(
-                  currentView === 'my-listings'
-                    ? 'home'
-                    : 'my-listings'
-                )
-              }
-              className={`text-xs font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap ${
-                currentView === 'my-listings'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-              }`}
-            >
-              {currentView === 'my-listings'
-                ? 'כל הלוח'
-                : 'המודעות שלי'}
-            </button>
+                  <div className="font-extrabold text-slate-900 text-sm">
+                    {user.user_metadata?.full_name ||
+                      user.user_metadata?.name ||
+                      'המשתמש שלי'}
+                  </div>
 
-            {/* מועדפים */}
-            <button
-              onClick={() =>
-                setCurrentView(
-                  currentView === 'favorites'
-                    ? 'home'
-                    : 'favorites'
-                )
-              }
-              className={`relative text-xs font-bold px-2.5 py-1.5 rounded-lg transition whitespace-nowrap ${
-                currentView === 'favorites'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-              }`}
-            >
-              ❤️
-              <span className="hidden sm:inline mr-1">
-                שאהבתי
-              </span>
+                  <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                    {user.email}
+                  </div>
 
-              {favoriteListings.length > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-[19px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {favoriteListings.length > 99
-                    ? '99+'
-                    : favoriteListings.length}
-                </span>
-              )}
-            </button>
+                  <div className="flex items-center gap-1 mt-1.5 text-[10px] font-semibold text-emerald-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    מחובר
+                  </div>
 
-            {/* הודעות */}
-            <button
-              onClick={() => setMessagesModalOpen(true)}
-              className="relative text-xs font-bold px-2.5 py-1.5 rounded-lg bg-slate-200 text-slate-700 hover:bg-slate-300 transition whitespace-nowrap"
-            >
-              💬
-              <span className="hidden sm:inline mr-1">
-                הודעות
-              </span>
+                </div>
 
-              {unreadMessagesCount > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-[19px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {unreadMessagesCount > 99
-                    ? '99+'
-                    : unreadMessagesCount}
-                </span>
-              )}
-            </button>
+              </div>
 
-            {/* ניהול דיווחים */}
-            {isAdmin && (
+            </div>
+
+
+            {/* פעולות */}
+            <div className="p-2">
+
+              {/* המודעות שלי */}
               <button
                 type="button"
-                onClick={async () => {
-                  setShowReportsAdmin(true)
-                  await fetchReports()
+                onClick={(e) => {
+                  e.currentTarget
+                    .closest('details')
+                    ?.removeAttribute('open')
+
+                  setCurrentView(
+                    currentView === 'my-listings'
+                      ? 'home'
+                      : 'my-listings'
+                  )
                 }}
-                className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 transition whitespace-nowrap"
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right transition ${
+                  currentView === 'my-listings'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
               >
-                🚨
-                <span className="hidden sm:inline mr-1">
-                  ניהול
+                <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">
+                  📋
+                </span>
+
+                <span className="flex-1">
+                  {currentView === 'my-listings'
+                    ? 'חזרה ללוח'
+                    : 'המודעות שלי'}
+                </span>
+
+                <span className="text-slate-300">
+                  ‹
                 </span>
               </button>
-            )}
 
-            {/* התנתקות */}
-            <button
-              onClick={handleLogout}
-              className="text-xs text-red-600 hover:text-red-700 font-bold px-1.5 py-1 transition whitespace-nowrap"
-            >
-              יציאה
-            </button>
+
+              {/* מועדפים */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.currentTarget
+                    .closest('details')
+                    ?.removeAttribute('open')
+
+                  setCurrentView(
+                    currentView === 'favorites'
+                      ? 'home'
+                      : 'favorites'
+                  )
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right transition ${
+                  currentView === 'favorites'
+                    ? 'bg-red-50 text-red-600'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="relative w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-sm">
+                  ❤️
+
+                  {favoriteListings.length > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[8px] font-extrabold flex items-center justify-center">
+                      {favoriteListings.length > 99
+                        ? '99+'
+                        : favoriteListings.length}
+                    </span>
+                  )}
+                </span>
+
+                <span className="flex-1">
+                  שאהבתי
+                </span>
+
+                <span className="text-slate-300">
+                  ‹
+                </span>
+              </button>
+
+
+              {/* הודעות */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.currentTarget
+                    .closest('details')
+                    ?.removeAttribute('open')
+
+                  setMessagesModalOpen(true)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition"
+              >
+                <span className="relative w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-sm">
+                  💬
+
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[8px] font-extrabold flex items-center justify-center">
+                      {unreadMessagesCount > 99
+                        ? '99+'
+                        : unreadMessagesCount}
+                    </span>
+                  )}
+                </span>
+
+                <span className="flex-1">
+                  הודעות
+                </span>
+
+                <span className="text-slate-300">
+                  ‹
+                </span>
+              </button>
+
+
+              {/* ניהול - אדמין */}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    e.currentTarget
+                      .closest('details')
+                      ?.removeAttribute('open')
+
+                    setShowReportsAdmin(true)
+                    await fetchReports()
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-red-700 hover:bg-red-50 transition"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-sm">
+                    🚨
+                  </span>
+
+                  <span className="flex-1">
+                    ניהול דיווחים
+                  </span>
+
+                  <span className="text-red-200">
+                    ‹
+                  </span>
+                </button>
+              )}
+
+            </div>
+
+
+            {/* החלפת תמונה */}
+            <div className="px-2 pb-2">
+
+              <label
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition cursor-pointer"
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUpdateAvatar}
+                  className="hidden"
+                />
+
+                <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">
+                  📷
+                </span>
+
+                <span>
+                  החלף תמונת פרופיל
+                </span>
+
+              </label>
+
+            </div>
+
+
+            {/* יציאה */}
+            <div className="border-t border-slate-100 p-2">
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-red-500 hover:bg-red-50 hover:text-red-600 transition"
+              >
+                <span className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-sm">
+                  ↪
+                </span>
+
+                <span className="flex-1">
+                  התנתקות
+                </span>
+              </button>
+
+            </div>
+
           </div>
-        ) : (
-          /* התחברות */
-          <button
-            onClick={() => {
-              setAuthMode('login')
-              setIsAuthModalOpen(true)
-            }}
-            className="text-sm font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition whitespace-nowrap"
-          >
-            התחברות / הרשמה
-          </button>
-        )}
 
-        {/* איך זה עובד */}
-        <button
-          type="button"
-          onClick={() => setIsHowItWorksOpen(true)}
-          className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm transition whitespace-nowrap"
-        >
-          ❓
-          <span>איך זה עובד?</span>
-        </button>
-
-        {/* פרסם מודעה */}
-        <button
-          onClick={handleOpenPublishModal}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-sm transition duration-150 flex items-center gap-2 cursor-pointer whitespace-nowrap"
-        >
-          <span className="text-lg leading-none">+</span>
-          <span>פרסם מודעה</span>
-        </button>
+        </details>
 
       </div>
-    </div>
+    ) : (
+      /* התחברות */
+      <button
+        type="button"
+        onClick={() => {
+          setAuthMode('login')
+          setIsAuthModalOpen(true)
+        }}
+        className="h-9 sm:h-10 px-2.5 sm:px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 transition whitespace-nowrap"
+      >
+        התחברות
+      </button>
+    )}
+
+  </div>
+
+
+  {/* =========================================
+      צד שמאל - פעולות
+      ========================================= */}
+  <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
+
+    {/* איך זה עובד */}
+    <button
+      type="button"
+      onClick={() => setIsHowItWorksOpen(true)}
+      title="איך זה עובד?"
+      className="hidden sm:flex h-9 px-2.5 sm:px-3.5 rounded-xl items-center justify-center gap-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
+    >
+      <span className="text-base">
+        ❓
+      </span>
+
+      <span className="hidden md:inline text-xs font-bold">
+        איך זה עובד?
+      </span>
+    </button>
+
+
+    {/* מועדפים */}
+    {user && (
+      <button
+        type="button"
+        onClick={() =>
+          setCurrentView(
+            currentView === 'favorites'
+              ? 'home'
+              : 'favorites'
+          )
+        }
+        title="המועדפים שלי"
+        className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition ${
+          currentView === 'favorites'
+            ? 'bg-red-500/15 text-red-300'
+            : 'text-slate-500 hover:text-red-500 hover:bg-red-50'
+        }`}
+      >
+        <span className="text-base sm:text-lg leading-none">
+          ♡
+        </span>
+
+        {favoriteListings.length > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-red-500 text-white text-[8px] font-extrabold flex items-center justify-center border-2 border-slate-900">
+            {favoriteListings.length > 99
+              ? '99+'
+              : favoriteListings.length}
+          </span>
+        )}
+      </button>
+    )}
+
+
+    {/* הודעות */}
+    {user && (
+      <button
+        type="button"
+        onClick={() => setMessagesModalOpen(true)}
+        title="הודעות"
+        className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
+      >
+        <span className="text-base sm:text-lg leading-none">
+          💬
+        </span>
+
+        {unreadMessagesCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-red-500 text-white text-[8px] font-extrabold flex items-center justify-center border-2 border-slate-900">
+            {unreadMessagesCount > 99
+              ? '99+'
+              : unreadMessagesCount}
+          </span>
+        )}
+      </button>
+    )}
+
+
+    {/* המודעות שלי */}
+    {user && (
+      <button
+        type="button"
+        onClick={() =>
+          setCurrentView(
+            currentView === 'my-listings'
+              ? 'home'
+              : 'my-listings'
+          )
+        }
+        title={
+          currentView === 'my-listings'
+            ? 'חזרה ללוח'
+            : 'המודעות שלי'
+        }
+        className={`hidden sm:flex h-10 px-3 rounded-xl items-center gap-1.5 text-xs font-bold transition ${
+          currentView === 'my-listings'
+            ? 'bg-emerald-400/15 text-emerald-300'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+        }`}
+      >
+        <span className="text-sm">
+          {currentView === 'my-listings' ? '⌂' : '▤'}
+        </span>
+
+        <span>
+          {currentView === 'my-listings'
+            ? 'כל הלוח'
+            : 'המודעות שלי'}
+        </span>
+      </button>
+    )}
+
+
+    {/* התקנת האפליקציה */}
+    {deferredPrompt && (
+      <button
+        type="button"
+        onClick={handleInstallApp}
+        title="התקנת כסף כיס"
+        className="hidden md:flex h-9 px-3 rounded-xl items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition"
+      >
+        <span>
+          📱
+        </span>
+
+        <span>
+          התקנת האפליקציה
+        </span>
+      </button>
+    )}
+
+
+    {/* פרסום מודעה */}
+<button
+  type="button"
+  onClick={handleOpenPublishModal}
+  className="relative h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(5,150,105,0.35)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.45)] border border-emerald-700 transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+>
+  <span className="relative text-2xl sm:text-3xl leading-none font-normal">
+    +
+  </span>
+
+  <span className="relative hidden min-[390px]:inline">
+    פרסם
+  </span>
+
+  <span className="relative hidden sm:inline">
+    מודעה
+  </span>
+</button>
+
+  </div>
+
+</div>
+
+
   </div>
 </header>
 
+
       {/* אזור מרכזי */}
-<main className="max-w-5xl mx-auto px-4 pt-8">
- {(currentView === 'home' || currentView === 'my-listings') && (
-  <div className="mb-8 text-center md:text-right flex flex-col md:flex-row md:items-center md:justify-between">
-    <div>
-        
-      <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
+<main className="max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
+
+{(currentView === 'home' || currentView === 'my-listings' || currentView === 'favorites') && (
+<div className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-emerald-50/70 shadow-sm">
+
+  {/* כתמי רקע עדינים */}
+  <div className="absolute -top-20 -left-20 w-56 h-56 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
+  <div className="absolute -bottom-24 -right-16 w-64 h-64 rounded-full bg-cyan-200/20 blur-3xl pointer-events-none" />
+
+  {/* קו צבע עליון */}
+  <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400" />
+
+  <div className="relative px-5 py-7 sm:px-8 sm:py-8">
+
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+
+      {/* תוכן הכותרת */}
+      <div className="text-center md:text-right">
+
+        {/* תג קטן */}
+        {currentView === 'home' && (
+          <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200 text-emerald-700 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            לוח מקומי פעיל
+          </div>
+        )}
+
+        <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
   {currentView === 'my-listings'
     ? 'המודעות שפרסמתי'
-    : categoryFilter !== 'all'
-      ? categoryFilter
-      : locationFilter !== 'all'
-        ? `מודעות ועבודות ב${locationFilter}`
-        : 'לוח עבודות ושירותים מקומיים'}
+    : currentView === 'favorites'
+      ? 'המודעות שאהבתי'
+      : categoryFilter !== 'all'
+        ? categoryFilter
+        : locationFilter !== 'all'
+          ? `מודעות ועבודות ב${locationFilter}`
+          : 'לוח עבודות ושירותים מקומיים'}
 </h2>
 
-<p className="text-slate-600">
+        <p className="text-slate-600">
   {currentView === 'my-listings'
     ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
-    : categoryFilter !== 'all'
-      ? `מודעות, עבודות ושירותים בתחום ${categoryFilter}`
-      : locationFilter !== 'all'
-        ? `מצאו עבודות, שירותים ומודעות מקומיות ב${locationFilter}`
-        : 'מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך'}
+    : currentView === 'favorites'
+      ? 'כל המודעות ששמרת כמועדפות במקום אחד'
+      : categoryFilter !== 'all'
+        ? `מודעות, עבודות ושירותים בתחום ${categoryFilter}`
+        : locationFilter !== 'all'
+          ? `מצאו עבודות, שירותים ומודעות מקומיות ב${locationFilter}`
+          : 'מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך'}
 </p>
+
+      </div>
+
+      {/* אזור הפעולה */}
+{currentView === 'my-listings' ? (
+  <button
+    onClick={() => setCurrentView('home')}
+    className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+  >
+    <span className="text-lg">
+      ←
+    </span>
+    חזרה לכל הלוח
+  </button>
+) : currentView === 'favorites' ? (
+  <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-red-50 border border-red-200 shadow-sm">
+  <span className="text-3xl">
+    ❤️
+  </span>
+</div>
+) : (
+  <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500 shadow-lg shadow-emerald-500/20">
+    <span className="text-3xl">
+      💰
+    </span>
+  </div>
+)}
+
     </div>
 
-    {currentView === 'my-listings' && (
-      <button
-        onClick={() => setCurrentView('home')}
-        className="mt-4 md:mt-0 text-sm font-semibold text-emerald-600 hover:underline"
-      >
-        ← חזרה לכל הלוח
-      </button>
-    )}
   </div>
+</div>
+
 )}
 
 
@@ -4417,7 +4785,7 @@ const displayedListings = baseListings.filter((item) => {
     </div>
   </div>
 )}
-```
+
 
 
       {/* מודאל עריכת מודעה */}
