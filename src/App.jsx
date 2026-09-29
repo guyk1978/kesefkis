@@ -247,6 +247,103 @@ const [locationFilter, setLocationFilter] = useState(() => {
 
 
 
+
+// =========================================
+// מיקום המשתמש
+// =========================================
+const [userLocation, setUserLocation] = useState(null)
+const [userCity, setUserCity] = useState('')
+const [locationLoading, setLocationLoading] = useState(false)
+const [locationError, setLocationError] = useState('')
+const [nearbyOnly, setNearbyOnly] = useState(false)
+const [locationRadius, setLocationRadius] = useState(5)
+const [sortByDistance, setSortByDistance] = useState(false)
+
+const requestUserLocation = () => {
+  if (!navigator.geolocation) {
+    setLocationError('הדפדפן שלך לא תומך בזיהוי מיקום')
+    return
+  }
+
+  setLocationLoading(true)
+  setLocationError('')
+  setUserCity('')
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude, longitude } = position.coords
+
+      setUserLocation({
+        latitude,
+        longitude
+      })
+
+      console.log('📍 מיקום המשתמש:', {
+        latitude,
+        longitude
+      })
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=he`
+        )
+
+        if (!response.ok) {
+          throw new Error('שגיאה בקבלת כתובת')
+        }
+
+        const data = await response.json()
+
+        const city =
+          data.address?.city ||
+          data.address?.town ||
+          data.address?.village ||
+          data.address?.municipality ||
+          ''
+
+        if (city) {
+          console.log('🏙️ העיר שזוהתה:', city)
+
+          setUserCity(city)
+          setLocationError('')
+        } else {
+          setLocationError('המיקום זוהה, אך לא הצלחנו לזהות את העיר')
+        }
+      } catch (error) {
+        console.error('שגיאה בזיהוי העיר:', error)
+        setLocationError('המיקום זוהה, אך לא הצלחנו לזהות את העיר')
+      } finally {
+        setLocationLoading(false)
+      }
+    },
+    (error) => {
+      setLocationLoading(false)
+
+      if (error.code === error.PERMISSION_DENIED) {
+        setLocationError('הגישה למיקום נחסמה')
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        setLocationError('לא ניתן לזהות את המיקום כרגע')
+      } else {
+        setLocationError('לא הצלחנו לזהות את המיקום')
+      }
+
+      console.error('שגיאת מיקום:', {
+        code: error.code,
+        message: error.message,
+        error
+      })
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 300000
+    }
+  )
+}
+
+
+
+
 useEffect(() => {
   const params = new URLSearchParams()
 
@@ -1188,7 +1285,7 @@ const handleOpenPublishModal = () => {
   }
 }
 
-// שליחת מודעה חדשה (כולל תמונה)
+// שליחת מודעה חדשה (כולל תמונה ומיקום גיאוגרפי)
 const handleSubmit = async (e) => {
   e.preventDefault()
   if (!user) return
@@ -1216,22 +1313,57 @@ const handleSubmit = async (e) => {
       )
     }
 
+    // ברירת מחדל - אין קואורדינטות
+    let latitude = null
+    let longitude = null
+
+    // ניסיון לזהות קואורדינטות לפי העיר שהוזנה במודעה
+    if (formData.location?.trim()) {
+      try {
+        const response = await fetch(
+  `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=il&accept-language=he&q=${encodeURIComponent(formData.location.trim())}`
+)
+
+        if (response.ok) {
+          const data = await response.json()
+
+          if (data?.length > 0) {
+            latitude = parseFloat(data[0].lat)
+            longitude = parseFloat(data[0].lon)
+
+            console.log('📍 מיקום המודעה:', {
+              location: formData.location,
+              latitude,
+              longitude
+            })
+          }
+        }
+      } catch (locationError) {
+        console.warn(
+          '⚠️ לא הצלחנו לזהות קואורדינטות למודעה:',
+          locationError
+        )
+      }
+    }
+
     const newListing = {
-  title: formData.title,
-  description: formData.description,
-  price: formData.price
-    ? parseFloat(formData.price)
-    : null,
-  payment_type: formData.payment_type,
-  listing_type: formData.listing_type,
-  category: formData.category,
-  location: formData.location,
-  contact_name: formData.contact_name,
-  phone: formData.phone,
-  image_url: imageUrl,
-  image_urls: imageUrls,
-  user_id: user.id
-}
+      title: formData.title,
+      description: formData.description,
+      price: formData.price
+        ? parseFloat(formData.price)
+        : null,
+      payment_type: formData.payment_type,
+      listing_type: formData.listing_type,
+      category: formData.category,
+      location: formData.location,
+      latitude,
+      longitude,
+      contact_name: formData.contact_name,
+      phone: formData.phone,
+      image_url: imageUrl,
+      image_urls: imageUrls,
+      user_id: user.id
+    }
 
     const { error } = await supabase
       .from('listings')
@@ -1458,38 +1590,121 @@ const baseListings =
       ? listings.filter(item => favoriteListings.includes(item.id))
       : listings
 
-const displayedListings = baseListings.filter((item) => {
-  const search = searchTerm.trim().toLowerCase()
 
-  const matchesSearch =
-    !search ||
-    (item.title || '').toLowerCase().includes(search) ||
-    (item.description || '').toLowerCase().includes(search) ||
-    (item.category || '').toLowerCase().includes(search) ||
-    (item.location || '').toLowerCase().includes(search)
+const normalizeLocation = (value) => {
+  return (value || '')
+    .trim()
+    .replace(/[־–—-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+}
 
-  const matchesType =
-    listingTypeFilter === 'all' ||
-    item.listing_type === listingTypeFilter
 
-  const matchesCategory =
-    categoryFilter === 'all' ||
-    item.category === categoryFilter
+// חישוב מרחק בקילומטרים בין שתי נקודות GPS
+const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const toRadians = (degrees) => (degrees * Math.PI) / 180
 
-  const matchesLocation =
-    locationFilter === 'all' ||
-    item.location === locationFilter
+  const earthRadiusKm = 6371
 
-  return (
-    matchesSearch &&
-    matchesType &&
-    matchesCategory &&
-    matchesLocation
+  const dLat = toRadians(lat2 - lat1)
+  const dLon = toRadians(lon2 - lon1)
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRadians(lat1)) *
+      Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) ** 2
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return earthRadiusKm * c
+}
+
+
+
+const getListingDistance = (item) => {
+  if (
+    !userLocation ||
+    !item.latitude ||
+    !item.longitude
+  ) {
+    return null
+  }
+
+  return calculateDistanceKm(
+    userLocation.latitude,
+    userLocation.longitude,
+    Number(item.latitude),
+    Number(item.longitude)
   )
-})
+}
+
+
+
+const displayedListings = baseListings
+  .filter((item) => {
+    const search = searchTerm.trim().toLowerCase()
+
+    const matchesSearch =
+      !search ||
+      (item.title || '').toLowerCase().includes(search) ||
+      (item.description || '').toLowerCase().includes(search) ||
+      (item.category || '').toLowerCase().includes(search) ||
+      (item.location || '').toLowerCase().includes(search)
+
+    const matchesType =
+      listingTypeFilter === 'all' ||
+      item.listing_type === listingTypeFilter
+
+    const matchesCategory =
+      categoryFilter === 'all' ||
+      item.category === categoryFilter
+
+    const matchesLocation =
+      locationFilter === 'all' ||
+      item.location === locationFilter
+
+    const matchesNearby =
+      !nearbyOnly ||
+      (
+        userLocation &&
+        item.latitude != null &&
+        item.longitude != null &&
+        calculateDistanceKm(
+          userLocation.latitude,
+          userLocation.longitude,
+          Number(item.latitude),
+          Number(item.longitude)
+        ) <= locationRadius
+      )
+
+    return (
+      matchesSearch &&
+      matchesType &&
+      matchesCategory &&
+      matchesLocation &&
+      matchesNearby
+    )
+  })
+  .sort((a, b) => {
+    // מיון לפי מרחק רק אם המשתמש בחר בכך
+    if (!sortByDistance || !userLocation) {
+      return 0
+    }
+
+    const distanceA = getListingDistance(a)
+    const distanceB = getListingDistance(b)
+
+    // מודעות בלי קואורדינטות עוברות לסוף
+    if (distanceA === null && distanceB === null) return 0
+    if (distanceA === null) return 1
+    if (distanceB === null) return -1
+
+    return distanceA - distanceB
+  })
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans pb-12">
+    <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans flex flex-col">
       {/* סרגל עליון Header */}
       <header
   className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
@@ -2022,88 +2237,101 @@ const displayedListings = baseListings.filter((item) => {
       {/* אזור מרכזי */}
 <main className="max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
 
-{(currentView === 'home' || currentView === 'my-listings' || currentView === 'favorites') && (
-<div className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-emerald-50/70 shadow-sm">
+  {(currentView === 'home' || currentView === 'my-listings' || currentView === 'favorites') && (
+    <div className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-emerald-50/70 shadow-sm">
 
-  {/* כתמי רקע עדינים */}
-  <div className="absolute -top-20 -left-20 w-56 h-56 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
-  <div className="absolute -bottom-24 -right-16 w-64 h-64 rounded-full bg-cyan-200/20 blur-3xl pointer-events-none" />
+      {/* כתמי רקע עדינים */}
+      <div className="absolute -top-20 -left-20 w-56 h-56 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -right-16 w-64 h-64 rounded-full bg-cyan-200/20 blur-3xl pointer-events-none" />
 
-  {/* קו צבע עליון */}
-  <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400" />
+      {/* קו צבע עליון */}
+      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400" />
 
-  <div className="relative px-5 py-7 sm:px-8 sm:py-8">
+      <div className="relative px-5 py-7 sm:px-8 sm:py-8">
 
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-      {/* תוכן הכותרת */}
-      <div className="text-center md:text-right">
+          {/* תוכן הכותרת */}
+          <div className="text-center md:text-right">
 
-        {/* תג קטן */}
-        {currentView === 'home' && (
-          <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200 text-emerald-700 text-xs font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            לוח מקומי פעיל
+            {/* תג קטן – דף הבית בלבד */}
+            {currentView === 'home' && (
+              <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                לוח מקומי פעיל
+              </div>
+            )}
+
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
+              {currentView === 'my-listings'
+                ? 'המודעות שפרסמתי'
+                : currentView === 'favorites'
+                  ? 'המודעות שאהבתי'
+                  : categoryFilter !== 'all'
+                    ? categoryFilter
+                    : locationFilter !== 'all'
+                      ? `מודעות ועבודות ב${locationFilter}`
+                      : 'לוח עבודות ושירותים מקומיים'}
+            </h2>
+
+            <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
+              {currentView === 'my-listings'
+                ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
+                : currentView === 'favorites'
+                  ? 'כל המודעות ששמרת כמועדפות במקום אחד'
+                  : categoryFilter !== 'all'
+                    ? `מודעות, עבודות ושירותים בתחום ${categoryFilter}`
+                    : locationFilter !== 'all'
+                      ? `מצאו עבודות, שירותים ומודעות מקומיות ב${locationFilter}`
+                      : 'מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך'}
+            </p>
+
+            {/* מידע קצר – דף הבית בלבד */}
+            {currentView === 'home' && (
+              <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-slate-600 text-xs font-bold">
+                  📍 מקומי
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-slate-600 text-xs font-bold">
+                  🧑‍🔧 עבודות ושירותים
+                </span>
+              </div>
+            )}
+
           </div>
-        )}
 
-        <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
-  {currentView === 'my-listings'
-    ? 'המודעות שפרסמתי'
-    : currentView === 'favorites'
-      ? 'המודעות שאהבתי'
-      : categoryFilter !== 'all'
-        ? categoryFilter
-        : locationFilter !== 'all'
-          ? `מודעות ועבודות ב${locationFilter}`
-          : 'לוח עבודות ושירותים מקומיים'}
-</h2>
+          {/* אזור הפעולה */}
+          {currentView === 'my-listings' ? (
+            <button
+              onClick={() => setCurrentView('home')}
+              className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+            >
+              <span className="text-lg">
+                ←
+              </span>
+              חזרה לכל הלוח
+            </button>
+          ) : currentView === 'favorites' ? (
+            <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-red-50 border border-red-200 shadow-sm">
+              <span className="text-3xl">
+                ❤️
+              </span>
+            </div>
+          ) : (
+            <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500 shadow-lg shadow-emerald-500/20">
+              <span className="text-3xl">
+                💰
+              </span>
+            </div>
+          )}
 
-        <p className="text-slate-600">
-  {currentView === 'my-listings'
-    ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
-    : currentView === 'favorites'
-      ? 'כל המודעות ששמרת כמועדפות במקום אחד'
-      : categoryFilter !== 'all'
-        ? `מודעות, עבודות ושירותים בתחום ${categoryFilter}`
-        : locationFilter !== 'all'
-          ? `מצאו עבודות, שירותים ומודעות מקומיות ב${locationFilter}`
-          : 'מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך'}
-</p>
+        </div>
 
       </div>
-
-      {/* אזור הפעולה */}
-{currentView === 'my-listings' ? (
-  <button
-    onClick={() => setCurrentView('home')}
-    className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
-  >
-    <span className="text-lg">
-      ←
-    </span>
-    חזרה לכל הלוח
-  </button>
-) : currentView === 'favorites' ? (
-  <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-red-50 border border-red-200 shadow-sm">
-  <span className="text-3xl">
-    ❤️
-  </span>
-</div>
-) : (
-  <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500 shadow-lg shadow-emerald-500/20">
-    <span className="text-3xl">
-      💰
-    </span>
-  </div>
-)}
-
     </div>
+  )}
 
-  </div>
-</div>
-
-)}
 
 
 
@@ -2147,9 +2375,11 @@ const displayedListings = baseListings.filter((item) => {
         }`}
       >
         <div className="text-2xl mb-1">⚪</div>
+
         <div className="font-bold text-slate-800">
           כל המודעות
         </div>
+
         <div className="text-xs text-slate-500 mt-1">
           הצעות ובקשות
         </div>
@@ -2165,15 +2395,17 @@ const displayedListings = baseListings.filter((item) => {
         }`}
       >
         <div className="text-2xl mb-1">🟢</div>
+
         <div className="font-bold text-slate-800">
           מציע עבודה / שירות
         </div>
+
         <div className="text-xs text-slate-500 mt-1">
           אנשים שמציעים שירות או עבודה
         </div>
       </button>
 
-      {/* מחפש עבודה */}
+      {/* מחפש שירות */}
       <button
         onClick={() => setListingTypeFilter('request')}
         className={`rounded-2xl border-2 p-4 text-center transition ${
@@ -2183,9 +2415,11 @@ const displayedListings = baseListings.filter((item) => {
         }`}
       >
         <div className="text-2xl mb-1">🔵</div>
+
         <div className="font-bold text-slate-800">
           מחפש שירות / עזרה
         </div>
+
         <div className="text-xs text-slate-500 mt-1">
           אנשים שמחפשים שירות או עזרה
         </div>
@@ -2195,143 +2429,150 @@ const displayedListings = baseListings.filter((item) => {
   </div>
 )}
 
+{/* חיפוש וסינון */}
 {currentView === 'home' && (
   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5 mb-8">
 
     {/* חיפוש */}
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-slate-700 mb-2">
+    <div className="mb-5">
+      <label className="block text-sm font-bold text-slate-700 mb-2">
         🔎 חיפוש במודעות
       </label>
 
-      <input
-        type="text"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
-        className="w-full px-4 py-3 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
-      />
+      <div className="relative">
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
+          className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-slate-800 placeholder:text-slate-400"
+        />
+
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm('')}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition"
+            aria-label="נקה חיפוש"
+            title="נקה חיפוש"
+          >
+            ×
+          </button>
+        )}
+      </div>
     </div>
 
-    {/* מסננים */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-
-      {/* סוג מודעה */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-          סוג מודעה
-        </label>
-
-        <select
-          value={listingTypeFilter}
-          onChange={(e) => setListingTypeFilter(e.target.value)}
-          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          <option value="all">כל סוגי המודעות</option>
-          <option value="offer">🟢 מציע עבודה / שירות</option>
-          <option value="request">🔵 מחפש שירות / עזרה</option>
-        </select>
-      </div>
+    {/* פילטרים */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
       {/* קטגוריה */}
       <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+        <label className="block text-xs font-bold text-slate-600 mb-1.5">
           קטגוריה
         </label>
 
         <select
-  value={categoryFilter}
-  onChange={(e) => setCategoryFilter(e.target.value)}
-  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
->
-  <option value="all">כל הקטגוריות</option>
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700"
+        >
+          <option value="all">כל הקטגוריות</option>
 
-  {categories.map((category) => (
-    <option key={category} value={category}>
-      {category}
-    </option>
-  ))}
-</select>
+          {categories.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* אזור */}
       <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+        <label className="block text-xs font-bold text-slate-600 mb-1.5">
           אזור
         </label>
 
         <div className="relative">
-  <input
-    type="text"
-    value={locationFilter === 'all' ? '' : locationFilter}
-    onChange={(e) => {
-      setLocationFilter(e.target.value)
-    }}
-    placeholder="חפש עיר או יישוב..."
-    autoComplete="off"
-    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-  />
 
-  {locationFilter !== 'all' && locationFilter.trim().length > 0 && (
-    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-      {israeliLocations
-        .filter((location) =>
-          location
-            .toLowerCase()
-            .includes(locationFilter.trim().toLowerCase())
-        )
-        .slice(0, 12)
-        .map((location) => (
-          <button
-            key={location}
-            type="button"
-            onClick={() => setLocationFilter(location)}
-            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
-          >
-            📍 {location}
-          </button>
-        ))}
+          <input
+            type="text"
+            value={locationFilter === 'all' ? '' : locationFilter}
+            onChange={(e) => {
+              setLocationFilter(e.target.value)
+            }}
+            placeholder="חפש עיר או יישוב..."
+            autoComplete="off"
+            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400"
+          />
 
-      {israeliLocations.filter((location) =>
-        location
-          .toLowerCase()
-          .includes(locationFilter.trim().toLowerCase())
-      ).length === 0 && (
-        <div className="px-4 py-3 text-sm text-slate-500">
-          לא נמצא יישוב מתאים
+          {locationFilter !== 'all' &&
+            locationFilter.trim().length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+
+                {israeliLocations
+                  .filter((location) =>
+                    location
+                      .toLowerCase()
+                      .includes(
+                        locationFilter.trim().toLowerCase()
+                      )
+                  )
+                  .slice(0, 12)
+                  .map((location) => (
+                    <button
+                      key={location}
+                      type="button"
+                      onClick={() => setLocationFilter(location)}
+                      className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                    >
+                      📍 {location}
+                    </button>
+                  ))}
+
+                {israeliLocations.filter((location) =>
+                  location
+                    .toLowerCase()
+                    .includes(
+                      locationFilter.trim().toLowerCase()
+                    )
+                ).length === 0 && (
+                  <div className="px-4 py-3 text-sm text-slate-500">
+                    לא נמצא יישוב מתאים
+                  </div>
+                )}
+
+              </div>
+            )}
+
+          {locationFilter === 'all' && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-sm">
+              כל האזורים
+            </div>
+          )}
+
+          {locationFilter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => setLocationFilter('all')}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-sm transition"
+              aria-label="נקה אזור"
+              title="נקה אזור"
+            >
+              ×
+            </button>
+          )}
+
         </div>
-      )}
-    </div>
-  )}
-
-  {locationFilter === 'all' && (
-    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-sm">
-      כל האזורים
-    </div>
-  )}
-
-  {locationFilter !== 'all' && (
-    <button
-      type="button"
-      onClick={() => setLocationFilter('all')}
-      className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-sm transition"
-      aria-label="נקה אזור"
-      title="נקה אזור"
-    >
-      ×
-    </button>
-  )}
-</div>
       </div>
 
     </div>
 
-    {/* שורת תוצאות + ניקוי */}
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 pt-4 border-t border-slate-100">
+    {/* שורת תוצאות */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-5 pt-4 border-t border-slate-100">
 
       <div className="text-sm text-slate-500">
         נמצאו{' '}
-        <span className="font-bold text-slate-800">
+        <span className="font-extrabold text-slate-800">
           {displayedListings.length}
         </span>{' '}
         מודעות
@@ -2348,13 +2589,14 @@ const displayedListings = baseListings.filter((item) => {
             setCategoryFilter('all')
             setLocationFilter('all')
           }}
-          className="text-sm font-semibold text-red-500 hover:text-red-600 transition"
+          className="text-sm font-bold text-red-500 hover:text-red-600 transition"
         >
           ✕ נקה סינון
         </button>
       )}
 
     </div>
+
   </div>
 )}
 
@@ -2363,322 +2605,620 @@ const displayedListings = baseListings.filter((item) => {
   {/* קטגוריות SEO */}
 {currentView === 'home' && (
   <section className="mb-8">
-    <div className="flex items-end justify-between gap-4 mb-4">
-      <div>
-        <h2 className="text-xl font-extrabold text-slate-900">
-          קטגוריות
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">
-          מצאו עבודות, שירותים ועזרה לפי תחום
-        </p>
-      </div>
 
-      {categoryFilter !== 'all' && (
-        <button
-          onClick={() => {
-            setCategoryFilter('all')
-            navigate('/')
-          }}
-          className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 transition"
-        >
-          הצג את כל הקטגוריות
-        </button>
-      )}
+    {/* כותרת האזור */}
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-emerald-50/40 shadow-sm p-5 sm:p-6">
+
+      {/* כתם רקע עדין */}
+      <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
+
+      <div className="relative">
+
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
+
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700">
+                🧩
+              </span>
+
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                קטגוריות
+              </h2>
+            </div>
+
+            <p className="text-sm text-slate-500">
+              מצאו עבודות, שירותים ועזרה לפי תחום
+            </p>
+          </div>
+
+          {categoryFilter !== 'all' && (
+            <button
+              onClick={() => {
+                setCategoryFilter('all')
+                navigate('/')
+              }}
+              className="self-start sm:self-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+            >
+              ↻ הצג את כל הקטגוריות
+            </button>
+          )}
+
+        </div>
+
+        {/* רשימת קטגוריות */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+
+          {(showAllCategories
+            ? categories
+            : categories.slice(0, 12)
+          ).map((category) => {
+
+            const slug = category
+              .trim()
+              .replace(/\s+/g, '-')
+
+            const isActive = categoryFilter === category
+
+            return (
+              <button
+                key={category}
+                onClick={() => {
+                  setCategoryFilter(category)
+                  navigate(`/קטגוריה/${slug}`)
+                }}
+                className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
+                  isActive
+                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                    : 'bg-white/90 border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:-translate-y-0.5 hover:shadow-sm'
+                }`}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="truncate">
+                    {category}
+                  </span>
+
+                  <span
+                    className={`shrink-0 text-xs transition-transform duration-200 group-hover:-translate-x-0.5 ${
+                      isActive
+                        ? 'text-emerald-100'
+                        : 'text-slate-300 group-hover:text-emerald-400'
+                    }`}
+                  >
+                    ←
+                  </span>
+                </span>
+              </button>
+            )
+          })}
+
+        </div>
+
+        {/* הצגת כל הקטגוריות */}
+        {categories.length > 12 && (
+          <div className="flex justify-center mt-5">
+
+            <button
+              onClick={() =>
+                setShowAllCategories((prev) => !prev)
+              }
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
+            >
+              {showAllCategories
+                ? '▲ הצג פחות קטגוריות'
+                : `▼ הצג את כל הקטגוריות (${categories.length})`}
+            </button>
+
+          </div>
+        )}
+
+      </div>
     </div>
 
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-      {(showAllCategories ? categories : categories.slice(0, 12)).map((category) => {
-        const slug = category
-          .trim()
-          .replace(/\s+/g, '-')
-
-        const isActive = categoryFilter === category
-
-        return (
-          <button
-            key={category}
-            onClick={() => {
-              setCategoryFilter(category)
-              navigate(`/קטגוריה/${slug}`)
-            }}
-            className={`px-3 py-2.5 rounded-xl border text-sm font-semibold text-right transition ${
-              isActive
-                ? 'bg-emerald-50 border-emerald-400 text-emerald-800'
-                : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50 hover:text-emerald-700'
-            }`}
-          >
-            {category}
-          </button>
-        )
-      })}
-    </div>
-
-    {categories.length > 12 && (
-      <div className="flex justify-center mt-4">
-        <button
-          onClick={() => setShowAllCategories((prev) => !prev)}
-          className="px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
-        >
-          {showAllCategories
-            ? '▲ הצג פחות קטגוריות'
-            : `▼ הצג את כל הקטגוריות (${categories.length})`}
-        </button>
-      </div>
-    )}
   </section>
 )}
+
+
+
+
+
+
+
+
+
+{currentView === 'home' && (
+  <div className="mb-7">
+
+    <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-cyan-50/30 shadow-sm p-5 sm:p-6">
+
+      {/* כתמי רקע עדינים */}
+      <div className="absolute -top-16 -right-16 w-44 h-44 rounded-full bg-cyan-200/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-16 w-48 h-48 rounded-full bg-emerald-200/15 blur-3xl pointer-events-none" />
+
+      <div className="relative">
+
+        {/* כותרת */}
+        <div className="text-center mb-5">
+
+          <div className="flex items-center justify-center gap-2 mb-1.5">
+            <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700">
+              📍
+            </span>
+
+            <h3 className="text-lg sm:text-xl font-extrabold text-slate-900">
+              מצאו מודעות בסביבה שלכם
+            </h3>
+          </div>
+
+          <p className="text-sm text-slate-500">
+            אפשרו גישה למיקום כדי למצוא עבודות ושירותים קרובים אליכם
+          </p>
+
+        </div>
+
+        {/* כפתור זיהוי מיקום */}
+        <div className="flex justify-center">
+
+          <button
+            type="button"
+            onClick={requestUserLocation}
+            disabled={locationLoading}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm shadow-sm hover:bg-emerald-50 hover:border-emerald-300 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            <span className="text-lg">
+              📍
+            </span>
+
+            {locationLoading
+              ? 'מזהה את המיקום...'
+              : userCity
+                ? 'עדכן את המיקום שלי'
+                : 'מצא את המיקום שלי'}
+          </button>
+
+        </div>
+
+        {/* מידע וכלי המיקום */}
+        {userCity && (
+          <div className="mt-5 pt-5 border-t border-slate-200/80">
+
+            {/* העיר שזוהתה */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 mb-4">
+
+              <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
+                <span>📍</span>
+
+                <span className="text-sm font-extrabold">
+                  המיקום שלך: {userCity}
+                </span>
+              </div>
+
+              {/* אזור */}
+              <button
+                type="button"
+                onClick={() => setNearbyOnly(!nearbyOnly)}
+                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
+                  nearbyOnly
+                    ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+                }`}
+              >
+                {nearbyOnly
+                  ? '✓ מציג מודעות באזור שלי'
+                  : 'הצג מודעות באזור שלי'}
+              </button>
+
+            </div>
+
+            {/* כלי מיון */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-600">
+                  מיון:
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setSortByDistance(false)}
+                  className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                    !sortByDistance
+                      ? 'bg-slate-800 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  🕐 החדשות ביותר
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSortByDistance(true)}
+                  className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                    sortByDistance
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
+                  }`}
+                >
+                  📍 הקרובות ביותר
+                </button>
+              </div>
+
+              {/* רדיוס */}
+              {nearbyOnly && (
+                <div className="flex items-center gap-2">
+
+                  <span className="text-sm font-bold text-slate-600">
+                    רדיוס:
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+
+                    {[1, 5, 10, 20].map((radius) => (
+                      <button
+                        key={radius}
+                        type="button"
+                        onClick={() => setLocationRadius(radius)}
+                        className={`min-w-[48px] px-2.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                          locationRadius === radius
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+                        }`}
+                      >
+                        {radius} ק"מ
+                      </button>
+                    ))}
+
+                  </div>
+
+                </div>
+              )}
+
+            </div>
+
+          </div>
+        )}
+
+        {/* שגיאת מיקום */}
+        {locationError && (
+          <div className="flex justify-center mt-4">
+
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
+              <span>⚠️</span>
+              <span>{locationError}</span>
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+
+  </div>
+)}
+
+
+
+
+
 
 
   
 
   {/* רשימת המודעות */}
-  {loading ? (
-    <div className="text-center py-12 text-slate-500">
+{loading ? (
+  <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+    <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mb-4" />
+    <span className="text-sm font-medium">
       טוען מודעות...
-    </div>
-  ) : displayedListings.length === 0 ? (
-    <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-      <p className="text-lg text-slate-600 mb-4">
-  {currentView === 'my-listings'
-    ? 'עדיין לא פרסמת אף מודעה.'
-    : listings.length === 0
-      ? 'עדיין אין מודעות בלוח.'
-      : 'לא נמצאו מודעות התואמות לחיפוש או לסינון שבחרת.'}
-</p>
+    </span>
+  </div>
+) : displayedListings.length === 0 ? (
+  <div className="relative overflow-hidden bg-white rounded-3xl border border-slate-200 p-10 sm:p-14 text-center shadow-sm">
+
+    <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-emerald-100/40 blur-3xl pointer-events-none" />
+    <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-cyan-100/30 blur-3xl pointer-events-none" />
+
+    <div className="relative">
+
+      <div className="mx-auto mb-5 w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-3xl">
+        🔎
+      </div>
+
+      <p className="text-lg font-bold text-slate-700 mb-2">
+        {currentView === 'my-listings'
+          ? 'עדיין לא פרסמת אף מודעה.'
+          : listings.length === 0
+            ? 'עדיין אין מודעות בלוח.'
+            : 'לא נמצאו מודעות התואמות לחיפוש או לסינון שבחרת.'}
+      </p>
+
+      <p className="text-sm text-slate-500 mb-5">
+        {currentView === 'my-listings'
+          ? 'פרסם את המודעה הראשונה שלך והתחל לקבל פניות.'
+          : listings.length === 0
+            ? 'היה הראשון לפרסם עבודה או שירות בלוח.'
+            : 'אפשר לנסות לשנות את החיפוש או להסיר את הסינון.'}
+      </p>
 
       {currentView === 'my-listings' ? (
-  <button
-    onClick={handleOpenPublishModal}
-    className="text-emerald-600 font-semibold hover:underline"
-  >
-    פרסם את המודעה הראשונה שלך!
-  </button>
-) : listings.length === 0 ? (
-  <button
-    onClick={handleOpenPublishModal}
-    className="text-emerald-600 font-semibold hover:underline"
-  >
-    היה הראשון לפרסם מודעה!
-  </button>
-) : (
-  <button
-    onClick={() => {
-      setSearchTerm('')
-      setListingTypeFilter('all')
-      setCategoryFilter('all')
-      setLocationFilter('all')
-    }}
-    className="text-emerald-600 font-semibold hover:underline"
-  >
-    נקה את החיפוש והסינון
-  </button>
-)}
+        <button
+          onClick={handleOpenPublishModal}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm shadow-sm hover:bg-emerald-700 hover:-translate-y-0.5 transition-all"
+        >
+          ➕ פרסם את המודעה הראשונה שלך
+        </button>
+      ) : listings.length === 0 ? (
+        <button
+          onClick={handleOpenPublishModal}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm shadow-sm hover:bg-emerald-700 hover:-translate-y-0.5 transition-all"
+        >
+          ➕ היה הראשון לפרסם מודעה
+        </button>
+      ) : (
+        <button
+          onClick={() => {
+            setSearchTerm('')
+            setListingTypeFilter('all')
+            setCategoryFilter('all')
+            setLocationFilter('all')
+          }}
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all"
+        >
+          ↻ נקה את החיפוש והסינון
+        </button>
+      )}
+
     </div>
-  ) : (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  {displayedListings.map((item) => {
-    const isOwner =
-      user && (item.user_id === user.id || !item.user_id)
-
-    return (
-      <div
-        key={item.id}
-        onClick={() => {
-  setSelectedListing(item)
-  navigate(`/מודעה/${item.id}`)
-}}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-  e.preventDefault()
-  setSelectedListing(item)
-  navigate(`/מודעה/${item.id}`)
-}
-        }}
-        className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col cursor-pointer"
-      >
-        {/* תמונת המודעה */}
-        <div className="relative">
-          {item.image_url ? (
-            <div className="w-full h-52 bg-slate-100 overflow-hidden">
-              <img
-                src={item.image_url}
-                alt={item.title}
-                className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
-              />
-            </div>
-          ) : (
-            <div className="w-full h-32 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-              <span className="text-slate-400 text-sm font-medium">
-                אין תמונה
-              </span>
-            </div>
-          )}
-
-          {/* כפתור מועדפים */}
-<button
-  type="button"
-  onClick={(e) => {
-    e.stopPropagation()
-    toggleFavorite(item.id)
-  }}
-  aria-label={
-    favoriteListings.includes(item.id)
-      ? 'הסר מהמועדפים'
-      : 'הוסף למועדפים'
-  }
-  className="absolute top-3 left-3 z-10 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center text-2xl hover:scale-110 transition-transform"
->
-  {favoriteListings.includes(item.id) ? '❤️' : '🤍'}
-</button>
-
-          {/* תג סוג המודעה על התמונה */}
-          <div className="absolute top-3 right-3">
-            {item.listing_type === 'request' ? (
-              <span className="inline-flex items-center gap-1.5 bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-                🔵 מחפש שירות
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-                🟢 מציע שירות
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* תוכן */}
-        <div className="p-5 flex-1 flex flex-col">
-
-          
-{/* קטגוריה + תמורה */}
-<div className="flex items-center justify-between gap-3 mb-3">
-  <span className="inline-flex bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold px-2.5 py-1 rounded-lg">
-    {item.category || 'כללי'}
-  </span>
-
-  <div className="flex flex-col items-end gap-1">
-    {item.payment_type === 'barter' ? (
-      <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
-        🔄 ברטר
-      </span>
-    ) : item.payment_type === 'cash_or_barter' ? (
-      <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
-        💵🔄 תשלום או ברטר
-      </span>
-    ) : item.price ? (
-      <span className="text-xl font-extrabold text-slate-900 whitespace-nowrap">
-        ₪{item.price}
-      </span>
-    ) : (
-      <span className="text-xs text-slate-400 font-medium">
-        מחיר לא צוין
-      </span>
-    )}
-
-    {item.payment_type === 'cash_or_barter' && item.price && (
-      <span className="text-xs text-slate-500">
-        ₪{item.price} או ברטר
-      </span>
-    )}
-
-    {item.payment_type === 'barter' && (
-      <span className="text-xs text-slate-500">
-        תמורה לפי סיכום
-      </span>
-    )}
   </div>
-</div>
+) : (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
 
+    {displayedListings.map((item) => {
 
-          {/* כותרת */}
-<div className="mb-2">
-  {item.is_demo && (
-    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-3 py-1 text-xs font-bold mb-2">
-      💡 מודעת דוגמה
-    </span>
-  )}
+      const isOwner =
+        user && (item.user_id === user.id || !item.user_id)
 
-  <h3 className="text-xl font-extrabold text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition">
-    {item.title}
-  </h3>
-</div>
+      return (
+        <div
+          key={item.id}
+          onClick={() => {
+            setSelectedListing(item)
+            navigate(`/מודעה/${item.id}`)
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setSelectedListing(item)
+              navigate(`/מודעה/${item.id}`)
+            }
+          }}
+          className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col cursor-pointer"
+        >
 
-          {/* תיאור */}
-          <p className="text-slate-600 text-sm leading-6 mb-4 line-clamp-3">
-            {item.description || 'ללא תיאור נוסף'}
-          </p>
+          {/* תמונת המודעה */}
+          <div className="relative">
 
-          {/* מיקום */}
-          {item.location && (
-            <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-              <span className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
-                📍
-              </span>
-              <span className="truncate">
-                {item.location}
-              </span>
-            </div>
-          )}
+            {item.image_url ? (
+              <div className="w-full h-52 bg-slate-100 overflow-hidden">
+                <img
+                  src={item.image_url}
+                  alt={item.title}
+                  className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
+                />
+              </div>
+            ) : (
+              <div className="w-full h-36 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-1 text-slate-400">
+                  <span className="text-2xl">
+                    🖼️
+                  </span>
+                  <span className="text-xs font-medium">
+                    אין תמונה
+                  </span>
+                </div>
+              </div>
+            )}
 
-          {/* צפייה בפרטים */}
-          <div className="mt-auto">
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-              <span className="text-emerald-600 text-sm font-bold group-hover:translate-x-[-3px] transition-transform">
-                לצפייה בפרטים
-              </span>
+            {/* שכבת מעבר עדינה */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
 
-              <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition">
-                ←
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* אזור תחתון */}
-        <div className="px-5 pb-5">
-
-          {/* טלפון */}
-          {item.phone && (
-            <a
-              href={`tel:${item.phone}`}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold transition"
+            {/* כפתור מועדפים */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleFavorite(item.id)
+              }}
+              aria-label={
+                favoriteListings.includes(item.id)
+                  ? 'הסר מהמועדפים'
+                  : 'הוסף למועדפים'
+              }
+              className="absolute top-3 left-3 z-10 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center text-2xl hover:scale-110 hover:shadow-lg transition-all"
             >
-              📞 {item.phone}
-            </a>
-          )}
+              {favoriteListings.includes(item.id) ? '❤️' : '🤍'}
+            </button>
 
-          {/* פעולות בעל המודעה */}
-          {isOwner && (
-            <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleOpenEditModal(item)
-                }}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-bold transition"
-              >
-                ✏️ עריכה
-              </button>
+            {/* תג סוג המודעה */}
+            <div className="absolute top-3 right-3">
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDeleteListing(item.id)
-                }}
-                className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl text-xs font-bold transition"
-              >
-                🗑️ מחיקה
-              </button>
+              {item.listing_type === 'request' ? (
+                <span className="inline-flex items-center gap-1.5 bg-blue-600/95 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
+                  🔵 מחפש שירות
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 bg-emerald-600/95 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
+                  🟢 מציע שירות
+                </span>
+              )}
+
             </div>
-          )}
+
+          </div>
+
+          {/* תוכן */}
+          <div className="p-5 flex-1 flex flex-col">
+
+            {/* קטגוריה + תמורה */}
+            <div className="flex items-start justify-between gap-3 mb-3">
+
+              <span className="inline-flex max-w-[55%] bg-emerald-50 text-emerald-700 border border-emerald-100 text-xs font-bold px-2.5 py-1 rounded-lg truncate">
+                {item.category || 'כללי'}
+              </span>
+
+              <div className="flex flex-col items-end gap-1 shrink-0">
+
+                {item.payment_type === 'barter' ? (
+                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
+                    🔄 ברטר
+                  </span>
+                ) : item.payment_type === 'cash_or_barter' ? (
+                  <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
+                    💵🔄 תשלום או ברטר
+                  </span>
+                ) : item.price ? (
+                  <span className="text-xl font-extrabold text-slate-900 whitespace-nowrap">
+                    ₪{item.price}
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-400 font-medium">
+                    מחיר לא צוין
+                  </span>
+                )}
+
+                {item.payment_type === 'cash_or_barter' && item.price && (
+                  <span className="text-xs text-slate-500">
+                    ₪{item.price} או ברטר
+                  </span>
+                )}
+
+                {item.payment_type === 'barter' && (
+                  <span className="text-xs text-slate-500">
+                    תמורה לפי סיכום
+                  </span>
+                )}
+
+              </div>
+
+            </div>
+
+            {/* כותרת */}
+            <div className="mb-2">
+
+              {item.is_demo && (
+                <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-3 py-1 text-xs font-bold mb-2">
+                  💡 מודעת דוגמה
+                </span>
+              )}
+
+              <h3 className="text-xl font-extrabold text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
+                {item.title}
+              </h3>
+
+            </div>
+
+            {/* תיאור */}
+            <p className="text-slate-600 text-sm leading-6 mb-4 line-clamp-3">
+              {item.description || 'ללא תיאור נוסף'}
+            </p>
+
+            {/* מיקום ומרחק */}
+            {item.location && (
+              <div className="mt-auto pt-3 border-t border-slate-100">
+
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+
+                  <span className="w-8 h-8 shrink-0 rounded-xl bg-slate-100 flex items-center justify-center">
+                    📍
+                  </span>
+
+                  <span className="truncate font-medium">
+                    {item.location}
+                  </span>
+
+                  {getListingDistance(item) !== null && (
+                    <span className="shrink-0 inline-flex items-center bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-xs font-bold">
+                      {getListingDistance(item) < 1
+                        ? `${Math.round(getListingDistance(item) * 1000)} מ' ממך`
+                        : `${getListingDistance(item).toFixed(1)} ק"מ ממך`}
+                    </span>
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+            {/* צפייה בפרטים */}
+            <div className="mt-auto">
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+
+                <span className="text-emerald-600 text-sm font-bold group-hover:translate-x-[-3px] transition-transform">
+                  לצפייה בפרטים
+                </span>
+
+                <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition">
+                  ←
+                </span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* אזור תחתון */}
+          <div className="px-5 pb-5">
+
+            {/* טלפון */}
+            {item.phone && (
+              <a
+                href={`tel:${item.phone}`}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl text-sm font-semibold transition"
+              >
+                📞 {item.phone}
+              </a>
+            )}
+
+            {/* פעולות בעל המודעה */}
+            {isOwner && (
+              <div className="flex gap-2 mt-2 pt-3 border-t border-slate-100">
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOpenEditModal(item)
+                  }}
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-bold transition"
+                >
+                  ✏️ עריכה
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteListing(item.id)
+                  }}
+                  className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl text-xs font-bold transition"
+                >
+                  🗑️ מחיקה
+                </button>
+
+              </div>
+            )}
+
+          </div>
+
         </div>
-      </div>
-    )
-  })}
-</div>
-  )}
+      )
+    })}
+
+  </div>
+)}
 </main>
 
 
@@ -2688,26 +3228,31 @@ const displayedListings = baseListings.filter((item) => {
 
 {selectedListing && (
   <div
-    className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+    className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
     onClick={() => {
-  setSelectedListing(null)
-  navigate('/')
-}}
+      setSelectedListing(null)
+      navigate('/')
+    }}
   >
     <div
-      className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl"
+      className="bg-white w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl shadow-2xl overflow-hidden"
       dir="rtl"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* כותרת המודאל */}
-      <div className="flex items-center justify-between gap-3 p-5 border-b border-slate-100 sticky top-0 bg-white z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+
+      {/* =========================================================
+          כותרת המודאל
+      ========================================================= */}
+      <div className="flex items-center justify-between gap-3 px-5 py-4 sm:px-6 border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur-md z-20">
+
+        <div className="flex items-center gap-3 min-w-0">
+
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
             📋
           </div>
 
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">
+          <div className="min-w-0">
+            <h2 className="text-lg font-extrabold text-slate-900">
               פרטי המודעה
             </h2>
 
@@ -2715,9 +3260,11 @@ const displayedListings = baseListings.filter((item) => {
               כסף כיס
             </p>
           </div>
+
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+
           {/* שיתוף */}
           <button
             onClick={() => handleShareListing(selectedListing)}
@@ -2725,7 +3272,9 @@ const displayedListings = baseListings.filter((item) => {
             aria-label="שיתוף המודעה"
           >
             <span>🔗</span>
-            <span className="hidden sm:inline">שיתוף</span>
+            <span className="hidden sm:inline">
+              שיתוף
+            </span>
           </button>
 
           {/* דיווח */}
@@ -2747,23 +3296,26 @@ const displayedListings = baseListings.filter((item) => {
           {/* סגירה */}
           <button
             onClick={() => {
-  setSelectedListing(null)
-  navigate('/')
-}}
+              setSelectedListing(null)
+              navigate('/')
+            }}
             className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
             aria-label="סגירת חלון"
           >
             ×
           </button>
+
         </div>
       </div>
 
+
       {/* =========================================================
           גלריית תמונות
-          ========================================================= */}
-      <div className="w-full bg-slate-100 p-3 md:p-4">
+      ========================================================= */}
+      <div className="w-full bg-slate-100 p-3 sm:p-4">
 
         {(() => {
+
           const allImages = [
             ...(selectedListing.image_url
               ? [selectedListing.image_url]
@@ -2775,8 +3327,14 @@ const displayedListings = baseListings.filter((item) => {
 
           if (allImages.length === 0) {
             return (
-              <div className="w-full h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center text-slate-400">
-                ללא תמונה
+              <div className="w-full h-40 sm:h-52 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 rounded-2xl flex flex-col items-center justify-center text-slate-400 gap-2">
+                <span className="text-3xl">
+                  🖼️
+                </span>
+
+                <span className="text-sm font-medium">
+                  ללא תמונה
+                </span>
               </div>
             )
           }
@@ -2786,34 +3344,37 @@ const displayedListings = baseListings.filter((item) => {
 
           return (
             <>
-              {/* =====================================================
-                  תמונה ראשית
-                  ===================================================== */}
+
+              {/* תמונה ראשית */}
               <button
                 type="button"
                 onClick={() => setGalleryImage(mainImage)}
-                className="relative w-full h-64 md:h-80 bg-slate-200 rounded-2xl overflow-hidden group cursor-zoom-in block"
+                className="relative w-full h-64 sm:h-72 md:h-80 bg-slate-200 rounded-2xl overflow-hidden group cursor-zoom-in block"
               >
+
                 <img
                   src={mainImage}
                   alt={selectedListing.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
 
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white px-4 py-2 rounded-xl text-sm font-bold">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors flex items-center justify-center">
+
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-xl text-sm font-bold">
                     🔍 הגדל תמונה
                   </span>
+
                 </div>
+
               </button>
 
-              {/* =====================================================
-                  תמונות נוספות
-                  ===================================================== */}
+
+              {/* תמונות נוספות */}
               {thumbnails.length > 0 && (
                 <div className="mt-3">
 
                   <div className="flex items-center justify-between mb-2 px-1">
+
                     <span className="text-xs font-bold text-slate-500">
                       📸 תמונות נוספות
                     </span>
@@ -2821,6 +3382,7 @@ const displayedListings = baseListings.filter((item) => {
                     <span className="text-xs text-slate-400">
                       {thumbnails.length} תמונות
                     </span>
+
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -2842,82 +3404,112 @@ const displayedListings = baseListings.filter((item) => {
                             ]
                           }))
                         }}
-                        className="relative h-28 sm:h-32 rounded-xl overflow-hidden bg-white border-2 border-transparent hover:border-emerald-500 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                        className="relative h-24 sm:h-28 md:h-32 rounded-xl overflow-hidden bg-white border-2 border-transparent hover:border-emerald-500 shadow-sm hover:shadow-md transition-all cursor-pointer group"
                       >
+
                         <img
                           src={imageUrl}
                           alt={`${selectedListing.title} - תמונה ${index + 2}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
 
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
 
                         <div className="absolute bottom-1 left-1 right-1 flex justify-center">
-                          <span className="bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+
+                          <span className="bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
                             הצג כתמונה ראשית
                           </span>
+
                         </div>
+
                       </button>
                     ))}
 
                   </div>
                 </div>
               )}
+
             </>
           )
         })()}
+
       </div>
+
 
       {/* =========================================================
           תוכן המודעה
-          ========================================================= */}
-      <div className="p-6 md:p-8">
+      ========================================================= */}
+      <div className="p-5 sm:p-6 md:p-8">
 
-        {/* סוג המודעה + קטגוריה + מחיר */}
+        {/* סוג + קטגוריה + מחיר */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
 
           <div className="flex flex-wrap items-center gap-2">
 
             {selectedListing.listing_type === 'request' ? (
-              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-sm font-bold px-3 py-1.5 rounded-lg">
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-sm font-bold px-3 py-1.5 rounded-xl">
                 🔵 מחפש שירות / עזרה
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-sm font-bold px-3 py-1.5 rounded-lg">
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-sm font-bold px-3 py-1.5 rounded-xl">
                 🟢 מציע עבודה / שירות
               </span>
             )}
 
-            <span className="bg-slate-50 text-slate-700 border border-slate-200 text-sm font-semibold px-3 py-1.5 rounded-lg">
+            <span className="bg-slate-50 text-slate-700 border border-slate-200 text-sm font-semibold px-3 py-1.5 rounded-xl">
               {selectedListing.category || 'כללי'}
             </span>
 
           </div>
 
-          {selectedListing.price && (
+          {/* מחיר / תמורה */}
+          {selectedListing.payment_type === 'barter' ? (
+            <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-lg font-extrabold px-3 py-1.5 rounded-xl whitespace-nowrap">
+              🔄 ברטר
+            </span>
+          ) : selectedListing.payment_type === 'cash_or_barter' ? (
+            <div className="flex flex-col items-end gap-1">
+              <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 border border-purple-200 text-sm font-extrabold px-3 py-1.5 rounded-xl whitespace-nowrap">
+                💵🔄 תשלום או ברטר
+              </span>
+
+              {selectedListing.price && (
+                <span className="text-sm text-slate-500">
+                  ₪{selectedListing.price} או ברטר
+                </span>
+              )}
+            </div>
+          ) : selectedListing.price ? (
             <span className="text-2xl font-extrabold text-slate-900 whitespace-nowrap">
               ₪{selectedListing.price}
+            </span>
+          ) : (
+            <span className="text-sm text-slate-400 font-medium">
+              מחיר לא צוין
             </span>
           )}
 
         </div>
+
 
         {/* כותרת */}
         <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-5 leading-tight">
           {selectedListing.title}
         </h2>
 
+
         {/* פרטי בסיס */}
-        <div className="flex flex-wrap gap-3 mb-6 text-sm text-slate-600">
+        <div className="flex flex-wrap gap-2.5 mb-7 text-sm">
 
           {selectedListing.location && (
-            <span className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+            <span className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-600">
               📍 {selectedListing.location}
             </span>
           )}
 
           {selectedListing.created_at && (
-            <span className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+            <span className="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-600">
               📅 פורסם:{' '}
               {new Date(
                 selectedListing.created_at
@@ -2929,7 +3521,7 @@ const displayedListings = baseListings.filter((item) => {
             selectedListing.created_at &&
             new Date(selectedListing.updated_at).getTime() >
               new Date(selectedListing.created_at).getTime() + 60000 && (
-              <span className="bg-blue-50 border border-blue-100 text-blue-700 rounded-lg px-3 py-2">
+              <span className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl px-3 py-2">
                 🔄 עודכן:{' '}
                 {new Date(
                   selectedListing.updated_at
@@ -2939,64 +3531,94 @@ const displayedListings = baseListings.filter((item) => {
 
         </div>
 
+
         {/* תיאור מלא */}
         <div className="mb-8">
 
-          <h3 className="text-lg font-bold text-slate-900 mb-3">
-            אודות המודעה
-          </h3>
+          <div className="flex items-center gap-2 mb-3">
 
-          <p className="text-slate-600 leading-8 whitespace-pre-wrap">
-            {selectedListing.description || 'לא נוסף תיאור למודעה.'}
-          </p>
+            <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              📝
+            </span>
+
+            <h3 className="text-lg font-extrabold text-slate-900">
+              אודות המודעה
+            </h3>
+
+          </div>
+
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 sm:p-5">
+
+            <p className="text-slate-600 leading-8 whitespace-pre-wrap">
+              {selectedListing.description || 'לא נוסף תיאור למודעה.'}
+            </p>
+
+          </div>
 
         </div>
 
-        {/* פרטי מפרסם */}
 
-<div className="border-t border-slate-200 pt-6">
+        {/* =========================================================
+            פרטי מפרסם
+        ========================================================= */}
+        <div className="border-t border-slate-200 pt-6">
 
-  <h3 className="text-lg font-bold text-slate-900 mb-4">
-    {selectedListing.is_demo ? '💡 מודעת דוגמה' : '👤 פרטי המפרסם'}
-  </h3>
+          <div className="flex items-center gap-2 mb-4">
 
-  <div className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4">
+            <span className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              {selectedListing.is_demo ? '💡' : '👤'}
+            </span>
+
+            <h3 className="text-lg font-extrabold text-slate-900">
+              {selectedListing.is_demo
+                ? 'מודעת דוגמה'
+                : 'פרטי המפרסם'}
+            </h3>
+
+          </div>
 
 
-{selectedListing.is_demo ? (
-  <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
-    💡
-  </div>
-) : selectedListing.advertiser_avatar ? (
-  <img
-    src={selectedListing.advertiser_avatar}
-    alt="תמונת פרופיל"
-    className="w-14 h-14 rounded-full object-cover"
-    onError={(e) => {
-      e.currentTarget.style.display = 'none'
-    }}
-  />
-) : (
-  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
-    {(selectedListing.advertiser_name || 'משתמש').charAt(0).toUpperCase()}
-  </div>
-)}
+          <div className="flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl p-4">
 
-<div>
-  <p className="font-bold text-slate-900">
-    {selectedListing.is_demo
-      ? 'מודעת דוגמה'
-      : selectedListing.advertiser_name || 'משתמש רשום'}
-  </p>
+            {selectedListing.is_demo ? (
+              <div className="w-14 h-14 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
+                💡
+              </div>
+            ) : selectedListing.advertiser_avatar ? (
+              <img
+                src={selectedListing.advertiser_avatar}
+                alt="תמונת פרופיל"
+                className="w-14 h-14 shrink-0 rounded-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            ) : (
+              <div className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
+                {(selectedListing.advertiser_name || 'משתמש')
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+            )}
 
-  <p className="text-sm text-slate-500">
-    {selectedListing.is_demo
-      ? 'מודעה לדוגמה לצורך המחשת השימוש באתר'
-      : 'מפרסם מודעה בלוח המקומי'}
-  </p>
-</div>
+            <div className="min-w-0">
 
-</div>
+              <p className="font-extrabold text-slate-900">
+                {selectedListing.is_demo
+                  ? 'מודעת דוגמה'
+                  : selectedListing.advertiser_name || 'משתמש רשום'}
+              </p>
+
+              <p className="text-sm text-slate-500 mt-0.5">
+                {selectedListing.is_demo
+                  ? 'מודעה לדוגמה לצורך המחשת השימוש באתר'
+                  : 'מפרסם מודעה בלוח המקומי'}
+              </p>
+
+            </div>
+
+          </div>
+
 
           {/* כפתורי פעולה */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
@@ -3005,7 +3627,7 @@ const displayedListings = baseListings.filter((item) => {
             {selectedListing.phone && (
               <button
                 onClick={() => setContactListing(selectedListing)}
-                className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition"
+                className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all"
               >
                 💬 צור קשר עם המפרסם
               </button>
@@ -3020,15 +3642,17 @@ const displayedListings = baseListings.filter((item) => {
             </button>
 
           </div>
+
         </div>
+
 
         {/* סגירה */}
         <button
           onClick={() => {
-  setSelectedListing(null)
-  navigate('/')
-}}
-          className="w-full mt-4 py-3 text-sm font-semibold text-slate-500 hover:text-slate-800 transition"
+            setSelectedListing(null)
+            navigate('/')
+          }}
+          className="w-full mt-5 py-3 text-sm font-semibold text-slate-500 hover:text-slate-800 transition"
         >
           סגור
         </button>
@@ -3036,9 +3660,10 @@ const displayedListings = baseListings.filter((item) => {
       </div>
     </div>
 
+
     {/* =========================================================
         חלון תמונה מוגדלת
-        ========================================================= */}
+    ========================================================= */}
     {galleryImage && (
       <div
         className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
@@ -3070,20 +3695,29 @@ const displayedListings = baseListings.filter((item) => {
 )}
 
 
+{/* =========================================================
+    מודאל דיווח
+========================================================= */}
 
 {isReportModalOpen && (
   <div
-    className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
     onClick={() => setIsReportModalOpen(false)}
   >
+
     <div
       dir="rtl"
       className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
+
+      {/* כותרת */}
       <div className="bg-gradient-to-br from-red-500 to-rose-600 px-6 py-6 text-white">
+
         <div className="flex items-center justify-between gap-4">
+
           <div>
+
             <div className="text-3xl mb-2">
               ⚠️
             </div>
@@ -3095,23 +3729,29 @@ const displayedListings = baseListings.filter((item) => {
             <p className="text-red-50 text-sm mt-1">
               עזור לנו לשמור על לוח מודעות בטוח ואמין
             </p>
+
           </div>
 
           <button
             type="button"
             onClick={() => setIsReportModalOpen(false)}
-            className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-xl transition"
+            className="w-10 h-10 shrink-0 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-xl transition"
             aria-label="סגירה"
           >
             ×
           </button>
+
         </div>
+
       </div>
 
+
+      {/* תוכן */}
       <div className="p-6 space-y-5">
 
         {selectedListing && (
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+
             <p className="text-xs text-slate-400 font-semibold mb-1">
               המודעה שעליה מדווחים
             </p>
@@ -3119,10 +3759,14 @@ const displayedListings = baseListings.filter((item) => {
             <p className="font-extrabold text-slate-900 line-clamp-2">
               {selectedListing.title}
             </p>
+
           </div>
         )}
 
+
+        {/* סיבת הדיווח */}
         <div>
+
           <label className="block text-sm font-extrabold text-slate-800 mb-2">
             סיבת הדיווח
           </label>
@@ -3132,6 +3776,7 @@ const displayedListings = baseListings.filter((item) => {
             onChange={(e) => setReportReason(e.target.value)}
             className="w-full border border-slate-200 rounded-xl px-4 py-3 bg-white text-slate-900 outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition"
           >
+
             <option value="">
               בחר סיבה
             </option>
@@ -3163,10 +3808,15 @@ const displayedListings = baseListings.filter((item) => {
             <option value="אחר">
               סיבה אחרת
             </option>
+
           </select>
+
         </div>
 
+
+        {/* פרטים נוספים */}
         <div>
+
           <label className="block text-sm font-extrabold text-slate-800 mb-2">
             פרטים נוספים
             <span className="text-slate-400 font-normal mr-1">
@@ -3186,16 +3836,32 @@ const displayedListings = baseListings.filter((item) => {
           <div className="text-left text-xs text-slate-400 mt-1">
             {reportDetails.length}/1000
           </div>
+
         </div>
 
+
+        {/* הסבר */}
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <p className="text-sm text-amber-800 leading-6">
-            הדיווח ייבדק על ידי מפעיל האתר. אין להשתמש במערכת הדיווחים
-            לצורך הטרדה או דיווחים כוזבים.
-          </p>
+
+          <div className="flex gap-3">
+
+            <span className="text-lg">
+              💡
+            </span>
+
+            <p className="text-sm text-amber-800 leading-6">
+              הדיווח ייבדק על ידי מפעיל האתר. אין להשתמש במערכת הדיווחים
+              לצורך הטרדה או דיווחים כוזבים.
+            </p>
+
+          </div>
+
         </div>
 
+
+        {/* פעולות */}
         <div className="flex gap-3 pt-1">
+
           <button
             type="button"
             onClick={() => setIsReportModalOpen(false)}
@@ -3205,55 +3871,71 @@ const displayedListings = baseListings.filter((item) => {
           </button>
 
           <button
-  type="button"
-  disabled={!reportReason}
-  onClick={async () => {
-    if (!reportReason || !selectedListing) return
+            type="button"
+            disabled={!reportReason}
+            onClick={async () => {
 
-    if (!user) {
-      alert('כדי לדווח על מודעה צריך להתחבר לחשבון.')
-      return
-    }
+              if (!reportReason || !selectedListing) return
 
-    try {
-      const { error } = await supabase
-        .from('reports')
-        .insert({
-          listing_id: selectedListing.id,
-          reporter_id: user.id,
-          reason: reportReason,
-          details: reportDetails.trim() || null
-        })
+              if (!user) {
+                alert('כדי לדווח על מודעה צריך להתחבר לחשבון.')
+                return
+              }
 
-      if (error) {
-        console.error('שגיאה בשליחת דיווח:', error)
+              try {
 
-        alert(
-          'לא הצלחנו לשלוח את הדיווח.\n\n' +
-          error.message
-        )
+                const { error } = await supabase
+                  .from('reports')
+                  .insert({
+                    listing_id: selectedListing.id,
+                    reporter_id: user.id,
+                    reason: reportReason,
+                    details: reportDetails.trim() || null
+                  })
 
-        return
-      }
+                if (error) {
 
-      alert('הדיווח התקבל. תודה שעזרת לנו לשמור על האתר.')
+                  console.error(
+                    'שגיאה בשליחת דיווח:',
+                    error
+                  )
 
-      setIsReportModalOpen(false)
-      setReportReason('')
-      setReportDetails('')
-    } catch (err) {
-      console.error('שגיאה לא צפויה בשליחת דיווח:', err)
+                  alert(
+                    'לא הצלחנו לשלוח את הדיווח.\n\n' +
+                    error.message
+                  )
 
-      alert(
-        'אירעה שגיאה בשליחת הדיווח.\n\n' +
-        (err?.message || 'שגיאה לא ידועה')
-      )
-    }
-  }}
-  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold transition"
->
-  שליחת דיווח
-</button>
+                  return
+                }
+
+                alert(
+                  'הדיווח התקבל. תודה שעזרת לנו לשמור על האתר.'
+                )
+
+                setIsReportModalOpen(false)
+                setReportReason('')
+                setReportDetails('')
+
+              } catch (err) {
+
+                console.error(
+                  'שגיאה לא צפויה בשליחת הדיווח:',
+                  err
+                )
+
+                alert(
+                  'אירעה שגיאה בשליחת הדיווח.\n\n' +
+                  (err?.message || 'שגיאה לא ידועה')
+                )
+
+              }
+
+            }}
+            className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold transition"
+          >
+            שליחת דיווח
+          </button>
+
         </div>
 
       </div>
@@ -3552,160 +4234,328 @@ const displayedListings = baseListings.filter((item) => {
 
 {contactListing && (
   <div
-    className="fixed inset-0 z-[60] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+    className="fixed inset-0 z-[60] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4"
     onClick={() => setContactListing(null)}
   >
     <div
-      className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6"
+      className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
       dir="rtl"
       onClick={(e) => e.stopPropagation()}
     >
 
+      {/* פס עליון */}
+      <div className="h-1.5 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
+
       {/* כותרת */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-slate-900">
-          צור קשר עם המפרסם
-        </h2>
+      <div className="px-6 pt-6 pb-5 border-b border-slate-100">
 
-        <button
-          onClick={() => setContactListing(null)}
-          className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
-          aria-label="סגירת חלון"
-        >
-          ×
-        </button>
-      </div>
+        <div className="flex items-start justify-between gap-4">
 
-      {/* מספר טלפון */}
-      {contactListing.phone && (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-5 text-center">
-          <p className="text-sm text-slate-500 mb-2">
-            מספר הטלפון של המפרסם
-          </p>
+          <div className="flex items-center gap-3">
 
-          <p className="text-xl font-bold text-slate-900" dir="ltr">
-            {contactListing.phone}
-          </p>
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+              💬
+            </div>
+
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-900">
+                צור קשר עם המפרסם
+              </h2>
+
+              <p className="text-sm text-slate-500 mt-1">
+                בחרו את הדרך שנוחה לכם
+              </p>
+            </div>
+
+          </div>
 
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(contactListing.phone)
-              alert("המספר הועתק בהצלחה")
-            }}
-            className="mt-3 text-sm font-semibold text-emerald-600 hover:underline"
+            type="button"
+            onClick={() => setContactListing(null)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center"
+            aria-label="סגירת חלון"
           >
-            📋 העתק מספר
+            ×
           </button>
+
         </div>
-      )}
 
-      {/* WhatsApp */}
-      {contactListing.phone && (
-        <a
-          href={`https://wa.me/${contactListing.phone
-            .replace(/[\s\-()+]/g, "")
-            .replace(/^0/, "972")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl transition mb-3"
+        {/* שם המודעה */}
+        <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+
+          <p className="text-xs font-bold text-slate-400 mb-1">
+            בקשר למודעה
+          </p>
+
+          <p className="text-sm font-extrabold text-slate-800 line-clamp-2">
+            {contactListing.title}
+          </p>
+
+        </div>
+
+      </div>
+
+
+      {/* אפשרויות קשר */}
+      <div className="p-6">
+
+        <div className="space-y-3">
+
+          {/* הודעה פרטית באתר */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!user) {
+                setContactListing(null)
+                setIsAuthModalOpen(true)
+                return
+              }
+
+              setMessageContent('')
+              setMessageStatus('')
+              setMessageModalOpen(true)
+            }}
+            className="group w-full flex items-center gap-4 p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm hover:shadow-md transition-all"
+          >
+
+            <div className="w-11 h-11 shrink-0 rounded-xl bg-white/15 flex items-center justify-center text-xl">
+              ✉️
+            </div>
+
+            <div className="flex-1 text-right">
+              <div className="font-extrabold text-sm">
+                שלח הודעה פרטית באתר
+              </div>
+
+              <div className="text-xs text-emerald-100 mt-0.5">
+                הדרך המומלצת ליצירת קשר
+              </div>
+            </div>
+
+            <span className="text-lg opacity-70 group-hover:-translate-x-1 transition-transform">
+              ←
+            </span>
+
+          </button>
+
+
+          {/* WhatsApp */}
+          {contactListing.phone && (
+            <a
+              href={`https://wa.me/${contactListing.phone
+                .replace(/[\s\-()+]/g, "")
+                .replace(/^0/, "972")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group w-full flex items-center gap-4 p-4 rounded-2xl bg-green-50 hover:bg-green-100 border border-green-200 text-green-800 transition-all"
+            >
+
+              <div className="w-11 h-11 shrink-0 rounded-xl bg-green-100 flex items-center justify-center text-xl">
+                💬
+              </div>
+
+              <div className="flex-1 text-right">
+                <div className="font-extrabold text-sm">
+                  שלח הודעה ב־WhatsApp
+                </div>
+
+                <div className="text-xs text-green-600 mt-0.5">
+                  פתיחת שיחה ב־WhatsApp
+                </div>
+              </div>
+
+              <span className="text-lg opacity-60 group-hover:-translate-x-1 transition-transform">
+                ←
+              </span>
+
+            </a>
+          )}
+
+
+          {/* טלפון */}
+          {contactListing.phone && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+
+              <div className="flex items-center gap-3">
+
+                <div className="w-11 h-11 shrink-0 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl">
+                  📞
+                </div>
+
+                <div className="flex-1 min-w-0">
+
+                  <p className="text-xs font-bold text-slate-400 mb-0.5">
+                    מספר הטלפון של המפרסם
+                  </p>
+
+                  <p
+                    className="text-lg font-extrabold text-slate-900 truncate"
+                    dir="ltr"
+                  >
+                    {contactListing.phone}
+                  </p>
+
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      contactListing.phone
+                    )
+                    alert("המספר הועתק בהצלחה")
+                  }}
+                  className="shrink-0 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold transition"
+                >
+                  📋 העתק
+                </button>
+
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+
+        {/* הערה קטנה */}
+        <div className="mt-5 flex items-start gap-2 text-xs text-slate-400 leading-5">
+
+          <span className="shrink-0">
+            💡
+          </span>
+
+          <span>
+            אפשר ליצור קשר ישירות דרך האתר, ב־WhatsApp או בטלפון.
+          </span>
+
+        </div>
+
+
+        {/* ביטול */}
+        <button
+          type="button"
+          onClick={() => setContactListing(null)}
+          className="w-full mt-5 py-3 text-sm font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition"
         >
-          💬 שלח הודעה ב־WhatsApp
-        </a>
-      )}
+          ביטול
+        </button>
 
-      {/* הודעה פרטית באתר */}
-      <button
-        onClick={() => {
-          if (!user) {
-            setContactListing(null)
-            setIsAuthModalOpen(true)
-            return
-          }
-
-          setMessageContent('')
-          setMessageStatus('')
-          setMessageModalOpen(true)
-        }}
-        className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition"
-      >
-        ✉️ שלח הודעה פרטית באתר
-      </button>
-
-      {/* ביטול */}
-      <button
-        onClick={() => setContactListing(null)}
-        className="mt-4 w-full text-sm text-slate-500 hover:text-slate-700"
-      >
-        ביטול
-      </button>
+      </div>
 
     </div>
   </div>
 )}
 
 
-{/* חלון הודעות שלי */}
-{/* חלון הודעות שלי */}
+{/* =========================================================
+    חלון הודעות שלי
+========================================================= */}
+
 {messagesModalOpen && (
   <div
-    className="fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+    className="fixed inset-0 z-[80] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
     onClick={() => setMessagesModalOpen(false)}
   >
     <div
-      className="bg-white w-full max-w-2xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden"
+      className="bg-white w-full max-w-2xl max-h-[88vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
       dir="rtl"
       onClick={(e) => e.stopPropagation()}
     >
 
-      {/* כותרת */}
-      <div className="flex items-center justify-between p-6 border-b border-slate-200">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">
-            הודעות שלי
-          </h2>
+      {/* =====================================================
+          כותרת
+      ===================================================== */}
+      <div className="px-5 py-5 sm:px-6 border-b border-slate-100 bg-white">
 
-          <p className="text-sm text-slate-500 mt-1">
-            השיחות שלך עם מפרסמים ומשתמשים
-          </p>
-        </div>
+        <div className="flex items-center justify-between gap-4">
 
-        <button
-          onClick={() => setMessagesModalOpen(false)}
-          className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
-          aria-label="סגירת חלון"
-        >
-          ×
-        </button>
-      </div>
+          <div className="flex items-center gap-3 min-w-0">
 
-      {/* תוכן */}
-      <div className="p-6 overflow-y-auto max-h-[65vh]">
-
-        {loadingMessages ? (
-          <div className="text-center py-12">
-            <div className="text-3xl mb-3">
-              ⏳
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+              💬
             </div>
 
-            <p className="text-slate-500">
+            <div className="min-w-0">
+
+              <div className="flex items-center gap-2">
+
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                  הודעות שלי
+                </h2>
+
+                {unreadMessagesCount > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-red-500 text-white text-[11px] font-extrabold">
+                    {unreadMessagesCount}
+                  </span>
+                )}
+
+              </div>
+
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                השיחות שלך עם מפרסמים ומשתמשים
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            onClick={() => setMessagesModalOpen(false)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center"
+            aria-label="סגירת חלון"
+          >
+            ×
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          תוכן
+      ===================================================== */}
+      <div className="p-4 sm:p-5 overflow-y-auto flex-1">
+
+        {loadingMessages ? (
+
+          <div className="flex flex-col items-center justify-center py-16">
+
+            <div className="w-11 h-11 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mb-4" />
+
+            <p className="text-sm font-semibold text-slate-500">
               טוען שיחות...
             </p>
+
           </div>
 
         ) : conversationList.length === 0 ? (
 
-          <div className="text-center py-12">
-            <div className="text-5xl mb-4">
-              💬
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 px-6 py-14 text-center">
+
+            <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-100/40 blur-3xl pointer-events-none" />
+
+            <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-cyan-100/30 blur-3xl pointer-events-none" />
+
+            <div className="relative">
+
+              <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl shadow-sm">
+                💬
+              </div>
+
+              <h3 className="text-lg font-extrabold text-slate-800 mb-2">
+                אין עדיין שיחות
+              </h3>
+
+              <p className="text-sm text-slate-500 max-w-sm mx-auto leading-6">
+                כאשר תשלח או תקבל הודעה, השיחה תופיע כאן.
+              </p>
+
             </div>
 
-            <h3 className="text-lg font-bold text-slate-800 mb-2">
-              אין עדיין שיחות
-            </h3>
-
-            <p className="text-sm text-slate-500">
-              כאשר תשלח או תקבל הודעה, השיחה תופיע כאן.
-            </p>
           </div>
 
         ) : (
@@ -3716,18 +4566,20 @@ const displayedListings = baseListings.filter((item) => {
 
               <div
                 key={`${conversation.listingId}_${conversation.otherUserId}`}
-                className={`border rounded-2xl p-4 transition ${
+                className={`group rounded-2xl border p-4 transition-all duration-200 ${
                   conversation.unreadCount > 0
-                    ? 'border-emerald-300 bg-emerald-50'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    ? 'border-emerald-300 bg-emerald-50/60 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-emerald-200 hover:shadow-sm'
                 }`}
               >
 
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
 
-                  {/* אייקון */}
+                  {/* =================================================
+                      אייקון
+                  ================================================= */}
                   <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 ${
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${
                       conversation.unreadCount > 0
                         ? 'bg-emerald-100'
                         : 'bg-slate-100'
@@ -3736,19 +4588,23 @@ const displayedListings = baseListings.filter((item) => {
                     💬
                   </div>
 
-                  {/* תוכן */}
+
+                  {/* =================================================
+                      תוכן
+                  ================================================= */}
                   <div className="flex-1 min-w-0">
 
-                    <div className="flex items-center justify-between gap-3">
+                    {/* כותרת + תאריך */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
 
-                        <span className="font-bold text-slate-900">
+                        <span className="font-extrabold text-slate-900">
                           שיחה פרטית
                         </span>
 
                         {conversation.unreadCount > 0 && (
-                          <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">
+                          <span className="shrink-0 text-[10px] font-extrabold bg-red-500 text-white px-2 py-0.5 rounded-full">
                             {conversation.unreadCount === 1
                               ? 'חדשה'
                               : `${conversation.unreadCount} חדשות`}
@@ -3757,7 +4613,7 @@ const displayedListings = baseListings.filter((item) => {
 
                       </div>
 
-                      <span className="text-xs text-slate-400 whitespace-nowrap">
+                      <span className="text-[11px] text-slate-400 whitespace-nowrap">
                         {new Date(
                           conversation.lastCreatedAt
                         ).toLocaleString('he-IL')}
@@ -3765,30 +4621,51 @@ const displayedListings = baseListings.filter((item) => {
 
                     </div>
 
+
                     {/* המודעה */}
-                    <p className="text-xs text-slate-400 mt-1">
-                      מודעה #{conversation.listingId}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+
+                      <span className="text-xs text-slate-400">
+                        📋
+                      </span>
+
+                      <p className="text-xs text-slate-400 truncate">
+                        מודעה #{conversation.listingId}
+                      </p>
+
+                    </div>
+
 
                     {/* הודעה אחרונה */}
-                    <div className="mt-3 bg-slate-50 border border-slate-100 rounded-xl p-3">
+                    <div className={`mt-3 rounded-xl p-3 border ${
+                      conversation.unreadCount > 0
+                        ? 'bg-white border-emerald-100'
+                        : 'bg-slate-50 border-slate-100'
+                    }`}>
 
-                      <p className="text-sm text-slate-700 line-clamp-2">
+                      <p className="text-sm text-slate-700 leading-6 line-clamp-2">
                         {conversation.lastMessage}
                       </p>
 
                     </div>
 
-                    {/* תחתית */}
-                    <div className="mt-3 flex items-center justify-between gap-3">
 
-                      <span className="text-xs text-slate-400">
+                    {/* תחתית */}
+                    <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+
+                      <span className={`text-xs ${
+                        conversation.unreadCount > 0
+                          ? 'text-emerald-700 font-bold'
+                          : 'text-slate-400'
+                      }`}>
                         {conversation.unreadCount > 0
-                          ? 'יש הודעות שטרם נקראו'
-                          : 'אין הודעות חדשות'}
+                          ? '● יש הודעות שטרם נקראו'
+                          : '✓ אין הודעות חדשות'}
                       </span>
 
+
                       <button
+                        type="button"
                         onClick={async () => {
                           if (!user) return
 
@@ -3806,9 +4683,12 @@ const displayedListings = baseListings.filter((item) => {
                             conversation.listingId
                           )
                         }}
-                        className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg transition"
+                        className="self-stretch sm:self-auto inline-flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 hover:border-emerald-200 px-4 py-2.5 rounded-xl transition-all"
                       >
                         💬 פתח שיחה
+                        <span className="group-hover:-translate-x-0.5 transition-transform">
+                          ←
+                        </span>
                       </button>
 
                     </div>
@@ -3822,18 +4702,23 @@ const displayedListings = baseListings.filter((item) => {
             ))}
 
           </div>
+
         )}
 
       </div>
 
-      {/* תחתית */}
-      <div className="border-t border-slate-200 p-4 bg-slate-50">
+
+      {/* =====================================================
+          תחתית
+      ===================================================== */}
+      <div className="border-t border-slate-100 p-4 bg-slate-50">
 
         <button
+          type="button"
           onClick={() => {
             loadMyMessages()
           }}
-          className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl transition"
+          className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-700 font-bold py-3 rounded-xl transition-all"
         >
           🔄 רענן שיחות
         </button>
@@ -3847,57 +4732,83 @@ const displayedListings = baseListings.filter((item) => {
 
 {/* =========================================================
     חלון שיחה פרטית
-    ========================================================= */}
+========================================================= */}
 
 {selectedConversation && (
   <div
-    className="fixed inset-0 z-[90] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+    className="fixed inset-0 z-[90] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
     onClick={() => setSelectedConversation(null)}
   >
     <div
-      className="bg-white w-full max-w-2xl max-h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+      className="bg-white w-full max-w-2xl max-h-[88vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
       dir="rtl"
       onClick={(e) => e.stopPropagation()}
     >
 
-      {/* כותרת השיחה */}
-      <div className="flex items-center justify-between p-5 border-b border-slate-200">
+      {/* =====================================================
+          כותרת השיחה
+      ===================================================== */}
+      <div className="px-5 py-4 sm:px-6 border-b border-slate-100 bg-white">
 
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            שיחה פרטית
-          </h2>
+        <div className="flex items-center justify-between gap-4">
 
-          <p className="text-xs text-slate-500 mt-1">
-            מודעה #{selectedConversation.listingId}
-          </p>
+          <div className="flex items-center gap-3 min-w-0">
+
+            <div className="w-11 h-11 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+              💬
+            </div>
+
+            <div className="min-w-0">
+
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-900">
+                שיחה פרטית
+              </h2>
+
+              <div className="flex items-center gap-1.5 mt-1">
+
+                <span className="text-xs text-slate-400">
+                  📋
+                </span>
+
+                <p className="text-xs text-slate-500 truncate">
+                  מודעה #{selectedConversation.listingId}
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            onClick={() => setSelectedConversation(null)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center"
+            aria-label="סגירת שיחה"
+          >
+            ×
+          </button>
+
         </div>
-
-        <button
-          onClick={() => setSelectedConversation(null)}
-          className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
-          aria-label="סגירת שיחה"
-        >
-          ×
-        </button>
 
       </div>
 
 
-      {/* הודעות השיחה */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-3 min-h-[300px] max-h-[50vh]">
+      {/* =====================================================
+          אזור ההודעות
+      ===================================================== */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-slate-50 min-h-[300px] max-h-[52vh]">
 
         {loadingConversation ? (
 
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center h-full min-h-[280px]">
 
             <div className="text-center">
 
-              <div className="text-3xl mb-3">
-                ⏳
-              </div>
+              <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4" />
 
-              <p className="text-sm text-slate-500">
+              <p className="text-sm font-semibold text-slate-500">
                 טוען שיחה...
               </p>
 
@@ -3907,96 +4818,123 @@ const displayedListings = baseListings.filter((item) => {
 
         ) : conversationMessages.length === 0 ? (
 
-          <div className="text-center py-12 text-slate-400">
+          <div className="flex items-center justify-center min-h-[280px]">
 
-            <div className="text-4xl mb-3">
-              💬
+            <div className="text-center">
+
+              <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-3xl shadow-sm">
+                💬
+              </div>
+
+              <h3 className="text-base font-extrabold text-slate-700 mb-1">
+                עדיין אין הודעות
+              </h3>
+
+              <p className="text-sm text-slate-400">
+                אפשר להיות הראשון ששולח הודעה בשיחה הזאת.
+              </p>
+
             </div>
-
-            <p className="text-sm">
-              עדיין אין הודעות בשיחה הזאת.
-            </p>
 
           </div>
 
         ) : (
 
-          conversationMessages.map((message) => {
+          <div className="space-y-3">
 
-            const isMine =
-              message.sender_id === user?.id
+            {conversationMessages.map((message) => {
 
-            return (
-              <div
-                key={message.id}
-                className={`flex ${
-                  isMine
-                    ? 'justify-start'
-                    : 'justify-end'
-                }`}
-              >
+              const isMine =
+                message.sender_id === user?.id
 
+              return (
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                  key={message.id}
+                  className={`flex ${
                     isMine
-                      ? 'bg-emerald-600 text-white rounded-br-md'
-                      : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                      ? 'justify-start'
+                      : 'justify-end'
                   }`}
                 >
 
-                  <p className="text-sm whitespace-pre-wrap">
-                    {message.content}
-                  </p>
-
-                  <p
-                    className={`text-[10px] mt-2 ${
+                  <div
+                    className={`max-w-[85%] sm:max-w-[75%] px-4 py-3 shadow-sm ${
                       isMine
-                        ? 'text-emerald-100'
-                        : 'text-slate-400'
+                        ? 'bg-emerald-600 text-white rounded-2xl rounded-br-md'
+                        : 'bg-white border border-slate-200 text-slate-800 rounded-2xl rounded-bl-md'
                     }`}
                   >
-                    {new Date(
-                      message.created_at
-                    ).toLocaleString('he-IL')}
-                  </p>
+
+                    <p className="text-sm leading-6 whitespace-pre-wrap break-words">
+                      {message.content}
+                    </p>
+
+                    <div
+                      className={`flex items-center gap-1.5 mt-2 ${
+                        isMine
+                          ? 'justify-start'
+                          : 'justify-end'
+                      }`}
+                    >
+
+                      <span
+                        className={`text-[10px] ${
+                          isMine
+                            ? 'text-emerald-100'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {new Date(
+                          message.created_at
+                        ).toLocaleString('he-IL')}
+                      </span>
+
+                      {isMine && (
+                        <span className="text-[10px] text-emerald-100">
+                          ✓
+                        </span>
+                      )}
+
+                    </div>
+
+                  </div>
 
                 </div>
+              )
 
-              </div>
-            )
+            })}
 
-          })
+          </div>
 
         )}
 
       </div>
 
 
-      {/* אזור כתיבת הודעה */}
-      <div className="border-t border-slate-200 p-4 bg-slate-50">
+      {/* =====================================================
+          אזור כתיבת הודעה
+      ===================================================== */}
+      <div className="border-t border-slate-100 p-4 sm:p-5 bg-white">
 
-        <textarea
-          value={conversationContent}
-          onChange={(e) =>
-            setConversationContent(e.target.value)
-          }
-          placeholder="כתוב תשובה..."
-          rows={3}
-          maxLength={2000}
-          disabled={
-            loadingConversation ||
-            isSendingConversationMessage
-          }
-          className="w-full border border-slate-200 rounded-2xl p-3 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none bg-white"
-        />
+        <div className="relative">
 
-        <div className="flex items-center justify-between mt-3">
-
-          <span className="text-xs text-slate-400">
-            {conversationContent.length}/2000
-          </span>
+          <textarea
+            value={conversationContent}
+            onChange={(e) =>
+              setConversationContent(e.target.value)
+            }
+            placeholder="כתוב תשובה..."
+            rows={3}
+            maxLength={2000}
+            disabled={
+              loadingConversation ||
+              isSendingConversationMessage
+            }
+            className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 pl-20 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 resize-none bg-slate-50 focus:bg-white transition disabled:bg-slate-100"
+          />
 
           <button
+            type="button"
             onClick={async () => {
 
               if (!user || !selectedConversation) {
@@ -4067,12 +5005,25 @@ const displayedListings = baseListings.filter((item) => {
               isSendingConversationMessage ||
               !conversationContent.trim()
             }
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold px-5 py-3 rounded-xl transition"
+            className="absolute left-2 bottom-2 h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold transition flex items-center gap-1.5"
           >
             {isSendingConversationMessage
               ? 'שולח...'
               : '📤 שלח'}
           </button>
+
+        </div>
+
+
+        <div className="flex items-center justify-between mt-2 px-1">
+
+          <span className="text-[11px] text-slate-400">
+            ההודעה תישלח למפרסם
+          </span>
+
+          <span className="text-xs text-slate-400">
+            {conversationContent.length}/2000
+          </span>
 
         </div>
 
@@ -4089,7 +5040,7 @@ const displayedListings = baseListings.filter((item) => {
 
 {messageModalOpen && contactListing && (
   <div
-    className="fixed inset-0 z-[70] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4"
+    className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
     onClick={() => {
       if (!isSendingMessage) {
         setMessageModalOpen(false)
@@ -4097,1382 +5048,2276 @@ const displayedListings = baseListings.filter((item) => {
     }}
   >
     <div
-      className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-6"
+      className="relative bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden"
       dir="rtl"
       onClick={(e) => e.stopPropagation()}
     >
 
-      {/* כותרת */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">
-            שליחת הודעה פרטית
-          </h2>
+      {/* פס עליון */}
+      <div className="h-1.5 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
 
-          <p className="text-sm text-slate-500 mt-1">
-            בקשר למודעה: {contactListing.title}
-          </p>
-        </div>
 
-        <button
-          onClick={() => {
-            if (!isSendingMessage) {
-              setMessageModalOpen(false)
-            }
-          }}
-          disabled={isSendingMessage}
-          className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition disabled:opacity-50"
-          aria-label="סגירת חלון"
-        >
-          ×
-        </button>
-      </div>
+      {/* =====================================================
+          כותרת
+      ===================================================== */}
+      <div className="px-5 py-5 sm:px-6 border-b border-slate-100">
 
-      {/* הודעת מערכת */}
-      {messageStatus && (
-        <div
-          className={`mb-4 rounded-xl px-4 py-3 text-sm font-semibold ${
-            messageStatus.startsWith("שגיאה")
-              ? "bg-red-50 text-red-700 border border-red-100"
-              : "bg-emerald-50 text-emerald-700 border border-emerald-100"
-          }`}
-        >
-          {messageStatus}
-        </div>
-      )}
+        <div className="flex items-start justify-between gap-4">
 
-      {/* שדה הודעה */}
-      <div className="mb-5">
-        <label
-          htmlFor="private-message"
-          className="block text-sm font-bold text-slate-700 mb-2"
-        >
-          ההודעה שלך
-        </label>
+          <div className="flex items-center gap-3 min-w-0">
 
-        <textarea
-          id="private-message"
-          value={messageContent}
-          onChange={(e) => setMessageContent(e.target.value)}
-          placeholder="כתוב כאן את ההודעה שלך למפרסם..."
-          rows={6}
-          maxLength={2000}
-          disabled={isSendingMessage}
-          className="w-full border border-slate-200 rounded-2xl p-4 text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none disabled:bg-slate-100"
-        />
-
-        <div className="flex justify-between items-center mt-2 text-xs text-slate-400">
-          <span>עד 2,000 תווים</span>
-          <span>{messageContent.length}/2000</span>
-        </div>
-      </div>
-
-      {/* כפתורים */}
-      <div className="flex gap-3">
-
-        <button
-          onClick={() => {
-            if (!isSendingMessage) {
-              setMessageModalOpen(false)
-            }
-          }}
-          disabled={isSendingMessage}
-          className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl transition disabled:opacity-50"
-        >
-          ביטול
-        </button>
-
-        <button
-          onClick={async () => {
-
-            if (!user) {
-              setMessageStatus("שגיאה: יש להתחבר כדי לשלוח הודעה.")
-              return
-            }
-
-            const trimmedMessage = messageContent.trim()
-
-            if (!trimmedMessage) {
-              setMessageStatus("שגיאה: יש לכתוב הודעה לפני השליחה.")
-              return
-            }
-
-            if (!contactListing.user_id) {
-              setMessageStatus(
-                "שגיאה: לא נמצא מזהה המשתמש של מפרסם המודעה."
-              )
-              return
-            }
-
-            if (contactListing.user_id === user.id) {
-              setMessageStatus(
-                "שגיאה: לא ניתן לשלוח הודעה לעצמך."
-              )
-              return
-            }
-
-            setIsSendingMessage(true)
-            setMessageStatus('')
-
-            try {
-              const { error } = await supabase
-                .from('messages')
-                .insert({
-                  listing_id: contactListing.id,
-                  sender_id: user.id,
-                  receiver_id: contactListing.user_id,
-                  content: trimmedMessage,
-                  is_read: false
-                })
-
-              if (error) {
-                console.error("שגיאה בשליחת הודעה:", error)
-                throw error
-              }
-
-              setMessageStatus("ההודעה נשלחה בהצלחה! ✓")
-              setMessageContent('')
-
-              setTimeout(() => {
-                setMessageModalOpen(false)
-                setContactListing(null)
-                setMessageStatus('')
-              }, 1200)
-
-            } catch (error) {
-              console.error(error)
-
-              setMessageStatus(
-                "שגיאה: לא ניתן לשלוח את ההודעה כרגע. נסה שוב."
-              )
-            } finally {
-              setIsSendingMessage(false)
-            }
-          }}
-          disabled={isSendingMessage}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSendingMessage ? "שולח..." : "✉️ שלח הודעה"}
-        </button>
-
-      </div>
-
-    </div>
-  </div>
-)}
-
-      {/* מודאל התחברות / הרשמה */}
-      {isAuthModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl relative">
-            <button
-              onClick={() => setIsAuthModalOpen(false)}
-              className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 text-xl font-bold"
-            >
-              ✕
-            </button>
-
-            <h3 className="text-xl font-bold text-slate-900 mb-4">
-              {authMode === 'login' ? 'התחברות למערכת' : 'הרשמה למערכת'}
-            </h3>
-
-            {authError && (
-              <div className="bg-red-50 text-red-600 text-xs p-3 rounded-lg mb-4">
-                {authError}
-              </div>
-            )}
-
-            <button
-              onClick={handleGoogleLogin}
-              type="button"
-              className="w-full mb-4 py-2.5 px-4 border border-slate-300 hover:bg-slate-50 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition text-slate-700"
-            >
-              <span>🌐</span> התחבר באמצעות Google
-            </button>
-
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-slate-200"></div>
-              <span className="flex-shrink mx-4 text-slate-400 text-xs">או באמצעות אימייל</span>
-              <div className="flex-grow border-t border-slate-200"></div>
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+              ✉️
             </div>
 
-            <form onSubmit={handleAuth} className="space-y-4 mt-2">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">כתובת אימייל</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                />
-              </div>
+            <div className="min-w-0">
 
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">סיסמה</label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="לפחות 6 תווים"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                />
-              </div>
+              <h2 className="text-xl font-extrabold text-slate-900">
+                שליחת הודעה פרטית
+              </h2>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition disabled:opacity-50 mt-2"
-              >
-                {isSubmitting ? 'מעבד...' : authMode === 'login' ? 'התחבר לחשבון' : 'הירשם כעת'}
-              </button>
-            </form>
-
-            <div className="mt-4 text-center text-xs text-slate-600">
-              {authMode === 'login' ? (
-                <p>
-                  אין לך חשבון עדיין?{' '}
-                  <button
-                    onClick={() => {
-                      setAuthMode('signup')
-                      setAuthError('')
-                    }}
-                    className="text-emerald-600 font-semibold hover:underline"
-                  >
-                    הירשם כאן
-                  </button>
-                </p>
-              ) : (
-                <p>
-                  כבר רשום במערכת?{' '}
-                  <button
-                    onClick={() => {
-                      setAuthMode('login')
-                      setAuthError('')
-                    }}
-                    className="text-emerald-600 font-semibold hover:underline"
-                  >
-                    התחבר כאן
-                  </button>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      
-{/* מודאל פרסום מודעה חדשה */}
-{isModalOpen && (
-  <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
-
-      <button
-        onClick={() => setIsModalOpen(false)}
-        className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 text-xl font-bold"
-      >
-        ✕
-      </button>
-
-      <h3 className="text-xl font-bold text-slate-900 mb-4">
-        פרסום מודעה חדשה
-      </h3>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-
-        {/* כותרת */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            כותרת המודעה *
-          </label>
-
-          <input
-            type="text"
-            name="title"
-            required
-            placeholder="למשל: דרוש בייביסיטר לערב / תיקון צבע בסלון"
-            value={formData.title}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-        </div>
-
-        {/* סוג המודעה */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            סוג המודעה
-          </label>
-
-          <select
-            name="listing_type"
-            value={formData.listing_type}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <option value="offer">
-              🟢 אני מציע עבודה / שירות
-            </option>
-
-            <option value="request">
-              🔵 אני מחפש שירות / עזרה
-            </option>
-          </select>
-        </div>
-
-        {/* קטגוריה */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            קטגוריה
-          </label>
-
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* מחיר + עיר */}
-        <div className="grid grid-cols-2 gap-3">
-
-          {/* מחיר */}
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              מחיר (₪)
-            </label>
-
-            <input
-              type="number"
-              name="price"
-              placeholder="למשל: 150"
-              value={formData.price}
-              onChange={handleChange}
-              disabled={formData.payment_type === 'barter'}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100 disabled:text-slate-400"
-            />
-
-            {formData.payment_type === 'barter' && (
-              <p className="text-xs text-slate-400 mt-1">
-                בברטר אין צורך לציין מחיר
+              <p className="text-sm text-slate-500 mt-1 truncate">
+                שלחו הודעה למפרסם
               </p>
-            )}
-          </div>
 
-          {/* עיר / אזור */}
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              עיר / אזור
-            </label>
-
-            <div className="relative">
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="הקלד עיר או יישוב..."
-                autoComplete="off"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-
-              {formData.location.trim().length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-
-                  {israeliLocations
-                    .filter((location) =>
-                      location
-                        .toLowerCase()
-                        .includes(
-                          formData.location.trim().toLowerCase()
-                        )
-                    )
-                    .slice(0, 12)
-                    .map((location) => (
-                      <button
-                        key={location}
-                        type="button"
-                        onClick={() =>
-                          setFormData((previous) => ({
-                            ...previous,
-                            location
-                          }))
-                        }
-                        className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
-                      >
-                        📍 {location}
-                      </button>
-                    ))}
-
-                  {israeliLocations.filter((location) =>
-                    location
-                      .toLowerCase()
-                      .includes(
-                        formData.location.trim().toLowerCase()
-                      )
-                  ).length === 0 && (
-                    <div className="px-4 py-3 text-sm text-slate-500">
-                      לא נמצא יישוב מתאים
-                    </div>
-                  )}
-
-                </div>
-              )}
             </div>
-          </div>
-        </div>
-
-        {/* אופן התמורה */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-2">
-            אופן התמורה
-          </label>
-
-          <div className="grid grid-cols-3 gap-2">
-
-            {/* תשלום */}
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((previous) => ({
-                  ...previous,
-                  payment_type: 'cash'
-                }))
-              }
-              className={`px-2 py-3 rounded-xl border text-sm font-medium transition ${
-                formData.payment_type === 'cash'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-200'
-                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span className="text-lg">💵</span>
-              <span className="block mt-1">
-                תשלום
-              </span>
-            </button>
-
-            {/* ברטר */}
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((previous) => ({
-                  ...previous,
-                  payment_type: 'barter',
-                  price: ''
-                }))
-              }
-              className={`px-2 py-3 rounded-xl border text-sm font-medium transition ${
-                formData.payment_type === 'barter'
-                  ? 'border-amber-500 bg-amber-50 text-amber-700 ring-2 ring-amber-200'
-                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span className="text-lg">🔄</span>
-              <span className="block mt-1">
-                ברטר
-              </span>
-            </button>
-
-            {/* תשלום או ברטר */}
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((previous) => ({
-                  ...previous,
-                  payment_type: 'cash_or_barter'
-                }))
-              }
-              className={`px-2 py-3 rounded-xl border text-sm font-medium transition ${
-                formData.payment_type === 'cash_or_barter'
-                  ? 'border-purple-500 bg-purple-50 text-purple-700 ring-2 ring-purple-200'
-                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span className="text-lg">💵🔄</span>
-              <span className="block mt-1">
-                תשלום או ברטר
-              </span>
-            </button>
 
           </div>
 
-          {formData.payment_type === 'barter' && (
-            <p className="text-xs text-amber-600 mt-2">
-              🔄 המודעה מיועדת לברטר. ציין בתיאור מה תרצה לקבל בתמורה.
-            </p>
-          )}
-
-          {formData.payment_type === 'cash_or_barter' && (
-            <p className="text-xs text-purple-600 mt-2">
-              💵🔄 ניתן להציע תשלום או שירות / מוצר בתמורה.
-            </p>
-          )}
-        </div>
-
-        {/* תמונה ראשית */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            תמונה ראשית
-          </label>
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) =>
-              setImageFile(e.target.files[0] || null)
-            }
-            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-          />
-
-          <p className="text-xs text-slate-400 mt-1">
-            התמונה הזו תופיע כתמונה הראשית של המודעה.
-          </p>
-        </div>
-
-        {/* תמונות נוספות */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            תמונות נוספות
-          </label>
-
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => {
-              const selectedFiles = Array.from(
-                e.target.files || []
-              )
-
-              setAdditionalImageFiles((previousFiles) => {
-                const combinedFiles = [
-                  ...previousFiles,
-                  ...selectedFiles
-                ]
-
-                return combinedFiles.slice(0, 4)
-              })
-
-              e.target.value = ''
-            }}
-            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-          />
-
-          {additionalImageFiles.length > 0 && (
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {additionalImageFiles.map((file, index) => (
-                <div
-                  key={`${file.name}-${index}`}
-                  className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50"
-                >
-                  <img
-                    src={URL.createObjectURL(file)}
-                    alt={`תמונה נוספת ${index + 1}`}
-                    className="w-full h-24 object-cover"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAdditionalImageFiles((previousFiles) =>
-                        previousFiles.filter(
-                          (_, fileIndex) =>
-                            fileIndex !== index
-                        )
-                      )
-                    }}
-                    className="absolute top-1 left-1 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold shadow"
-                    title="הסר תמונה"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <p className="text-xs text-slate-400 mt-1">
-            ניתן להוסיף עד 4 תמונות נוספות.
-          </p>
-        </div>
-
-        {/* תיאור */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            תיאור מפורט
-          </label>
-
-          <textarea
-            name="description"
-            rows="3"
-            placeholder={
-              formData.payment_type === 'barter'
-                ? 'פרט מה אתה מציע ומה תרצה לקבל בתמורה...'
-                : 'פרט מה העבודה כוללת, ימים, שעות וכו\'...'
-            }
-            value={formData.description}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          ></textarea>
-        </div>
-
-        {/* איש קשר */}
-        <div className="grid grid-cols-2 gap-3">
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              שם איש קשר
-            </label>
-
-            <input
-              type="text"
-              name="contact_name"
-              placeholder="שמך"
-              value={formData.contact_name}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              מספר טלפון
-            </label>
-
-            <input
-              type="tel"
-              name="phone"
-              placeholder="050-0000000"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
-        </div>
-
-        {/* כפתורים */}
-        <div className="pt-2 flex justify-end space-x-2 space-x-reverse">
 
           <button
             type="button"
-            onClick={() => setIsModalOpen(false)}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm"
-          >
-            ביטול
-          </button>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition disabled:opacity-50"
-          >
-            {isSubmitting ? 'מפרסם...' : 'פרסם כעת'}
-          </button>
-
-        </div>
-
-      </form>
-    </div>
-  </div>
-)}
-
-
-
-      {/* מודאל עריכת מודעה */}
-      {/* מודאל עריכת מודעה */}
-{isEditModalOpen && (
-  <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
-
-      {/* סגירה */}
-      <button
-        type="button"
-        onClick={() => setIsEditModalOpen(false)}
-        className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 text-xl font-bold"
-      >
-        ✕
-      </button>
-
-      <h3 className="text-xl font-bold text-slate-900 mb-5">
-        עריכת מודעה
-      </h3>
-
-      <form onSubmit={handleUpdateListing} className="space-y-4">
-
-        {/* =====================================================
-            סוג המודעה
-            ===================================================== */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-2">
-            סוג המודעה
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
-
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((prev) => ({
-                  ...prev,
-                  listing_type: 'request'
-                }))
-              }
-              className={`p-3 rounded-xl border-2 text-sm font-bold transition ${
-                formData.listing_type === 'request'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200'
-              }`}
-            >
-              🔵 מחפש שירות / עזרה
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((prev) => ({
-                  ...prev,
-                  listing_type: 'offer'
-                }))
-              }
-              className={`p-3 rounded-xl border-2 text-sm font-bold transition ${
-                formData.listing_type === 'offer'
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200'
-              }`}
-            >
-              🟢 מציע עבודה / שירות
-            </button>
-
-          </div>
-        </div>
-
-        {/* =====================================================
-            כותרת
-            ===================================================== */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            כותרת המודעה *
-          </label>
-
-          <input
-            type="text"
-            name="title"
-            required
-            value={formData.title}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-        </div>
-
-        {/* =====================================================
-            קטגוריה
-            ===================================================== */}
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            קטגוריה
-          </label>
-
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* =====================================================
-            מחיר + מיקום
-            ===================================================== */}
-        <div className="grid grid-cols-2 gap-3">
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              מחיר (₪)
-            </label>
-
-            <input
-              type="number"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              עיר / אזור
-            </label>
-
-            <select
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="">
-                בחר עיר / יישוב
-              </option>
-
-              {israeliLocations.map((location) => (
-                <option
-                  key={location}
-                  value={location}
-                >
-                  {location}
-                </option>
-              ))}
-            </select>
-          </div>
-
-        </div>
-
-        {/* =====================================================
-            תמונה ראשית
-            ===================================================== */}
-        <div>
-
-          <label className="block text-xs font-medium text-slate-700 mb-2">
-            תמונה ראשית
-          </label>
-
-          {editingListing?.image_url && !removeMainImage && (
-            <div className="relative mb-3 rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-
-              <img
-                src={
-                  imageFile
-                    ? URL.createObjectURL(imageFile)
-                    : editingListing.image_url
-                }
-                alt="תמונה ראשית"
-                className="w-full h-40 object-cover"
-              />
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRemoveMainImage(true)
-                  setImageFile(null)
-                }}
-                className="absolute top-2 left-2 w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold shadow"
-                title="הסר תמונה ראשית"
-              >
-                ×
-              </button>
-
-              {imageFile && (
-                <div className="absolute bottom-2 right-2 bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
-                  תמונה חדשה
-                </div>
-              )}
-
-            </div>
-          )}
-
-          {removeMainImage && (
-            <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-center justify-between gap-3">
-
-              <span>
-                🗑️ התמונה הראשית תוסר בשמירה
-              </span>
-
-              <button
-                type="button"
-                onClick={() => setRemoveMainImage(false)}
-                className="text-xs font-bold text-red-700 hover:text-red-900 underline"
-              >
-                ביטול
-              </button>
-
-            </div>
-          )}
-
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files[0] || null
-
-              if (file) {
-                setImageFile(file)
-                setRemoveMainImage(false)
+            onClick={() => {
+              if (!isSendingMessage) {
+                setMessageModalOpen(false)
               }
             }}
-            className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-          />
-
-          <p className="text-xs text-slate-400 mt-1">
-            בחר תמונה חדשה אם ברצונך להחליף את התמונה הראשית.
-          </p>
+            disabled={isSendingMessage}
+            className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center disabled:opacity-50"
+            aria-label="סגירת חלון"
+          >
+            ×
+          </button>
 
         </div>
 
-        {/* =====================================================
-            תמונות נוספות קיימות
-            ===================================================== */}
+
+        {/* המודעה */}
+        <div className="mt-4 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3">
+
+          <div className="flex items-start gap-2">
+
+            <span className="shrink-0 text-sm">
+              📋
+            </span>
+
+            <div className="min-w-0">
+
+              <p className="text-xs font-bold text-slate-400 mb-1">
+                בקשר למודעה
+              </p>
+
+              <p className="text-sm font-extrabold text-slate-800 line-clamp-2">
+                {contactListing.title}
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          תוכן
+      ===================================================== */}
+      <div className="p-5 sm:p-6">
+
+        {/* הודעת מערכת */}
+        {messageStatus && (
+          <div
+            className={`mb-5 rounded-2xl px-4 py-3.5 text-sm font-semibold border ${
+              messageStatus.startsWith("שגיאה")
+                ? "bg-red-50 text-red-700 border-red-100"
+                : "bg-emerald-50 text-emerald-700 border-emerald-100"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+
+              <span>
+                {messageStatus.startsWith("שגיאה")
+                  ? "⚠️"
+                  : "✅"}
+              </span>
+
+              <span>
+                {messageStatus}
+              </span>
+
+            </div>
+          </div>
+        )}
+
+
+        {/* שדה הודעה */}
         <div>
 
           <div className="flex items-center justify-between mb-2">
 
-            <label className="block text-xs font-medium text-slate-700">
-              תמונות נוספות
+            <label
+              htmlFor="private-message"
+              className="text-sm font-extrabold text-slate-800"
+            >
+              ההודעה שלך
             </label>
 
             <span className="text-xs text-slate-400">
-              {existingAdditionalImages.length}/4
+              עד 2,000 תווים
             </span>
 
           </div>
 
-          {existingAdditionalImages.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 mb-3">
-
-              {existingAdditionalImages.map(
-                (imageUrl, index) => (
-                  <div
-                    key={`${imageUrl}-${index}`}
-                    className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50"
-                  >
-
-                    <img
-                      src={imageUrl}
-                      alt={`תמונה נוספת ${index + 1}`}
-                      className="w-full h-28 object-cover"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExistingAdditionalImages(
-                          (previousImages) =>
-                            previousImages.filter(
-                              (_, imageIndex) =>
-                                imageIndex !== index
-                            )
-                        )
-                      }}
-                      className="absolute top-2 left-2 w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold shadow"
-                      title="מחק תמונה"
-                    >
-                      ×
-                    </button>
-
-                  </div>
-                )
-              )}
-
-            </div>
-          )}
-
-          {/* ===================================================
-              תמונות חדשות שנבחרו
-              =================================================== */}
-          {additionalImageFiles.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 mb-3">
-
-              {additionalImageFiles.map(
-                (file, index) => (
-                  <div
-                    key={`${file.name}-${index}`}
-                    className="relative rounded-xl overflow-hidden border border-emerald-200 bg-emerald-50"
-                  >
-
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`תמונה חדשה ${index + 1}`}
-                      className="w-full h-28 object-cover"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAdditionalImageFiles(
-                          (previousFiles) =>
-                            previousFiles.filter(
-                              (_, fileIndex) =>
-                                fileIndex !== index
-                            )
-                        )
-                      }}
-                      className="absolute top-2 left-2 w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold shadow"
-                      title="הסר תמונה"
-                    >
-                      ×
-                    </button>
-
-                    <div className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg">
-                      חדשה
-                    </div>
-
-                  </div>
-                )
-              )}
-
-            </div>
-          )}
-
-          {/* ===================================================
-              הוספת תמונות
-              =================================================== */}
-          {existingAdditionalImages.length +
-            additionalImageFiles.length < 4 && (
-            <>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-
-                  const selectedFiles = Array.from(
-                    e.target.files || []
-                  )
-
-                  const remainingSlots =
-                    4 -
-                    existingAdditionalImages.length -
-                    additionalImageFiles.length
-
-                  const filesToAdd =
-                    selectedFiles.slice(
-                      0,
-                      remainingSlots
-                    )
-
-                  setAdditionalImageFiles(
-                    (previousFiles) => [
-                      ...previousFiles,
-                      ...filesToAdd
-                    ]
-                  )
-
-                  e.target.value = ''
-                }}
-                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-              />
-
-              <p className="text-xs text-slate-400 mt-1">
-                ניתן להוסיף עד 4 תמונות נוספות בסך הכול.
-              </p>
-            </>
-          )}
-
-          {existingAdditionalImages.length +
-            additionalImageFiles.length >= 4 && (
-            <p className="text-xs text-emerald-600 font-semibold mt-1">
-              ✓ הגעת למקסימום של 4 תמונות נוספות.
-            </p>
-          )}
-
-        </div>
-
-        {/* =====================================================
-            תיאור
-            ===================================================== */}
-        <div>
-
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            תיאור מפורט
-          </label>
 
           <textarea
-            name="description"
-            rows="3"
-            value={formData.description}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            id="private-message"
+            value={messageContent}
+            onChange={(e) => setMessageContent(e.target.value)}
+            placeholder="כתוב כאן את ההודעה שלך למפרסם..."
+            rows={7}
+            maxLength={2000}
+            disabled={isSendingMessage}
+            className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 text-sm leading-6 text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 resize-none bg-slate-50 focus:bg-white transition disabled:bg-slate-100"
           />
 
-        </div>
 
-        {/* =====================================================
-            פרטי קשר
-            ===================================================== */}
-        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between mt-2 px-1">
 
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              שם איש קשר
-            </label>
+            <span className="text-[11px] text-slate-400">
+              ההודעה תישלח באופן פרטי למפרסם
+            </span>
 
-            <input
-              type="text"
-              name="contact_name"
-              value={formData.contact_name}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
+            <span className="text-xs text-slate-400">
+              {messageContent.length}/2000
+            </span>
 
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
-              מספר טלפון
-            </label>
-
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
           </div>
 
         </div>
 
-        {/* =====================================================
-            כפתורים
-            ===================================================== */}
-        <div className="pt-2 flex justify-end space-x-2 space-x-reverse">
+
+        {/* כפתורים */}
+        <div className="grid grid-cols-2 gap-3 mt-6">
 
           <button
             type="button"
-            onClick={() => setIsEditModalOpen(false)}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 text-sm"
+            onClick={() => {
+              if (!isSendingMessage) {
+                setMessageModalOpen(false)
+              }
+            }}
+            disabled={isSendingMessage}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl transition disabled:opacity-50"
           >
             ביטול
           </button>
 
+
           <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm transition disabled:opacity-50"
+            type="button"
+            onClick={async () => {
+
+              if (!user) {
+                setMessageStatus("שגיאה: יש להתחבר כדי לשלוח הודעה.")
+                return
+              }
+
+              const trimmedMessage =
+                messageContent.trim()
+
+              if (!trimmedMessage) {
+                setMessageStatus("שגיאה: יש לכתוב הודעה לפני השליחה.")
+                return
+              }
+
+              if (!contactListing.user_id) {
+                setMessageStatus(
+                  "שגיאה: לא נמצא מזהה המשתמש של מפרסם המודעה."
+                )
+                return
+              }
+
+              if (contactListing.user_id === user.id) {
+                setMessageStatus(
+                  "שגיאה: לא ניתן לשלוח הודעה לעצמך."
+                )
+                return
+              }
+
+              setIsSendingMessage(true)
+              setMessageStatus('')
+
+              try {
+
+                const { error } = await supabase
+                  .from('messages')
+                  .insert({
+                    listing_id: contactListing.id,
+                    sender_id: user.id,
+                    receiver_id: contactListing.user_id,
+                    content: trimmedMessage,
+                    is_read: false
+                  })
+
+                if (error) {
+                  console.error(
+                    "שגיאה בשליחת הודעה:",
+                    error
+                  )
+                  throw error
+                }
+
+                setMessageStatus(
+                  "ההודעה נשלחה בהצלחה! ✓"
+                )
+
+                setMessageContent('')
+
+                setTimeout(() => {
+                  setMessageModalOpen(false)
+                  setContactListing(null)
+                  setMessageStatus('')
+                }, 1200)
+
+              } catch (error) {
+
+                console.error(error)
+
+                setMessageStatus(
+                  "שגיאה: לא ניתן לשלוח את ההודעה כרגע. נסה שוב."
+                )
+
+              } finally {
+
+                setIsSendingMessage(false)
+
+              }
+
+            }}
+            disabled={isSendingMessage}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2"
           >
-            {isSubmitting
-              ? 'מעדכן...'
-              : 'שמור שינויים'}
+            {isSendingMessage
+              ? 'שולח...'
+              : '✉️ שלח הודעה'}
           </button>
 
         </div>
 
-      </form>
+      </div>
+
     </div>
   </div>
 )}
+
+      {/* =========================================================
+    מודאל התחברות / הרשמה
+========================================================= */}
+
+{isAuthModalOpen && (
+  <div
+    className="fixed inset-0 z-[100] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+    onClick={() => setIsAuthModalOpen(false)}
+  >
+    <div
+      className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+      dir="rtl"
+      onClick={(e) => e.stopPropagation()}
+    >
+
+      {/* פס עליון */}
+      <div className="h-1.5 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
+
+
+      {/* =====================================================
+          כותרת
+      ===================================================== */}
+      <div className="px-6 pt-7 pb-5 text-center">
+
+        <button
+          type="button"
+          onClick={() => setIsAuthModalOpen(false)}
+          className="absolute top-5 left-5 w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 text-lg transition flex items-center justify-center"
+          aria-label="סגירת חלון"
+        >
+          ×
+        </button>
+
+
+        <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-3xl shadow-sm">
+          💰
+        </div>
+
+        <h3 className="text-2xl font-extrabold text-slate-900">
+          {authMode === 'login'
+            ? 'התחברות למערכת'
+            : 'הרשמה למערכת'}
+        </h3>
+
+        <p className="text-sm text-slate-500 mt-2">
+          {authMode === 'login'
+            ? 'התחברו כדי לפרסם מודעות, לשלוח הודעות ולנהל את הפעילות שלכם.'
+            : 'צרו חשבון והתחילו להשתמש בכסף כיס.'}
+        </p>
+
+      </div>
+
+
+      {/* =====================================================
+          תוכן
+      ===================================================== */}
+      <div className="px-6 pb-6">
+
+        {/* שגיאה */}
+        {authError && (
+          <div className="mb-4 rounded-2xl bg-red-50 border border-red-100 px-4 py-3">
+
+            <div className="flex items-start gap-2">
+
+              <span className="shrink-0">
+                ⚠️
+              </span>
+
+              <p className="text-sm font-semibold text-red-700 leading-5">
+                {authError}
+              </p>
+
+            </div>
+
+          </div>
+        )}
+
+
+        {/* Google */}
+        <button
+          onClick={handleGoogleLogin}
+          type="button"
+          className="w-full py-3.5 px-4 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-2xl font-bold text-sm flex items-center justify-center gap-3 transition-all text-slate-700 shadow-sm"
+        >
+          <span className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-base">
+            🌐
+          </span>
+
+          <span>
+            התחבר באמצעות Google
+          </span>
+        </button>
+
+
+        {/* מפריד */}
+        <div className="relative flex items-center gap-3 my-5">
+
+          <div className="flex-1 border-t border-slate-200" />
+
+          <span className="text-xs font-medium text-slate-400 whitespace-nowrap">
+            או באמצעות אימייל
+          </span>
+
+          <div className="flex-1 border-t border-slate-200" />
+
+        </div>
+
+
+        {/* טופס */}
+        <form
+          onSubmit={handleAuth}
+          className="space-y-4"
+        >
+
+          {/* אימייל */}
+          <div>
+
+            <label className="block text-sm font-bold text-slate-700 mb-2">
+              כתובת אימייל
+            </label>
+
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
+            />
+
+          </div>
+
+
+          {/* סיסמה */}
+          <div>
+
+            <label className="block text-sm font-bold text-slate-700 mb-2">
+              סיסמה
+            </label>
+
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="לפחות 6 תווים"
+              className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
+            />
+
+          </div>
+
+
+          {/* כפתור */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-2xl font-extrabold text-sm transition-all shadow-sm hover:shadow-md mt-2"
+          >
+            {isSubmitting
+              ? 'מעבד...'
+              : authMode === 'login'
+                ? 'התחבר לחשבון'
+                : 'הירשם כעת'}
+          </button>
+
+        </form>
+
+
+        {/* מעבר התחברות / הרשמה */}
+        <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+
+          {authMode === 'login' ? (
+
+            <p className="text-sm text-slate-500">
+
+              אין לך חשבון עדיין?{' '}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('signup')
+                  setAuthError('')
+                }}
+                className="text-emerald-600 font-extrabold hover:text-emerald-700 hover:underline transition"
+              >
+                הירשם כאן
+              </button>
+
+            </p>
+
+          ) : (
+
+            <p className="text-sm text-slate-500">
+
+              כבר רשום במערכת?{' '}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode('login')
+                  setAuthError('')
+                }}
+                className="text-emerald-600 font-extrabold hover:text-emerald-700 hover:underline transition"
+              >
+                התחבר כאן
+              </button>
+
+            </p>
+
+          )}
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+)}
+
+      
+{/* =========================================================
+    מודאל פרסום מודעה חדשה
+========================================================= */}
+
+{isModalOpen && (
+  <div
+    className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+    onClick={() => setIsModalOpen(false)}
+  >
+    <div
+      className="relative bg-white w-full max-w-2xl max-h-[92vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+      dir="rtl"
+      onClick={(e) => e.stopPropagation()}
+    >
+
+      {/* פס עליון */}
+      <div className="h-1.5 shrink-0 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
+
+
+      {/* =====================================================
+          כותרת
+      ===================================================== */}
+      <div className="px-5 py-5 sm:px-6 border-b border-slate-100 bg-white shrink-0">
+
+        <div className="flex items-start justify-between gap-4">
+
+          <div className="flex items-center gap-3 min-w-0">
+
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+              📢
+            </div>
+
+            <div className="min-w-0">
+
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                פרסום מודעה חדשה
+              </h2>
+
+              <p className="text-sm text-slate-500 mt-1">
+                ספרו לקהילה מה אתם מציעים או מה אתם מחפשים
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(false)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center"
+            aria-label="סגירת חלון"
+          >
+            ×
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          טופס
+      ===================================================== */}
+      <div className="overflow-y-auto flex-1">
+
+        <form
+          onSubmit={handleSubmit}
+          className="p-5 sm:p-6 space-y-5"
+        >
+
+          {/* =================================================
+              פרטי המודעה
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-sm">
+                📝
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  פרטי המודעה
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  תנו למודעה כותרת ברורה ובחרו את סוגה
+                </p>
+              </div>
+
+            </div>
+
+
+            {/* כותרת */}
+            <div className="mb-4">
+
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                כותרת המודעה *
+              </label>
+
+              <input
+                type="text"
+                name="title"
+                required
+                placeholder="למשל: דרוש בייביסיטר לערב / תיקון צבע בסלון"
+                value={formData.title}
+                onChange={handleChange}
+                className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
+              />
+
+            </div>
+
+
+            {/* סוג + קטגוריה */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* סוג המודעה */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  סוג המודעה
+                </label>
+
+                <select
+                  name="listing_type"
+                  value={formData.listing_type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
+                >
+                  <option value="offer">
+                    🟢 אני מציע עבודה / שירות
+                  </option>
+
+                  <option value="request">
+                    🔵 אני מחפש שירות / עזרה
+                  </option>
+                </select>
+
+              </div>
+
+
+              {/* קטגוריה */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  קטגוריה
+                </label>
+
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              מחיר + מיקום
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm">
+                📍
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  מחיר ומיקום
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  עזרו למשתמשים להבין מה התמורה והיכן השירות ניתן
+                </p>
+              </div>
+
+            </div>
+
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* מחיר */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  מחיר (₪)
+                </label>
+
+                <input
+                  type="number"
+                  name="price"
+                  placeholder="למשל: 150"
+                  value={formData.price}
+                  onChange={handleChange}
+                  disabled={formData.payment_type === 'barter'}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition disabled:bg-slate-100 disabled:text-slate-400"
+                />
+
+                {formData.payment_type === 'barter' && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    🔄 בברטר אין צורך לציין מחיר
+                  </p>
+                )}
+
+              </div>
+
+
+              {/* עיר / אזור */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  עיר / אזור
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    placeholder="הקלד עיר או יישוב..."
+                    autoComplete="off"
+                    className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
+                  />
+
+                  {formData.location.trim().length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+
+                      {israeliLocations
+                        .filter((location) =>
+                          location
+                            .toLowerCase()
+                            .includes(
+                              formData.location.trim().toLowerCase()
+                            )
+                        )
+                        .slice(0, 12)
+                        .map((location) => (
+                          <button
+                            key={location}
+                            type="button"
+                            onClick={() =>
+                              setFormData((previous) => ({
+                                ...previous,
+                                location
+                              }))
+                            }
+                            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                          >
+                            📍 {location}
+                          </button>
+                        ))}
+
+                      {israeliLocations.filter((location) =>
+                        location
+                          .toLowerCase()
+                          .includes(
+                            formData.location.trim().toLowerCase()
+                          )
+                      ).length === 0 && (
+                        <div className="px-4 py-3 text-sm text-slate-500">
+                          לא נמצא יישוב מתאים
+                        </div>
+                      )}
+
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              אופן התמורה
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-sm">
+                💵
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  אופן התמורה
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  בחרו כיצד תרצו לקבל או להציע תמורה
+                </p>
+              </div>
+
+            </div>
+
+
+            <div className="grid grid-cols-3 gap-2.5">
+
+              {/* תשלום */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    payment_type: 'cash'
+                  }))
+                }
+                className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+                  formData.payment_type === 'cash'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+                }`}
+              >
+                <span className="text-xl">
+                  💵
+                </span>
+
+                <span className="block mt-1.5">
+                  תשלום
+                </span>
+              </button>
+
+
+              {/* ברטר */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    payment_type: 'barter',
+                    price: ''
+                  }))
+                }
+                className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+                  formData.payment_type === 'barter'
+                    ? 'border-amber-500 bg-amber-50 text-amber-700 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50/40'
+                }`}
+              >
+                <span className="text-xl">
+                  🔄
+                </span>
+
+                <span className="block mt-1.5">
+                  ברטר
+                </span>
+              </button>
+
+
+              {/* תשלום או ברטר */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    payment_type: 'cash_or_barter'
+                  }))
+                }
+                className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+                  formData.payment_type === 'cash_or_barter'
+                    ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-purple-200 hover:bg-purple-50/40'
+                }`}
+              >
+                <span className="text-xl">
+                  💵🔄
+                </span>
+
+                <span className="block mt-1.5">
+                  תשלום או ברטר
+                </span>
+              </button>
+
+            </div>
+
+
+            {formData.payment_type === 'barter' && (
+              <div className="mt-3 rounded-xl bg-amber-50 border border-amber-100 px-3.5 py-2.5">
+                <p className="text-xs text-amber-700 font-medium leading-5">
+                  🔄 המודעה מיועדת לברטר. ציין בתיאור מה תרצה לקבל בתמורה.
+                </p>
+              </div>
+            )}
+
+            {formData.payment_type === 'cash_or_barter' && (
+              <div className="mt-3 rounded-xl bg-purple-50 border border-purple-100 px-3.5 py-2.5">
+                <p className="text-xs text-purple-700 font-medium leading-5">
+                  💵🔄 ניתן להציע תשלום או שירות / מוצר בתמורה.
+                </p>
+              </div>
+            )}
+
+          </div>
+
+
+          {/* =================================================
+              תמונות
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center text-sm">
+                🖼️
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  תמונות
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  הוסיפו תמונה ראשית ועד 4 תמונות נוספות
+                </p>
+              </div>
+
+            </div>
+
+
+            {/* תמונה ראשית */}
+            <div className="mb-4">
+
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                תמונה ראשית
+              </label>
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setImageFile(e.target.files[0] || null)
+                  }
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer"
+                />
+
+                <p className="text-xs text-slate-400 mt-2">
+                  התמונה הזו תופיע כתמונה הראשית של המודעה.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            {/* תמונות נוספות */}
+            <div>
+
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                תמונות נוספות
+              </label>
+
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const selectedFiles = Array.from(
+                      e.target.files || []
+                    )
+
+                    setAdditionalImageFiles((previousFiles) => {
+                      const combinedFiles = [
+                        ...previousFiles,
+                        ...selectedFiles
+                      ]
+
+                      return combinedFiles.slice(0, 4)
+                    })
+
+                    e.target.value = ''
+                  }}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 file:cursor-pointer"
+                />
+
+                {additionalImageFiles.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+                    {additionalImageFiles.map((file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm"
+                      >
+
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`תמונה נוספת ${index + 1}`}
+                          className="w-full h-24 object-cover"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdditionalImageFiles((previousFiles) =>
+                              previousFiles.filter(
+                                (_, fileIndex) =>
+                                  fileIndex !== index
+                              )
+                            )
+                          }}
+                          className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center text-sm font-bold shadow-md transition"
+                          title="הסר תמונה"
+                        >
+                          ×
+                        </button>
+
+                      </div>
+                    ))}
+
+                  </div>
+                )}
+
+                <p className="text-xs text-slate-400 mt-2">
+                  ניתן להוסיף עד 4 תמונות נוספות.
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              תיאור
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-sm">
+                ✍️
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  תיאור המודעה
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  הוסיפו פרטים שיעזרו לאחרים להבין בדיוק מה נדרש
+                </p>
+              </div>
+
+            </div>
+
+
+            <textarea
+              name="description"
+              rows="5"
+              placeholder={
+                formData.payment_type === 'barter'
+                  ? 'פרט מה אתה מציע ומה תרצה לקבל בתמורה...'
+                  : 'פרט מה העבודה כוללת, ימים, שעות וכו\'...'
+              }
+              value={formData.description}
+              onChange={handleChange}
+              className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm leading-6 text-slate-800 placeholder:text-slate-400 resize-none transition"
+            ></textarea>
+
+          </div>
+
+
+          {/* =================================================
+              איש קשר
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-sm">
+                👤
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  פרטי קשר
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  איך יוכלו ליצור איתכם קשר בנוגע למודעה
+                </p>
+              </div>
+
+            </div>
+
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* שם */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  שם איש קשר
+                </label>
+
+                <input
+                  type="text"
+                  name="contact_name"
+                  placeholder="שמך"
+                  value={formData.contact_name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
+                />
+
+              </div>
+
+
+              {/* טלפון */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  מספר טלפון
+                </label>
+
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="050-0000000"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              כפתורי פעולה
+          ================================================= */}
+
+          <div className="sticky bottom-0 -mx-5 sm:-mx-6 px-5 sm:px-6 py-4 bg-white/95 backdrop-blur-md border-t border-slate-100 flex gap-3">
+
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="flex-1 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition"
+            >
+              ביטול
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-[1.5] py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-extrabold text-sm shadow-sm hover:shadow-md transition-all"
+            >
+              {isSubmitting
+                ? 'מפרסם...'
+                : '📢 פרסם כעת'}
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+  </div>
+)}
+
+
+
+ {/* =========================================================
+    מודאל עריכת מודעה
+========================================================= */}
+
+{isEditModalOpen && (
+  <div
+    className="fixed inset-0 z-[70] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+    onClick={() => setIsEditModalOpen(false)}
+  >
+    <div
+      className="relative bg-white w-full max-w-2xl max-h-[92vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+      dir="rtl"
+      onClick={(e) => e.stopPropagation()}
+    >
+
+      {/* פס עליון */}
+      <div className="h-1.5 shrink-0 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
+
+
+      {/* =====================================================
+          כותרת
+      ===================================================== */}
+      <div className="px-5 py-5 sm:px-6 border-b border-slate-100 bg-white shrink-0">
+
+        <div className="flex items-start justify-between gap-4">
+
+          <div className="flex items-center gap-3 min-w-0">
+
+            <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+              ✏️
+            </div>
+
+            <div className="min-w-0">
+
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                עריכת מודעה
+              </h2>
+
+              <p className="text-sm text-slate-500 mt-1">
+                עדכנו את פרטי המודעה ושמרו את השינויים
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            onClick={() => setIsEditModalOpen(false)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center"
+            aria-label="סגירת חלון"
+          >
+            ×
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          תוכן הטופס
+      ===================================================== */}
+      <div className="overflow-y-auto flex-1">
+
+        <form
+          onSubmit={handleUpdateListing}
+          className="p-5 sm:p-6 space-y-5"
+        >
+
+          {/* =================================================
+              סוג המודעה
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-sm">
+                📢
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  סוג המודעה
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  האם אתם מציעים שירות או מחפשים עזרה?
+                </p>
+              </div>
+
+            </div>
+
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+              {/* מחפש שירות */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    listing_type: 'request'
+                  }))
+                }
+                className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                  formData.listing_type === 'request'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/40'
+                }`}
+              >
+                <span className="block text-xl mb-1">
+                  🔵
+                </span>
+
+                מחפש שירות / עזרה
+              </button>
+
+
+              {/* מציע שירות */}
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    listing_type: 'offer'
+                  }))
+                }
+                className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+                  formData.listing_type === 'offer'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+                }`}
+              >
+                <span className="block text-xl mb-1">
+                  🟢
+                </span>
+
+                מציע עבודה / שירות
+              </button>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              פרטי המודעה
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm">
+                📝
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  פרטי המודעה
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  עדכנו את הכותרת והקטגוריה
+                </p>
+              </div>
+
+            </div>
+
+
+            {/* כותרת */}
+            <div className="mb-4">
+
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                כותרת המודעה *
+              </label>
+
+              <input
+                type="text"
+                name="title"
+                required
+                value={formData.title}
+                onChange={handleChange}
+                className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 transition"
+              />
+
+            </div>
+
+
+            {/* קטגוריה */}
+            <div>
+
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                קטגוריה
+              </label>
+
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              מחיר + מיקום
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center text-sm">
+                📍
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  מחיר ומיקום
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  עדכנו את המחיר ואת אזור השירות
+                </p>
+              </div>
+
+            </div>
+
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* מחיר */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  מחיר (₪)
+                </label>
+
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 transition"
+                />
+
+              </div>
+
+
+              {/* עיר / אזור */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  עיר / אזור
+                </label>
+
+                <select
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
+                >
+                  <option value="">
+                    בחר עיר / יישוב
+                  </option>
+
+                  {israeliLocations.map((location) => (
+                    <option
+                      key={location}
+                      value={location}
+                    >
+                      {location}
+                    </option>
+                  ))}
+                </select>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              תמונה ראשית
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center text-sm">
+                🖼️
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  תמונה ראשית
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  החליפו או הסירו את התמונה הראשית
+                </p>
+              </div>
+
+            </div>
+
+
+            {editingListing?.image_url && !removeMainImage && (
+              <div className="relative mb-4 rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 shadow-sm">
+
+                <img
+                  src={
+                    imageFile
+                      ? URL.createObjectURL(imageFile)
+                      : editingListing.image_url
+                  }
+                  alt="תמונה ראשית"
+                  className="w-full h-48 object-cover"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRemoveMainImage(true)
+                    setImageFile(null)
+                  }}
+                  className="absolute top-3 left-3 w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold shadow-md transition"
+                  title="הסר תמונה ראשית"
+                >
+                  ×
+                </button>
+
+                {imageFile && (
+                  <div className="absolute bottom-3 right-3 bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow">
+                    תמונה חדשה
+                  </div>
+                )}
+
+              </div>
+            )}
+
+
+            {removeMainImage && (
+              <div className="mb-4 bg-red-50 border border-red-200 rounded-2xl p-3.5 text-sm text-red-700 flex items-center justify-between gap-3">
+
+                <span className="font-medium">
+                  🗑️ התמונה הראשית תוסר בשמירה
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setRemoveMainImage(false)}
+                  className="shrink-0 text-xs font-bold text-red-700 hover:text-red-900 underline"
+                >
+                  ביטול
+                </button>
+
+              </div>
+            )}
+
+
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0] || null
+
+                  if (file) {
+                    setImageFile(file)
+                    setRemoveMainImage(false)
+                  }
+                }}
+                className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer"
+              />
+
+              <p className="text-xs text-slate-400 mt-2">
+                בחר תמונה חדשה אם ברצונך להחליף את התמונה הראשית.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              תמונות נוספות
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+            <div className="flex items-center justify-between mb-4">
+
+              <div className="flex items-center gap-2">
+
+                <span className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-sm">
+                  🖼️
+                </span>
+
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800">
+                    תמונות נוספות
+                  </h3>
+
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    ניהול התמונות הנוספות של המודעה
+                  </p>
+                </div>
+
+              </div>
+
+              <span className="inline-flex items-center justify-center min-w-[40px] px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-extrabold text-slate-600">
+                {existingAdditionalImages.length}/4
+              </span>
+
+            </div>
+
+
+            {/* תמונות קיימות */}
+            {existingAdditionalImages.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 mb-4">
+
+                {existingAdditionalImages.map(
+                  (imageUrl, index) => (
+                    <div
+                      key={`${imageUrl}-${index}`}
+                      className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm"
+                    >
+
+                      <img
+                        src={imageUrl}
+                        alt={`תמונה נוספת ${index + 1}`}
+                        className="w-full h-32 object-cover"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExistingAdditionalImages(
+                            (previousImages) =>
+                              previousImages.filter(
+                                (_, imageIndex) =>
+                                  imageIndex !== index
+                              )
+                          )
+                        }}
+                        className="absolute top-2 left-2 w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold shadow-md transition"
+                        title="מחק תמונה"
+                      >
+                        ×
+                      </button>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+            )}
+
+
+            {/* תמונות חדשות */}
+            {additionalImageFiles.length > 0 && (
+              <div className="mb-4">
+
+                <div className="text-xs font-bold text-emerald-700 mb-2">
+                  תמונות חדשות שנבחרו
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+
+                  {additionalImageFiles.map(
+                    (file, index) => (
+                      <div
+                        key={`${file.name}-${index}`}
+                        className="relative rounded-2xl overflow-hidden border border-emerald-200 bg-emerald-50 shadow-sm"
+                      >
+
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`תמונה חדשה ${index + 1}`}
+                          className="w-full h-32 object-cover"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAdditionalImageFiles(
+                              (previousFiles) =>
+                                previousFiles.filter(
+                                  (_, fileIndex) =>
+                                    fileIndex !== index
+                                )
+                            )
+                          }}
+                          className="absolute top-2 left-2 w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold shadow-md transition"
+                          title="הסר תמונה"
+                        >
+                          ×
+                        </button>
+
+                        <div className="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow">
+                          חדשה
+                        </div>
+
+                      </div>
+                    )
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+
+            {/* הוספת תמונות */}
+            {existingAdditionalImages.length +
+              additionalImageFiles.length < 4 && (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+
+                    const selectedFiles = Array.from(
+                      e.target.files || []
+                    )
+
+                    const remainingSlots =
+                      4 -
+                      existingAdditionalImages.length -
+                      additionalImageFiles.length
+
+                    const filesToAdd =
+                      selectedFiles.slice(
+                        0,
+                        remainingSlots
+                      )
+
+                    setAdditionalImageFiles(
+                      (previousFiles) => [
+                        ...previousFiles,
+                        ...filesToAdd
+                      ]
+                    )
+
+                    e.target.value = ''
+
+                  }}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 file:cursor-pointer"
+                />
+
+                <p className="text-xs text-slate-400 mt-2">
+                  ניתן להוסיף עד 4 תמונות נוספות בסך הכול.
+                </p>
+
+              </div>
+            )}
+
+
+            {existingAdditionalImages.length +
+              additionalImageFiles.length >= 4 && (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-100 px-3.5 py-2.5">
+
+                <p className="text-xs text-emerald-700 font-semibold">
+                  ✓ הגעת למקסימום של 4 תמונות נוספות.
+                </p>
+
+              </div>
+            )}
+
+          </div>
+
+
+          {/* =================================================
+              תיאור
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-sm">
+                ✍️
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  תיאור המודעה
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  עדכנו את הפרטים והמידע למשתמשים
+                </p>
+              </div>
+
+            </div>
+
+
+            <textarea
+              name="description"
+              rows="5"
+              value={formData.description}
+              onChange={handleChange}
+              className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm leading-6 text-slate-800 placeholder:text-slate-400 resize-none transition"
+            />
+
+          </div>
+
+
+          {/* =================================================
+              פרטי קשר
+          ================================================= */}
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+            <div className="flex items-center gap-2 mb-4">
+
+              <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-sm">
+                👤
+              </span>
+
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800">
+                  פרטי קשר
+                </h3>
+
+                <p className="text-xs text-slate-400 mt-0.5">
+                  עדכנו את פרטי הקשר של המודעה
+                </p>
+              </div>
+
+            </div>
+
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* שם */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  שם איש קשר
+                </label>
+
+                <input
+                  type="text"
+                  name="contact_name"
+                  value={formData.contact_name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 transition"
+                />
+
+              </div>
+
+
+              {/* טלפון */}
+              <div>
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  מספר טלפון
+                </label>
+
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 transition"
+                />
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* =================================================
+              כפתורי פעולה
+          ================================================= */}
+
+          <div className="sticky bottom-0 -mx-5 sm:-mx-6 px-5 sm:px-6 py-4 bg-white/95 backdrop-blur-md border-t border-slate-100 flex gap-3">
+
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(false)}
+              className="flex-1 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition"
+            >
+              ביטול
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-[1.5] py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-extrabold text-sm shadow-sm hover:shadow-md transition-all"
+            >
+              {isSubmitting
+                ? 'מעדכן...'
+                : '✓ שמור שינויים'}
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+  </div>
+)}
+
 
 
 
 {isHowItWorksOpen && (
   <div
-    className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+    className="fixed inset-0 z-[100] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
     onClick={() => setIsHowItWorksOpen(false)}
   >
     <div
-      className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200"
+      className="w-full max-w-2xl max-h-[92vh] overflow-hidden bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col"
       onClick={(e) => e.stopPropagation()}
       dir="rtl"
     >
+
+      {/* פס עליון */}
+      <div className="h-1.5 shrink-0 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
+
       {/* כותרת */}
-      <div className="flex items-center justify-between gap-4 px-6 py-5 border-b border-slate-100">
-        <div>
-          <h2 className="text-2xl font-extrabold text-slate-900">
-            💰 איך כסף כיס עובד?
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            מקום פשוט לחבר בין אנשים שמציעים עבודה ושירותים לבין מי שצריך אותם.
-          </p>
+      <div className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-slate-100 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">
+            💰
+          </div>
+
+          <div className="min-w-0">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+              איך כסף כיס עובד?
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-1 leading-5">
+              מחברים בין אנשים שמציעים עבודה ושירותים לבין מי שצריך אותם.
+            </p>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => setIsHowItWorksOpen(false)}
-          className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xl transition"
+          className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center"
           aria-label="סגור"
         >
           ×
         </button>
       </div>
 
-      <div className="p-6 space-y-5">
+      {/* תוכן */}
+      <div className="overflow-y-auto flex-1">
+        <div className="p-5 sm:p-6 space-y-5">
 
-        {/* מציע */}
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-          <div className="flex items-start gap-3">
-            <div className="text-3xl">🟢</div>
+          {/* מציע */}
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-xl">
+                🟢
+              </div>
 
-            <div>
-              <h3 className="text-lg font-extrabold text-slate-900">
-                מציע עבודה / שירות
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  מציע עבודה / שירות
+                </h3>
+
+                <p className="text-sm text-slate-700 mt-2 leading-6">
+                  יש לך שירות, עבודה או משימה שאתה מוכן לבצע?
+                  פרסם מודעה עם פרטים, מחיר ואזור — ואנשים שמחפשים
+                  שירות יוכלו למצוא אותך וליצור איתך קשר.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* מחפש */}
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-xl">
+                🔵
+              </div>
+
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  מחפש שירות / עזרה
+                </h3>
+
+                <p className="text-sm text-slate-700 mt-2 leading-6">
+                  צריך שמישהו יבצע עבורך עבודה, משימה או שירות?
+                  חפש בלוח לפי תחום, אזור וסוג מודעה,
+                  פתח את המודעה שמעניינת אותך ושלח למפרסם הודעה.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ברטר */}
+          <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-amber-100 flex items-center justify-center text-xl shadow-sm">
+                🔄
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  ברטר — אפשר גם להחליף שירות בשירות
+                </h3>
+
+                <p className="text-sm text-slate-700 mt-2 leading-6">
+                  לא חייבים לשלם בכסף. אפשר לבחור במודעה אפשרות של
+                  <strong className="text-slate-900"> ברטר </strong>
+                  ולהציע תמורה אחרת במקום תשלום.
+                </p>
+
+                <div className="mt-4 rounded-2xl bg-white/80 border border-amber-100 p-4">
+                  <div className="text-sm font-extrabold text-slate-800 mb-2">
+                    איך זה עובד?
+                  </div>
+
+                  <div className="space-y-2.5">
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-6 h-6 shrink-0 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                        1
+                      </span>
+                      <p className="text-sm text-slate-700 leading-5">
+                        מפרסם מודעה ובוחר שסוג התמורה הוא <strong>ברטר</strong>.
+                      </p>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-6 h-6 shrink-0 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                        2
+                      </span>
+                      <p className="text-sm text-slate-700 leading-5">
+                        מציינים איזו תמורה או שירות אפשר להציע בתמורה.
+                      </p>
+                    </div>
+
+                    <div className="flex items-start gap-2.5">
+                      <span className="w-6 h-6 shrink-0 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                        3
+                      </span>
+                      <p className="text-sm text-slate-700 leading-5">
+                        משתמש אחר יכול לבחור במודעה וליצור קשר כדי לבדוק אם ההחלפה מתאימה לשני הצדדים.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-xl bg-amber-100/70 px-3.5 py-3">
+                  <p className="text-xs text-amber-900 leading-5">
+                    💡 <strong>דוגמה:</strong> אתה עוזר למישהו להרכיב רהיט,
+                    ובתמורה הוא מציע לך תיקון קטן בבית או שירות אחר.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* בחירת ברטר קיים */}
+          <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-cyan-100 flex items-center justify-center text-xl shadow-sm">
+                🤝
+              </div>
+
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  בחירת ברטר קיים
+                </h3>
+
+                <p className="text-sm text-slate-700 mt-2 leading-6">
+                  אם קיימות מודעות שמציעות ברטר, אפשר לחפש אותן בלוח
+                  ולבדוק מה מציעים בתמורה. מצאת הצעה שמתאימה לך?
+                  פתח את המודעה ושלח למפרסם הודעה כדי לבדוק את פרטי ההחלפה.
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-cyan-100 text-xs font-bold text-cyan-800">
+                    🔍 חיפוש
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-cyan-100 text-xs font-bold text-cyan-800">
+                    🔄 ברטר
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-cyan-100 text-xs font-bold text-cyan-800">
+                    💬 פנייה למפרסם
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* פרסום */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl">
+                📢
+              </div>
+
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  איך מפרסמים מודעה?
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  כמה צעדים פשוטים ואתם בלוח
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
+                  1
+                </span>
+                <p className="text-sm text-slate-700 pt-1">
+                  נרשמים או מתחברים באמצעות Google.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
+                  2
+                </span>
+                <p className="text-sm text-slate-700 pt-1">
+                  לוחצים על <strong>פרסם מודעה</strong>.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
+                  3
+                </span>
+                <p className="text-sm text-slate-700 pt-1">
+                  בוחרים אם אתם מציעים שירות או מחפשים משימה.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
+                  4
+                </span>
+                <p className="text-sm text-slate-700 pt-1">
+                  מוסיפים כותרת, תיאור, מחיר ואזור ומפרסמים.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* כלים */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-5">
+              <div className="w-10 h-10 rounded-xl bg-white border border-red-100 flex items-center justify-center text-xl mb-3">
+                ❤️
+              </div>
+
+              <h3 className="font-extrabold text-slate-900">
+                שמירת מודעות
               </h3>
 
-              <p className="text-sm text-slate-700 mt-2 leading-6">
-                יש לך שירות, עבודה או משימה שאתה מוכן לבצע?
-                פרסם מודעה עם פרטים, מחיר ואזור — ואנשים שמחפשים
-                שירות יוכלו למצוא אותך וליצור איתך קשר.
+              <p className="text-sm text-slate-600 mt-1 leading-6">
+                מצאת מודעה שמעניינת אותך?
+                לחץ על הלב והיא תישמר תחת "שאהבתי".
               </p>
             </div>
-          </div>
-        </div>
 
-        {/* מחפש */}
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-          <div className="flex items-start gap-3">
-            <div className="text-3xl">🔵</div>
+            <div className="rounded-2xl border border-purple-100 bg-purple-50 p-5">
+              <div className="w-10 h-10 rounded-xl bg-white border border-purple-100 flex items-center justify-center text-xl mb-3">
+                💬
+              </div>
 
-            <div>
-              <h3 className="text-lg font-extrabold text-slate-900">
-                מחפש שירות / עזרה
+              <h3 className="font-extrabold text-slate-900">
+                שליחת הודעות
               </h3>
 
-              <p className="text-sm text-slate-700 mt-2 leading-6">
-  צריך שמישהו יבצע עבורך עבודה, משימה או שירות?
-  חפש בלוח לפי תחום, אזור וסוג מודעה,
-  פתח את המודעה שמעניינת אותך ושלח למפרסם הודעה.
-</p>
+              <p className="text-sm text-slate-600 mt-1 leading-6">
+                אפשר ליצור קשר עם מפרסם המודעה
+                באמצעות מערכת ההודעות באתר.
+              </p>
             </div>
+
           </div>
-        </div>
 
-        {/* פרסום */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <h3 className="text-lg font-extrabold text-slate-900 mb-4">
-            📢 איך מפרסמים מודעה?
-          </h3>
-
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                1
-              </span>
-              <p className="text-sm text-slate-700 pt-1">
-                נרשמים או מתחברים באמצעות Google.
-              </p>
+          {/* סיום */}
+          <div className="rounded-2xl bg-slate-900 text-white p-5 text-center shadow-sm">
+            <div className="text-lg font-extrabold">
+              פשוט מפרסמים, מחפשים ומתחברים.
             </div>
 
-            <div className="flex items-start gap-3">
-              <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                2
-              </span>
-              <p className="text-sm text-slate-700 pt-1">
-                לוחצים על <strong>פרסם מודעה</strong>.
-              </p>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                3
-              </span>
-              <p className="text-sm text-slate-700 pt-1">
-                בוחרים אם אתם מציעים שירות או מחפשים משימה.
-              </p>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                4
-              </span>
-              <p className="text-sm text-slate-700 pt-1">
-                מוסיפים כותרת, תיאור, מחיר ואזור ומפרסמים.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* כלים */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          <div className="rounded-2xl border border-red-100 bg-red-50 p-5">
-            <div className="text-2xl mb-2">❤️</div>
-            <h3 className="font-extrabold text-slate-900">
-              שמירת מודעות
-            </h3>
-            <p className="text-sm text-slate-600 mt-1 leading-6">
-              מצאת מודעה שמעניינת אותך?
-              לחץ על הלב והיא תישמר תחת "שאהבתי".
+            <p className="text-sm text-slate-300 mt-1">
+              כסף כיס — לוח עבודות ושירותים מקומיים.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-purple-100 bg-purple-50 p-5">
-            <div className="text-2xl mb-2">💬</div>
-            <h3 className="font-extrabold text-slate-900">
-              שליחת הודעות
-            </h3>
-            <p className="text-sm text-slate-600 mt-1 leading-6">
-              אפשר ליצור קשר עם מפרסם המודעה
-              באמצעות מערכת ההודעות באתר.
-            </p>
-          </div>
-
         </div>
-
-        {/* סיום */}
-        <div className="rounded-2xl bg-slate-900 text-white p-5 text-center">
-          <div className="text-lg font-extrabold">
-            פשוט מפרסמים, מחפשים ומתחברים.
-          </div>
-
-          <p className="text-sm text-slate-300 mt-1">
-            כסף כיס — לוח עבודות ושירותים מקומיים.
-          </p>
-        </div>
-
       </div>
 
       {/* תחתית */}
-      <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
+      <div className="px-5 sm:px-6 py-4 border-t border-slate-100 bg-white shrink-0 flex justify-end">
         <button
           type="button"
           onClick={() => setIsHowItWorksOpen(false)}
-          className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold transition"
+          className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold shadow-sm transition"
         >
           הבנתי
         </button>
       </div>
+
     </div>
   </div>
 )}
 
 
 
-      {/* =========================================================
-          FOOTER
-      ========================================================= */}
-      <footer className="mt-16 bg-white border-t border-slate-200">
-  <div className="max-w-5xl mx-auto px-4 py-10">
 
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+
+    
+{/* =========================================================
+    FOOTER
+========================================================= */}
+
+<footer className="mt-12 bg-slate-950 text-white">
+  <div className="max-w-5xl mx-auto px-4 py-10 sm:py-12">
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 items-start">
 
       {/* לוגו ותיאור */}
       <div className="text-center md:text-right">
-        <div className="flex items-center justify-center md:justify-start gap-2">
-          <span className="text-3xl">💰</span>
-          <span className="text-xl font-extrabold text-slate-900">
+        <div className="flex items-center justify-center md:justify-start gap-2.5">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-400/20 flex items-center justify-center text-2xl">
+            💰
+          </div>
+
+          <span className="text-xl font-extrabold text-white">
             כסף כיס
           </span>
         </div>
 
-        <p className="text-sm text-slate-500 mt-2 leading-6">
+        <p className="text-sm text-slate-300 mt-3 leading-6">
           לוח עבודות ושירותים מקומיים
         </p>
 
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 mt-1">
           מפרסמים, מחפשים ומתחברים.
         </p>
       </div>
 
+
       {/* שיתוף האתר */}
       <div className="text-center">
-        <h3 className="text-sm font-extrabold text-slate-900 mb-2">
+        <h3 className="text-sm font-extrabold text-white mb-2">
           📣 שתפו את כסף כיס
         </h3>
 
-        <p className="text-xs text-slate-500 leading-5 mb-4">
+        <p className="text-xs text-slate-400 leading-5 mb-4">
           מכירים מישהו שמחפש עבודה או שירות?
           <br />
           שתפו את הלוח והגיעו לעוד אנשים.
@@ -5496,12 +7341,13 @@ const displayedListings = baseListings.filter((item) => {
                 'noopener,noreferrer'
               )
             }}
-            className="w-10 h-10 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
+            className="w-10 h-10 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-400/20 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
             aria-label="שתף בוואטסאפ"
             title="שתף בוואטסאפ"
           >
             💬
           </button>
+
 
           {/* Facebook */}
           <button
@@ -5517,12 +7363,13 @@ const displayedListings = baseListings.filter((item) => {
                 'width=600,height=500,noopener,noreferrer'
               )
             }}
-            className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center text-lg font-bold transition hover:-translate-y-0.5"
+            className="w-10 h-10 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-400/20 flex items-center justify-center text-lg font-bold transition hover:-translate-y-0.5"
             aria-label="שתף בפייסבוק"
             title="שתף בפייסבוק"
           >
             f
           </button>
+
 
           {/* Telegram */}
           <button
@@ -5539,12 +7386,13 @@ const displayedListings = baseListings.filter((item) => {
                 'noopener,noreferrer'
               )
             }}
-            className="w-10 h-10 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
+            className="w-10 h-10 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-400/20 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
             aria-label="שתף בטלגרם"
             title="שתף בטלגרם"
           >
             ✈️
           </button>
+
 
           {/* העתקת קישור */}
           <button
@@ -5560,7 +7408,7 @@ const displayedListings = baseListings.filter((item) => {
                 alert('לא הצלחנו להעתיק את הקישור.')
               }
             }}
-            className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
+            className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center justify-center text-lg transition hover:-translate-y-0.5"
             aria-label="העתק קישור לאתר"
             title="העתק קישור"
           >
@@ -5570,37 +7418,38 @@ const displayedListings = baseListings.filter((item) => {
         </div>
       </div>
 
+
       {/* ניווט */}
       <div className="text-center md:text-right">
-        <h3 className="text-sm font-extrabold text-slate-900 mb-3">
+        <h3 className="text-sm font-extrabold text-white mb-3">
           קישורים
         </h3>
 
-        <nav className="flex flex-col gap-2 text-sm">
+        <nav className="flex flex-col gap-2.5 text-sm">
           <Link
             to="/"
-            className="text-slate-600 hover:text-emerald-600 transition"
+            className="text-slate-400 hover:text-emerald-400 transition"
           >
             לוח המודעות
           </Link>
 
           <Link
             to="/contact"
-            className="text-slate-600 hover:text-emerald-600 transition"
+            className="text-slate-400 hover:text-emerald-400 transition"
           >
             צור קשר
           </Link>
 
           <Link
             to="/terms"
-            className="text-slate-600 hover:text-emerald-600 transition"
+            className="text-slate-400 hover:text-emerald-400 transition"
           >
             תנאי שימוש
           </Link>
 
           <Link
             to="/privacy"
-            className="text-slate-600 hover:text-emerald-600 transition"
+            className="text-slate-400 hover:text-emerald-400 transition"
           >
             מדיניות פרטיות
           </Link>
@@ -5609,9 +7458,10 @@ const displayedListings = baseListings.filter((item) => {
 
     </div>
 
+
     {/* תחתית */}
-    <div className="border-t border-slate-100 mt-8 pt-5 text-center">
-      <p className="text-xs text-slate-400">
+    <div className="border-t border-white/10 mt-9 pt-5 text-center">
+      <p className="text-xs text-slate-500">
         © {new Date().getFullYear()} כסף כיס. כל הזכויות שמורות.
       </p>
     </div>
@@ -5619,49 +7469,88 @@ const displayedListings = baseListings.filter((item) => {
   </div>
 </footer>
 
-      {analyticsConsent === '' && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 md:p-4">
-          <div className="max-w-5xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-2xl p-4 md:p-5">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="text-right">
-                <h3 className="font-extrabold text-slate-900 mb-1">פרטיות ושימוש בנתוני גלישה</h3>
-                <p className="text-sm text-slate-600 leading-6">
-                  אנו משתמשים ב-Google Analytics כדי להבין כיצד משתמשים באתר ולשפר אותו. ניתן לאשר או לדחות שימוש זה. השימוש באתר עצמו אינו תלוי בהסכמה.
-                </p>
-              </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-                <button
-                  onClick={() => {
-                    localStorage.setItem('kesefkis-analytics-consent', 'accepted')
-                    setAnalyticsConsent('accepted')
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition"
-                >
-                  אישור ניתוח נתונים
-                </button>
+{/* =========================================================
+    ANALYTICS CONSENT
+========================================================= */}
 
-                <button
-                  onClick={() => {
-                    localStorage.setItem('kesefkis-analytics-consent', 'rejected')
-                    setAnalyticsConsent('rejected')
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition"
-                >
-                  דחייה
-                </button>
+{analyticsConsent === '' && (
+  <div className="fixed bottom-0 left-0 right-0 z-50 p-3 sm:p-4">
 
-                <Link
-                  to="/privacy"
-                  className="px-5 py-2.5 rounded-xl text-center text-emerald-700 font-bold hover:bg-emerald-50 transition"
-                >
-                  מדיניות פרטיות
-                </Link>
-              </div>
+    <div className="max-w-5xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+
+      {/* פס עליון */}
+      <div className="h-1 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
+
+      <div className="p-4 md:p-5">
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+          {/* טקסט */}
+          <div className="text-right">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
+                🔒
+              </span>
+
+              <h3 className="font-extrabold text-slate-900">
+                פרטיות ושימוש בנתוני גלישה
+              </h3>
             </div>
+
+            <p className="text-sm text-slate-600 leading-6">
+              אנו משתמשים ב-Google Analytics כדי להבין כיצד משתמשים באתר
+              ולשפר אותו. ניתן לאשר או לדחות שימוש זה.
+              השימוש באתר עצמו אינו תלוי בהסכמה.
+            </p>
           </div>
+
+
+          {/* כפתורים */}
+          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+
+            <button
+              onClick={() => {
+                localStorage.setItem(
+                  'kesefkis-analytics-consent',
+                  'accepted'
+                )
+                setAnalyticsConsent('accepted')
+              }}
+              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition"
+            >
+              אישור ניתוח נתונים
+            </button>
+
+            <button
+              onClick={() => {
+                localStorage.setItem(
+                  'kesefkis-analytics-consent',
+                  'rejected'
+                )
+                setAnalyticsConsent('rejected')
+              }}
+              className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition"
+            >
+              דחייה
+            </button>
+
+            <Link
+              to="/privacy"
+              className="px-5 py-2.5 rounded-xl text-center text-emerald-700 font-bold text-sm hover:bg-emerald-50 transition"
+            >
+              מדיניות פרטיות
+            </Link>
+
+          </div>
+
         </div>
-      )}
+
+      </div>
+    </div>
+  </div>
+)}
+
 
     </div>
   )
