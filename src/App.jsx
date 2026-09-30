@@ -2505,8 +2505,35 @@ const advertiserPageCreatedAt =
             </h1>
 
             <p className="text-base sm:text-lg lg:text-xl text-slate-700 leading-relaxed font-medium">
-              מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
-            </p>
+  מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
+</p>
+
+<div className="mt-6 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+
+  <button
+    type="button"
+    onClick={handleOpenPublishModal}
+    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.40)] transition-all duration-200"
+  >
+    <span className="text-2xl leading-none font-normal">+</span>
+    <span>צור מודעה</span>
+  </button>
+
+  <button
+    type="button"
+    onClick={() => {
+      document.getElementById('listings-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      })
+    }}
+    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white/90 hover:bg-white border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
+  >
+    <span>מצא עבודות ושירותים</span>
+    <span className="text-lg">↓</span>
+  </button>
+
+</div>
 
           </div>
 
