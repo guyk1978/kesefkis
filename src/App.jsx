@@ -1392,6 +1392,7 @@ const handleOpenEditModal = (item) => {
     title: item.title || '',
     description: item.description || '',
     price: item.price || '',
+    payment_type: item.payment_type || 'cash',
     listing_type: item.listing_type || 'offer',
     category: item.category || 'עבודות מזדמנות',
     location: item.location || '',
@@ -1476,20 +1477,21 @@ const handleUpdateListing = async (e) => {
     // =========================================================
 
     const updatedData = {
-      title: formData.title,
-      description: formData.description,
-      price: formData.price
-        ? parseFloat(formData.price)
-        : null,
-      listing_type: formData.listing_type,
-      category: formData.category,
-      location: formData.location,
-      contact_name: formData.contact_name,
-      phone: formData.phone,
-      image_url: imageUrl,
-      image_urls: finalAdditionalImages,
-      updated_at: new Date().toISOString()
-    }
+  title: formData.title,
+  description: formData.description,
+  price: formData.price
+    ? parseFloat(formData.price)
+    : null,
+  payment_type: formData.payment_type || 'cash',
+  listing_type: formData.listing_type,
+  category: formData.category,
+  location: formData.location,
+  contact_name: formData.contact_name,
+  phone: formData.phone,
+  image_url: imageUrl,
+  image_urls: finalAdditionalImages,
+  updated_at: new Date().toISOString()
+}
 
     const { data, error } = await supabase
       .from('listings')
@@ -6613,6 +6615,133 @@ const displayedListings = baseListings
             </div>
 
           </div>
+
+
+
+{/* =================================================
+    אופן התמורה
+================================================= */}
+
+<div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5">
+
+  <div className="flex items-center gap-2 mb-4">
+
+    <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center text-sm">
+      💵
+    </span>
+
+    <div>
+      <h3 className="text-sm font-extrabold text-slate-800">
+        אופן התמורה
+      </h3>
+
+      <p className="text-xs text-slate-400 mt-0.5">
+        בחרו כיצד תרצו לקבל או להציע תמורה
+      </p>
+    </div>
+
+  </div>
+
+
+  <div className="grid grid-cols-3 gap-2.5">
+
+    {/* תשלום */}
+    <button
+      type="button"
+      onClick={() =>
+        setFormData((previous) => ({
+          ...previous,
+          payment_type: 'cash'
+        }))
+      }
+      className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+        formData.payment_type === 'cash'
+          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+      }`}
+    >
+      <span className="text-xl">
+        💵
+      </span>
+
+      <span className="block mt-1.5">
+        תשלום
+      </span>
+    </button>
+
+
+    {/* ברטר */}
+    <button
+      type="button"
+      onClick={() =>
+        setFormData((previous) => ({
+          ...previous,
+          payment_type: 'barter',
+          price: ''
+        }))
+      }
+      className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+        formData.payment_type === 'barter'
+          ? 'border-amber-500 bg-amber-50 text-amber-700 shadow-sm'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50/40'
+      }`}
+    >
+      <span className="text-xl">
+        🔄
+      </span>
+
+      <span className="block mt-1.5">
+        ברטר
+      </span>
+    </button>
+
+
+    {/* תשלום או ברטר */}
+    <button
+      type="button"
+      onClick={() =>
+        setFormData((previous) => ({
+          ...previous,
+          payment_type: 'cash_or_barter'
+        }))
+      }
+      className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+        formData.payment_type === 'cash_or_barter'
+          ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-sm'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-purple-200 hover:bg-purple-50/40'
+      }`}
+    >
+      <span className="text-xl">
+        💵🔄
+      </span>
+
+      <span className="block mt-1.5">
+        תשלום או ברטר
+      </span>
+    </button>
+
+  </div>
+
+
+  {formData.payment_type === 'barter' && (
+    <div className="mt-3 rounded-xl bg-amber-50 border border-amber-100 px-3.5 py-2.5">
+      <p className="text-xs text-amber-700 font-medium leading-5">
+        🔄 המודעה מיועדת לברטר. ציין בתיאור מה תרצה לקבל בתמורה.
+      </p>
+    </div>
+  )}
+
+
+  {formData.payment_type === 'cash_or_barter' && (
+    <div className="mt-3 rounded-xl bg-purple-50 border border-purple-100 px-3.5 py-2.5">
+      <p className="text-xs text-purple-700 font-medium leading-5">
+        💵🔄 ניתן להציע תשלום או שירות / מוצר בתמורה.
+      </p>
+    </div>
+  )}
+
+</div>
+
 
 
           {/* =================================================
