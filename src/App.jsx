@@ -2237,16 +2237,109 @@ const displayedListings = baseListings
       {/* אזור מרכזי */}
 <main className="max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
 
-  {(currentView === 'home' || currentView === 'my-listings' || currentView === 'favorites') && (
-    <div className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-emerald-50/70 shadow-sm">
+  {/* =========================================================
+    HERO - כסף כיס
+    ========================================================= */}
+{(currentView === 'home' || currentView === 'my-listings' || currentView === 'favorites') && (
+  <section className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
-      {/* כתמי רקע עדינים */}
-      <div className="absolute -top-20 -left-20 w-56 h-56 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -right-16 w-64 h-64 rounded-full bg-cyan-200/20 blur-3xl pointer-events-none" />
+    {/* פס צבע עליון */}
+    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400 z-20" />
 
-      {/* קו צבע עליון */}
-      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400" />
+    {/* =====================================================
+        מצב רגיל - דף הבית
+        ===================================================== */}
+    {currentView === 'home' ? (
+      <div className="relative min-h-[390px] sm:min-h-[420px] lg:min-h-[390px]">
 
+        {/* תמונת ה-Hero */}
+        <img
+          src="/hero-kesefkis.png"
+          alt="כסף כיס - עבודות ושירותים מקומיים"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
+
+        {/* שכבת מעבר לבנה לטקסט */}
+        <div
+  className="absolute inset-0"
+  style={{
+    background:
+      'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 28%, rgba(255,255,255,0.70) 43%, rgba(255,255,255,0.18) 57%, rgba(255,255,255,0) 68%)'
+  }}
+/>
+
+        {/* שכבת ריכוך עדינה בתחתית */}
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/50 to-transparent" />
+
+        {/* תוכן */}
+        <div className="relative z-10 min-h-[390px] sm:min-h-[420px] lg:min-h-[390px] flex items-center">
+
+          <div className="w-full lg:w-[54%] px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-10 text-center lg:text-right">
+
+            {/* תג */}
+            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-emerald-50/95 border border-emerald-200 text-emerald-700 text-sm font-bold shadow-sm backdrop-blur-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              לוח מקומי פעיל
+            </div>
+
+            {/* כותרת */}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-[52px] leading-[1.08] font-extrabold text-slate-950 tracking-tight mb-5">
+              לוח עבודות
+              <br />
+              ושירותים מקומיים
+            </h1>
+
+            {/* תיאור */}
+            <p className="text-lg sm:text-xl lg:text-2xl leading-relaxed text-slate-600 font-medium max-w-xl mx-auto lg:mx-0 mb-7">
+              מצא עבודות קטנות בסביבה שלך
+              <br className="hidden sm:block" />
+              או הצע את השירותים שלך
+            </p>
+
+            {/* פעולות */}
+            <div className="flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+
+              <button
+                type="button"
+                onClick={handleOpenPublishModal}
+                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_16px_rgba(5,150,105,0.30)] transition-colors duration-200"
+              >
+                <span className="text-2xl leading-none font-normal">
+                  +
+                </span>
+                פרסם מודעה
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const listingsSection = document.getElementById('listings-section')
+
+                  if (listingsSection) {
+                    listingsSection.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start'
+                    })
+                  }
+                }}
+                className="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-white/90 hover:bg-white border border-slate-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm transition-colors duration-200 backdrop-blur-sm"
+              >
+                מצא עבודות ושירותים
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    ) : (
+
+      /* =====================================================
+         מצבים: מועדפים / המודעות שלי
+         ===================================================== */
       <div className="relative px-5 py-7 sm:px-8 sm:py-8">
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
@@ -2254,83 +2347,67 @@ const displayedListings = baseListings
           {/* תוכן הכותרת */}
           <div className="text-center md:text-right">
 
-            {/* תג קטן – דף הבית בלבד */}
-            {currentView === 'home' && (
-              <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200 text-emerald-700 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                לוח מקומי פעיל
-              </div>
-            )}
+            <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
 
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  currentView === 'favorites'
+                    ? 'bg-red-500'
+                    : 'bg-emerald-500'
+                }`}
+              />
+
+              {currentView === 'favorites'
+                ? 'המודעות ששמרת'
+                : 'המודעות האישיות שלך'}
+
+            </div>
+
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2">
               {currentView === 'my-listings'
                 ? 'המודעות שפרסמתי'
-                : currentView === 'favorites'
-                  ? 'המודעות שאהבתי'
-                  : categoryFilter !== 'all'
-                    ? categoryFilter
-                    : locationFilter !== 'all'
-                      ? `מודעות ועבודות ב${locationFilter}`
-                      : 'לוח עבודות ושירותים מקומיים'}
+                : 'המודעות שאהבתי'}
             </h2>
 
-            <p className="text-slate-600 text-base sm:text-lg leading-relaxed">
+            <p className="text-base sm:text-lg text-slate-600">
               {currentView === 'my-listings'
                 ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
-                : currentView === 'favorites'
-                  ? 'כל המודעות ששמרת כמועדפות במקום אחד'
-                  : categoryFilter !== 'all'
-                    ? `מודעות, עבודות ושירותים בתחום ${categoryFilter}`
-                    : locationFilter !== 'all'
-                      ? `מצאו עבודות, שירותים ומודעות מקומיות ב${locationFilter}`
-                      : 'מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך'}
+                : 'כל המודעות ששמרת כמועדפות במקום אחד'}
             </p>
-
-            {/* מידע קצר – דף הבית בלבד */}
-            {currentView === 'home' && (
-              <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-slate-600 text-xs font-bold">
-                  📍 מקומי
-                </span>
-
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-slate-600 text-xs font-bold">
-                  🧑‍🔧 עבודות ושירותים
-                </span>
-              </div>
-            )}
 
           </div>
 
-          {/* אזור הפעולה */}
+          {/* אייקון */}
           {currentView === 'my-listings' ? (
+
             <button
+              type="button"
               onClick={() => setCurrentView('home')}
-              className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+              className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
             >
               <span className="text-lg">
                 ←
               </span>
               חזרה לכל הלוח
             </button>
-          ) : currentView === 'favorites' ? (
+
+          ) : (
+
             <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-red-50 border border-red-200 shadow-sm">
               <span className="text-3xl">
                 ❤️
               </span>
             </div>
-          ) : (
-            <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500 shadow-lg shadow-emerald-500/20">
-              <span className="text-3xl">
-                💰
-              </span>
-            </div>
+
           )}
 
         </div>
 
       </div>
-    </div>
-  )}
+    )}
+
+  </section>
+)}
 
 
 
@@ -2971,7 +3048,10 @@ const displayedListings = baseListings
     </div>
   </div>
 ) : (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+  <div
+  id="listings-section"
+  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6"
+>
 
     {displayedListings.map((item) => {
 
