@@ -2471,69 +2471,150 @@ const advertiserPageCreatedAt =
     {/* דף הבית */}
     {currentView === 'home' ? (
 
-      <div className="relative min-h-[390px] sm:min-h-[420px] lg:min-h-[390px]">
+  <div className="relative">
 
+    {/* =========================
+       מובייל — תמונה מעל התוכן
+       ========================= */}
+    <div className="block lg:hidden">
+
+      <div className="relative w-full overflow-hidden">
         <img
           src="/hero-kesefkis.png"
           alt="כסף כיס - עבודות ושירותים מקומיים"
-          className="absolute inset-0 w-full h-full object-cover object-center"
+          className="w-full h-auto block"
         />
+      </div>
 
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 28%, rgba(255,255,255,0.70) 43%, rgba(255,255,255,0.18) 57%, rgba(255,255,255,0) 68%)'
-          }}
-        />
+      <div className="relative bg-white px-5 py-7 sm:px-8 sm:py-8 text-center">
 
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/50 to-transparent" />
+        <div className="inline-flex items-center gap-2 mb-3 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          לוח עבודות ושירותים מקומיים
+        </div>
 
-        <div className="relative z-10 min-h-[390px] sm:min-h-[420px] lg:min-h-[390px] flex items-center">
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight mb-3">
+          כסף כיס
+        </h1>
 
-          <div className="w-full lg:w-[54%] px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-10 text-center lg:text-right">
+        <p className="text-base sm:text-lg text-slate-700 leading-relaxed font-medium max-w-xl mx-auto">
+          מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
+        </p>
 
-            {/* כאן נשאר תוכן ה־Hero הקיים שלך */}
+        <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
 
-            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/80 border border-emerald-200 text-emerald-700 text-sm font-bold backdrop-blur-sm">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              לוח עבודות ושירותים מקומיים
-            </div>
+          <button
+            type="button"
+            onClick={handleOpenPublishModal}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.40)] transition-all duration-200"
+          >
+            <span className="text-2xl leading-none font-normal">
+              +
+            </span>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-4">
-              כסף כיס
-            </h1>
+            <span>
+              צור מודעה
+            </span>
+          </button>
 
-            <p className="text-base sm:text-lg lg:text-xl text-slate-700 leading-relaxed font-medium">
-  מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
-</p>
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById('listings-section')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+              })
+            }}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white hover:bg-emerald-50 border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm hover:shadow-md transition-all duration-200"
+          >
+            <span>
+              מצא עבודות ושירותים
+            </span>
 
-<div className="mt-6 flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+            <span className="text-lg">
+              ↓
+            </span>
+          </button>
 
-  <button
-    type="button"
-    onClick={handleOpenPublishModal}
-    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.40)] transition-all duration-200"
-  >
-    <span className="text-2xl leading-none font-normal">+</span>
-    <span>צור מודעה</span>
-  </button>
+        </div>
 
-  <button
-    type="button"
-    onClick={() => {
-      document.getElementById('listings-section')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      })
-    }}
-    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white/90 hover:bg-white border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
-  >
-    <span>מצא עבודות ושירותים</span>
-    <span className="text-lg">↓</span>
-  </button>
+      </div>
 
-</div>
+    </div>
+
+
+    {/* =========================
+       מחשב — Hero רחב עם התמונה כרקע
+       ========================= */}
+    <div className="hidden lg:block relative min-h-[390px]">
+
+      <img
+        src="/hero-kesefkis.png"
+        alt="כסף כיס - עבודות ושירותים מקומיים"
+        className="absolute inset-0 w-full h-full object-cover object-center"
+      />
+
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 28%, rgba(255,255,255,0.70) 43%, rgba(255,255,255,0.18) 57%, rgba(255,255,255,0) 68%)'
+        }}
+      />
+
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/50 to-transparent" />
+
+      <div className="relative z-10 min-h-[390px] flex items-center">
+
+        <div className="w-[54%] px-12 py-10 text-right">
+
+          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/80 border border-emerald-200 text-emerald-700 text-sm font-bold backdrop-blur-sm">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            לוח עבודות ושירותים מקומיים
+          </div>
+
+          <h1 className="text-4xl xl:text-5xl font-extrabold text-slate-900 leading-tight mb-4">
+            כסף כיס
+          </h1>
+
+          <p className="text-lg xl:text-xl text-slate-700 leading-relaxed font-medium">
+            מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
+          </p>
+
+          <div className="mt-6 flex items-center justify-start gap-3">
+
+            <button
+              type="button"
+              onClick={handleOpenPublishModal}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.40)] transition-all duration-200"
+            >
+              <span className="text-2xl leading-none font-normal">
+                +
+              </span>
+
+              <span>
+                צור מודעה
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById('listings-section')?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start'
+                })
+              }}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white/90 hover:bg-white border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
+            >
+              <span>
+                מצא עבודות ושירותים
+              </span>
+
+              <span className="text-lg">
+                ↓
+              </span>
+            </button>
 
           </div>
 
@@ -2541,7 +2622,11 @@ const advertiserPageCreatedAt =
 
       </div>
 
-    ) : isAdvertiserPage ? (
+    </div>
+
+  </div>
+
+) : isAdvertiserPage ? (
 
   <div className="relative px-5 py-8 sm:px-8 sm:py-10">
 
