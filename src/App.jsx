@@ -29,6 +29,7 @@ function App() {
   const location = useLocation()
 
   const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [scrollToListings, setScrollToListings] = useState(false)
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
@@ -995,26 +996,46 @@ const handleUnfeatureListing = async (listingId) => {
     .select(`
       *,
       profiles (
-        id,
-        full_name,
-        avatar_url
-      )
+  id,
+  full_name,
+  avatar_url,
+  created_at
+)
     `)
     .order('created_at', { ascending: false })
 
   if (error) {
     console.error('Error fetching listings:', error)
   } else {
-    const listingsWithAdvertiser = (data || []).map((listing) => ({
-      ...listing,
-      advertiser_name:
-        listing.profiles?.full_name ||
-        listing.contact_name ||
-        'משתמש רשום',
-      advertiser_avatar:
-        listing.profiles?.avatar_url ||
-        null
-    }))
+    const advertiserListingCounts = (data || []).reduce(
+  (counts, listing) => {
+    if (listing.user_id) {
+      counts[listing.user_id] =
+        (counts[listing.user_id] || 0) + 1
+    }
+
+    return counts
+  },
+  {}
+)
+
+const listingsWithAdvertiser = (data || []).map((listing) => ({
+  ...listing,
+  advertiser_name:
+    listing.profiles?.full_name ||
+    listing.contact_name ||
+    'משתמש רשום',
+  advertiser_avatar:
+    listing.profiles?.avatar_url ||
+    null,
+  advertiser_created_at:
+    listing.profiles?.created_at ||
+    null,
+  advertiser_listing_count:
+    listing.user_id
+      ? advertiserListingCounts[listing.user_id] || 0
+      : 0
+}))
 
     setListings(listingsWithAdvertiser)
   }
@@ -1031,9 +1052,16 @@ const handleUnfeatureListing = async (listingId) => {
 useEffect(() => {
   if (!listings.length) return
 
-  const pathParts = decodeURIComponent(location.pathname).split('/').filter(Boolean)
+  const pathParts = decodeURIComponent(location.pathname)
+    .split('/')
+    .filter(Boolean)
 
-  if (pathParts.length !== 2) return
+  if (
+    pathParts.length !== 2 ||
+    pathParts[0] !== 'מודעה'
+  ) {
+    return
+  }
 
   const listingId = pathParts[1]
 
@@ -1041,18 +1069,33 @@ useEffect(() => {
     (item) => String(item.id) === String(listingId)
   )
 
-  if (listing) {
-    setSelectedListing(listing)
-  }
-}, [listings, location.pathname])
+      if (listing) {
+      setSelectedListing(listing)
+    }
+  }, [listings, location.pathname])
 
 
+  useEffect(() => {
+    if (!scrollToListings) return
+    if (loading) return
+
+    const listingsSection = document.getElementById('listings-section')
+
+    if (!listingsSection) return
+
+    listingsSection.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
+
+    setScrollToListings(false)
+  }, [scrollToListings, loading, location.pathname])
 
 
-useEffect(() => {
-  const pathParts = decodeURIComponent(location.pathname)
-    .split('/')
-    .filter(Boolean)
+  useEffect(() => {
+    const pathParts = decodeURIComponent(location.pathname)
+      .split('/')
+      .filter(Boolean)
 
   const isCategoryPage =
     pathParts.length === 2 &&
@@ -1676,12 +1719,28 @@ const handleDeleteListing = async (id) => {
   ? listings.filter(item => item.user_id === user.id || !item.user_id)
   : []
 
+const pathParts = decodeURIComponent(location.pathname)
+  .split('/')
+  .filter(Boolean)
+
+const isAdvertiserPage =
+  pathParts.length === 2 &&
+  pathParts[0] === 'מפרסם'
+
+const advertiserFilter = isAdvertiserPage
+  ? pathParts[1]
+  : null
+
 const baseListings =
   currentView === 'my-listings'
     ? myListings
     : currentView === 'favorites'
       ? listings.filter(item => favoriteListings.includes(item.id))
-      : listings
+      : advertiserFilter
+        ? listings.filter(
+            item => String(item.user_id) === String(advertiserFilter)
+          )
+        : listings
 
 
 const normalizeLocation = (value) => {
@@ -1780,37 +1839,54 @@ const displayedListings = baseListings
     )
   })
   .sort((a, b) => {
-  const now = new Date()
+    const now = new Date()
 
-  const aFeatured =
-    a.is_featured === true &&
-    a.featured_until &&
-    new Date(a.featured_until) > now
+    const aFeatured =
+      a.is_featured === true &&
+      a.featured_until &&
+      new Date(a.featured_until) > now
 
-  const bFeatured =
-    b.is_featured === true &&
-    b.featured_until &&
-    new Date(b.featured_until) > now
+    const bFeatured =
+      b.is_featured === true &&
+      b.featured_until &&
+      new Date(b.featured_until) > now
 
-  // קודם כל מודעות מודגשות
-  if (aFeatured && !bFeatured) return -1
-  if (!aFeatured && bFeatured) return 1
+    // קודם כל מודעות מודגשות
+    if (aFeatured && !bFeatured) return -1
+    if (!aFeatured && bFeatured) return 1
 
-  // אם אין מיון לפי מרחק - שומרים על הסדר הקיים
-  if (!sortByDistance || !userLocation) {
-    return 0
-  }
+    // אם אין מיון לפי מרחק - שומרים על הסדר הקיים
+    if (!sortByDistance || !userLocation) {
+      return 0
+    }
 
-  const distanceA = getListingDistance(a)
-  const distanceB = getListingDistance(b)
+    const distanceA = getListingDistance(a)
+    const distanceB = getListingDistance(b)
 
-  // מודעות בלי קואורדינטות עוברות לסוף
-  if (distanceA === null && distanceB === null) return 0
-  if (distanceA === null) return 1
-  if (distanceB === null) return -1
+    // מודעות בלי קואורדינטות עוברות לסוף
+    if (distanceA === null && distanceB === null) return 0
+    if (distanceA === null) return 1
+    if (distanceB === null) return -1
 
-  return distanceA - distanceB
-})
+    return distanceA - distanceB
+  })
+
+const advertiserPageProfile = advertiserFilter
+  ? listings.find(
+      item => String(item.user_id) === String(advertiserFilter)
+    )
+  : null
+
+
+
+const advertiserPageName =
+  advertiserPageProfile?.advertiser_name || 'המפרסם'
+
+const advertiserPageCount =
+  advertiserPageProfile?.advertiser_listing_count || 0
+
+const advertiserPageCreatedAt =
+  advertiserPageProfile?.advertiser_created_at || null
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans flex flex-col">
@@ -2383,92 +2459,120 @@ const displayedListings = baseListings
   {/* =========================================================
     HERO - כסף כיס
     ========================================================= */}
-{(currentView === 'home' || currentView === 'my-listings' || currentView === 'favorites') && (
+{(currentView === 'home' ||
+  currentView === 'my-listings' ||
+  currentView === 'favorites' ||
+  isAdvertiserPage) && (
   <section className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
 
     {/* פס צבע עליון */}
     <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400 z-20" />
 
-    {/* =====================================================
-        מצב רגיל - דף הבית
-        ===================================================== */}
+    {/* דף הבית */}
     {currentView === 'home' ? (
+
       <div className="relative min-h-[390px] sm:min-h-[420px] lg:min-h-[390px]">
 
-        {/* תמונת ה-Hero */}
         <img
           src="/hero-kesefkis.png"
           alt="כסף כיס - עבודות ושירותים מקומיים"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
 
-        {/* שכבת מעבר לבנה לטקסט */}
         <div
-  className="absolute inset-0"
-  style={{
-    background:
-      'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 28%, rgba(255,255,255,0.70) 43%, rgba(255,255,255,0.18) 57%, rgba(255,255,255,0) 68%)'
-  }}
-/>
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 28%, rgba(255,255,255,0.70) 43%, rgba(255,255,255,0.18) 57%, rgba(255,255,255,0) 68%)'
+          }}
+        />
 
-        {/* שכבת ריכוך עדינה בתחתית */}
         <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/50 to-transparent" />
 
-        {/* תוכן */}
         <div className="relative z-10 min-h-[390px] sm:min-h-[420px] lg:min-h-[390px] flex items-center">
 
           <div className="w-full lg:w-[54%] px-6 py-10 sm:px-10 sm:py-12 lg:px-12 lg:py-10 text-center lg:text-right">
 
-            {/* תג */}
-            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-emerald-50/95 border border-emerald-200 text-emerald-700 text-sm font-bold shadow-sm backdrop-blur-sm">
+            {/* כאן נשאר תוכן ה־Hero הקיים שלך */}
+
+            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/80 border border-emerald-200 text-emerald-700 text-sm font-bold backdrop-blur-sm">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              לוח מקומי פעיל
+              לוח עבודות ושירותים מקומיים
             </div>
 
-            {/* כותרת */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-[52px] leading-[1.08] font-extrabold text-slate-950 tracking-tight mb-5">
-              לוח עבודות
-              <br />
-              ושירותים מקומיים
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-4">
+              כסף כיס
             </h1>
 
-            {/* תיאור */}
-            <p className="text-lg sm:text-xl lg:text-2xl leading-relaxed text-slate-600 font-medium max-w-xl mx-auto lg:mx-0 mb-7">
-              מצא עבודות קטנות בסביבה שלך
-              <br className="hidden sm:block" />
-              או הצע את השירותים שלך
+            <p className="text-base sm:text-lg lg:text-xl text-slate-700 leading-relaxed font-medium">
+              מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
             </p>
 
-            {/* פעולות */}
-            <div className="flex flex-col sm:flex-row items-center lg:justify-start justify-center gap-3">
+          </div>
 
-              <button
-                type="button"
-                onClick={handleOpenPublishModal}
-                className="inline-flex items-center justify-center gap-2 h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_16px_rgba(5,150,105,0.30)] transition-colors duration-200"
-              >
-                <span className="text-2xl leading-none font-normal">
-                  +
-                </span>
-                פרסם מודעה
-              </button>
+        </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const listingsSection = document.getElementById('listings-section')
+      </div>
 
-                  if (listingsSection) {
-                    listingsSection.scrollIntoView({
-                      behavior: 'smooth',
-                      block: 'start'
+    ) : isAdvertiserPage ? (
+
+  <div className="relative px-5 py-8 sm:px-8 sm:py-10">
+
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+
+      <div className="text-center md:text-right">
+
+        <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          פרופיל מפרסם
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center md:items-start gap-4">
+
+          {advertiserPageProfile?.advertiser_avatar ? (
+
+            <img
+              src={advertiserPageProfile.advertiser_avatar}
+              alt={advertiserPageName}
+              className="w-16 h-16 shrink-0 rounded-2xl object-cover border-2 border-white shadow-sm"
+            />
+
+          ) : (
+
+            <div className="w-16 h-16 shrink-0 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 text-2xl font-extrabold">
+              {(advertiserPageName || 'מ')
+                .charAt(0)
+                .toUpperCase()}
+            </div>
+
+          )}
+
+          <div>
+
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-3">
+              המודעות של {advertiserPageName}
+            </h1>
+
+            <div className="flex flex-col sm:flex-row items-center md:items-start gap-2 sm:gap-5 text-sm sm:text-base text-slate-600">
+
+              <span className="font-medium">
+                📋 {advertiserPageCount}{' '}
+                {advertiserPageCount === 1
+                  ? 'מודעה'
+                  : 'מודעות'}
+              </span>
+
+              <span className="font-medium">
+                📅 פעיל באתר מאז{' '}
+                {advertiserPageCreatedAt
+                  ? new Date(
+                      advertiserPageCreatedAt
+                    ).toLocaleDateString('he-IL', {
+                      month: 'long',
+                      year: 'numeric'
                     })
-                  }
-                }}
-                className="inline-flex items-center justify-center h-11 px-6 rounded-xl bg-white/90 hover:bg-white border border-slate-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm transition-colors duration-200 backdrop-blur-sm"
-              >
-                מצא עבודות ושירותים
-              </button>
+                  : 'לא ידוע'}
+              </span>
 
             </div>
 
@@ -2478,16 +2582,34 @@ const displayedListings = baseListings
 
       </div>
 
-    ) : (
+      <button
+        type="button"
+        onClick={() => {
+  setCurrentView('home')
+  setScrollToListings(true)
+  navigate('/')
+}}
+        className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+      >
+        <span className="text-lg">
+          ←
+        </span>
+        חזרה לכל המודעות
+      </button>
+
+    </div>
+
+  </div>
+
+) : (
 
       /* =====================================================
-         מצבים: מועדפים / המודעות שלי
+         מצב רגיל: המודעות שלי / המודעות שאהבתי
          ===================================================== */
       <div className="relative px-5 py-7 sm:px-8 sm:py-8">
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-          {/* תוכן הכותרת */}
           <div className="text-center md:text-right">
 
             <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
@@ -2501,26 +2623,29 @@ const displayedListings = baseListings
               />
 
               {currentView === 'favorites'
-                ? 'המודעות ששמרת'
-                : 'המודעות האישיות שלך'}
+                ? 'המודעות שאהבתי'
+                : 'המודעות האישיות שלי'}
 
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2">
+
               {currentView === 'my-listings'
                 ? 'המודעות שפרסמתי'
                 : 'המודעות שאהבתי'}
+
             </h2>
 
             <p className="text-base sm:text-lg text-slate-600">
+
               {currentView === 'my-listings'
-                ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
-                : 'כל המודעות ששמרת כמועדפות במקום אחד'}
+                ? 'ניהול, עריכה ומחיקת המודעות האישיות שלי'
+                : 'כל המודעות שסימנתי כמועדפות בלוח'}
+
             </p>
 
           </div>
 
-          {/* אייקון */}
           {currentView === 'my-listings' ? (
 
             <button
@@ -2531,15 +2656,18 @@ const displayedListings = baseListings
               <span className="text-lg">
                 ←
               </span>
-              חזרה לכל הלוח
+
+              חזרה ללוח
             </button>
 
           ) : (
 
             <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-red-50 border border-red-200 shadow-sm">
+
               <span className="text-3xl">
                 ❤️
               </span>
+
             </div>
 
           )}
@@ -2547,6 +2675,7 @@ const displayedListings = baseListings
         </div>
 
       </div>
+
     )}
 
   </section>
@@ -3124,7 +3253,30 @@ const displayedListings = baseListings
 
   
 
-  {/* רשימת המודעות */}
+    {/* חזרה לכל המודעות - בעמוד מפרסם בלבד */}
+  {isAdvertiserPage && (
+    <div className="mb-5 flex justify-start">
+      <button
+        type="button"
+        onClick={() => {
+          setCurrentView('home')
+          navigate('/')
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          })
+        }}
+        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 hover:-translate-y-0.5 transition-all duration-200"
+      >
+        <span className="text-lg">←</span>
+        חזרה לכל המודעות
+      </button>
+    </div>
+  )}
+
+  <div id="listings-section" className="scroll-mt-6" />
+
+{/* רשימת המודעות */}
 {loading ? (
   <div className="flex flex-col items-center justify-center py-16 text-slate-500">
     <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin mb-4" />
@@ -3815,66 +3967,116 @@ const displayedListings = baseListings
           </div>
 
 
-          <div className="flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl p-4">
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
 
-  {selectedListing.is_demo ? (
-    <div className="w-14 h-14 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
-      💡
-    </div>
-  ) : selectedListing.advertiser_avatar ? (
-    <>
-      <img
-        src={selectedListing.advertiser_avatar}
-        alt={selectedListing.advertiser_name || 'המפרסם'}
-        className="w-14 h-14 shrink-0 rounded-full object-cover border-2 border-white"
-        onError={(e) => {
-          console.error(
-            'Advertiser avatar failed to load:',
-            e.currentTarget.src
-          )
+  <div className="flex items-center gap-4">
 
-          e.currentTarget.style.display = 'none'
+    {selectedListing.is_demo ? (
+      <div className="w-14 h-14 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
+        💡
+      </div>
+    ) : selectedListing.advertiser_avatar ? (
+      <>
+        <img
+          src={selectedListing.advertiser_avatar}
+          alt={selectedListing.advertiser_name || 'המפרסם'}
+          className="w-14 h-14 shrink-0 rounded-full object-cover border-2 border-white"
+          onError={(e) => {
+            console.error(
+              'Advertiser avatar failed to load:',
+              e.currentTarget.src
+            )
 
-          const fallback = e.currentTarget.nextElementSibling
+            e.currentTarget.style.display = 'none'
 
-          if (fallback) {
-            fallback.style.display = 'flex'
-          }
-        }}
-      />
+            const fallback = e.currentTarget.nextElementSibling
 
-      <div
-        className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 items-center justify-center text-emerald-700 text-xl font-bold"
-        style={{ display: 'none' }}
-      >
+            if (fallback) {
+              fallback.style.display = 'flex'
+            }
+          }}
+        />
+
+        <div
+          className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 items-center justify-center text-emerald-700 text-xl font-bold"
+          style={{ display: 'none' }}
+        >
+          {(selectedListing.advertiser_name || 'משתמש')
+            .charAt(0)
+            .toUpperCase()}
+        </div>
+      </>
+    ) : (
+      <div className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
         {(selectedListing.advertiser_name || 'משתמש')
           .charAt(0)
           .toUpperCase()}
       </div>
-    </>
-  ) : (
-    <div className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
-      {(selectedListing.advertiser_name || 'משתמש')
-        .charAt(0)
-        .toUpperCase()}
+    )}
+
+    <div className="min-w-0 flex-1">
+
+      <p className="font-extrabold text-slate-900">
+        {selectedListing.is_demo
+          ? 'מודעת דוגמה'
+          : selectedListing.advertiser_name || 'משתמש רשום'}
+      </p>
+
+      {selectedListing.is_demo ? (
+        <p className="text-sm text-slate-500 mt-0.5">
+          מודעה לדוגמה להצגת השימוש באתר
+        </p>
+      ) : (
+        <div className="mt-2 space-y-1">
+
+          {selectedListing.advertiser_listing_count > 0 && (
+            <p className="text-sm text-slate-600">
+              📋 {selectedListing.advertiser_listing_count}{' '}
+              {selectedListing.advertiser_listing_count === 1
+                ? 'מודעה'
+                : 'מודעות'}
+            </p>
+          )}
+
+          {selectedListing.advertiser_created_at && (
+            <p className="text-sm text-slate-500">
+              📅 פעיל באתר מאז{' '}
+              {new Date(
+                selectedListing.advertiser_created_at
+              ).toLocaleDateString('he-IL', {
+                month: 'long',
+                year: 'numeric'
+              })}
+            </p>
+          )}
+
+        </div>
+      )}
+
     </div>
-  )}
-
-  <div className="min-w-0">
-
-    <p className="font-extrabold text-slate-900">
-      {selectedListing.is_demo
-        ? 'מודעת דוגמה'
-        : selectedListing.advertiser_name || 'משתמש רשום'}
-    </p>
-
-    <p className="text-sm text-slate-500 mt-0.5">
-      {selectedListing.is_demo
-        ? 'מודעה לדוגמה להצגת השימוש באתר'
-        : 'פרסם מודעה בלוח המקומי'}
-    </p>
 
   </div>
+
+  {!selectedListing.is_demo && selectedListing.user_id && (
+    <button
+      type="button"
+      onClick={() => {
+  setSelectedListing(null)
+setScrollToListings(true)
+navigate(`/מפרסם/${selectedListing.user_id}`)
+  setTimeout(() => {
+    document.getElementById('listings-section')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
+  }, 50)
+}}
+      className="mt-4 w-full flex items-center justify-center gap-2 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 text-emerald-700 font-bold py-3 rounded-xl transition"
+    >
+      הצג את כל המודעות של {selectedListing.advertiser_name || 'המפרסם'}
+      <span>←</span>
+    </button>
+  )}
 
 </div>
 
