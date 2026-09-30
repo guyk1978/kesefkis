@@ -397,6 +397,8 @@ const [reportDetails, setReportDetails] = useState('')
 const [reports, setReports] = useState([])
 const [isAdmin, setIsAdmin] = useState(false)
 const [showReportsAdmin, setShowReportsAdmin] = useState(false)
+const [showFeaturedAdmin, setShowFeaturedAdmin] = useState(false)
+const [featuredAdminLoading, setFeaturedAdminLoading] = useState(null)
 const [reportsLoading, setReportsLoading] = useState(false)
 
   const [contactModalItem, setContactModalItem] = useState(null);
@@ -891,6 +893,95 @@ const updateReportStatus = async (reportId, status, adminNote = null) => {
     )
   }
 }
+
+
+
+
+
+  // ניהול הדגשת מודעות - מנהל בלבד
+  const handleFeatureListing = async (listingId) => {
+  if (!isAdmin) return
+
+  setFeaturedAdminLoading(listingId)
+
+  try {
+    const featuredUntil = new Date()
+    featuredUntil.setMonth(featuredUntil.getMonth() + 1)
+
+    const { data, error } = await supabase
+  .from('listings')
+  .update({
+    is_featured: true,
+    featured_until: featuredUntil.toISOString()
+  })
+  .eq('id', listingId)
+  .select('id, title, is_featured, featured_until')
+
+console.log('Feature update result:', {
+  listingId,
+  data,
+  error
+})
+
+if (error) throw error
+
+if (!data || data.length === 0) {
+  throw new Error(
+    'Supabase לא עדכן את המודעה. ייתכן שמדיניות ההרשאות (RLS) חוסמת עדכון של המודעה הזו.'
+  )
+}
+
+    if (error) throw error
+
+    await fetchListings()
+
+    alert('המודעה הודגשה בהצלחה לחודש אחד.')
+  } catch (error) {
+    console.error('שגיאה בהדגשת המודעה:', error)
+
+    alert(
+      'אירעה שגיאה בהדגשת המודעה.\n\n' +
+      (error?.message || 'שגיאה לא ידועה')
+    )
+  } finally {
+    setFeaturedAdminLoading(null)
+  }
+}
+
+const handleUnfeatureListing = async (listingId) => {
+  if (!isAdmin) return
+
+  setFeaturedAdminLoading(listingId)
+
+  try {
+    const { error } = await supabase
+      .from('listings')
+      .update({
+        is_featured: false,
+        featured_until: null
+      })
+      .eq('id', listingId)
+
+    if (error) throw error
+
+    await fetchListings()
+
+    alert('הדגשת המודעה הוסרה.')
+  } catch (error) {
+    console.error('שגיאה בהסרת הדגשת המודעה:', error)
+
+    alert(
+      'אירעה שגיאה בהסרת ההדגשה.\n\n' +
+      (error?.message || 'שגיאה לא ידועה')
+    )
+  } finally {
+    setFeaturedAdminLoading(null)
+  }
+}
+
+  
+
+
 
 
 
@@ -1689,21 +1780,37 @@ const displayedListings = baseListings
     )
   })
   .sort((a, b) => {
-    // מיון לפי מרחק רק אם המשתמש בחר בכך
-    if (!sortByDistance || !userLocation) {
-      return 0
-    }
+  const now = new Date()
 
-    const distanceA = getListingDistance(a)
-    const distanceB = getListingDistance(b)
+  const aFeatured =
+    a.is_featured === true &&
+    a.featured_until &&
+    new Date(a.featured_until) > now
 
-    // מודעות בלי קואורדינטות עוברות לסוף
-    if (distanceA === null && distanceB === null) return 0
-    if (distanceA === null) return 1
-    if (distanceB === null) return -1
+  const bFeatured =
+    b.is_featured === true &&
+    b.featured_until &&
+    new Date(b.featured_until) > now
 
-    return distanceA - distanceB
-  })
+  // קודם כל מודעות מודגשות
+  if (aFeatured && !bFeatured) return -1
+  if (!aFeatured && bFeatured) return 1
+
+  // אם אין מיון לפי מרחק - שומרים על הסדר הקיים
+  if (!sortByDistance || !userLocation) {
+    return 0
+  }
+
+  const distanceA = getListingDistance(a)
+  const distanceB = getListingDistance(b)
+
+  // מודעות בלי קואורדינטות עוברות לסוף
+  if (distanceA === null && distanceB === null) return 0
+  if (distanceA === null) return 1
+  if (distanceB === null) return -1
+
+  return distanceA - distanceB
+})
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans flex flex-col">
@@ -1759,45 +1866,50 @@ const displayedListings = baseListings
 
           {/* תמונת המשתמש - לחיצה פותחת תפריט */}
           <summary
-            className="list-none cursor-pointer outline-none select-none"
-            title="תפריט המשתמש"
-          >
-            <div className="relative group">
+  className="list-none cursor-pointer outline-none select-none"
+  title="תפריט המשתמש"
+>
+  <div className="relative group">
 
-              <div className="p-[2px] rounded-full bg-gradient-to-br from-emerald-300 via-emerald-500 to-slate-500 shadow-lg shadow-black/20 group-hover:shadow-emerald-400/20 group-hover:scale-105 transition-all duration-200">
+    <div className="p-[2px] rounded-full bg-gradient-to-br from-emerald-300 via-emerald-500 to-slate-500 shadow-lg shadow-black/20 group-hover:shadow-emerald-400/20 group-hover:scale-105 transition-all duration-200">
 
-                {(
-                  user.user_metadata?.avatar_url ||
-                  user.user_metadata?.picture ||
-                  user.identities?.[0]?.identity_data?.avatar_url ||
-                  user.identities?.[0]?.identity_data?.picture
-                ) ? (
-                  <img
-                    src={
-                      user.user_metadata?.avatar_url ||
-                      user.user_metadata?.picture ||
-                      user.identities?.[0]?.identity_data?.avatar_url ||
-                      user.identities?.[0]?.identity_data?.picture
-                    }
-                    alt="Profile"
-                    className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ) : (
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm border-2 border-slate-900">
-                    {user.email?.charAt(0).toUpperCase()}
-                  </div>
-                )}
+      {user.user_metadata?.avatar_url ? (
+        <img
+          src={user.user_metadata.avatar_url}
+          alt="Profile"
+          className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-white"
+          onError={(e) => {
+            console.error(
+              'Avatar image failed to load:',
+              e.currentTarget.src
+            )
 
-              </div>
+            e.currentTarget.style.display = 'none'
 
-              {/* נקודת סטטוס */}
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-400 rounded-full border-2 border-white shadow-sm" />
+            const fallback = e.currentTarget.nextElementSibling
 
-            </div>
-          </summary>
+            if (fallback) {
+              fallback.style.display = 'flex'
+            }
+          }}
+        />
+      ) : null}
+
+      <div
+        className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-600 text-white items-center justify-center font-bold text-xs sm:text-sm border-2 border-slate-900 ${
+          user.user_metadata?.avatar_url ? 'hidden' : 'flex'
+        }`}
+      >
+        {user.email?.charAt(0).toUpperCase()}
+      </div>
+
+    </div>
+
+    {/* נקודת סטטוס */}
+    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-400 rounded-full border-2 border-white shadow-sm" />
+
+  </div>
+</summary>
 
 
           {/* =========================================
@@ -2007,6 +2119,35 @@ const displayedListings = baseListings
               )}
 
             </div>
+
+
+
+{isAdmin && (
+  <button
+    type="button"
+    onClick={(e) => {
+      e.currentTarget
+        .closest('details')
+        ?.removeAttribute('open')
+
+      setShowFeaturedAdmin(true)
+    }}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-amber-700 hover:bg-amber-50 transition"
+  >
+    <span className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-sm">
+      ⭐
+    </span>
+
+    <span className="flex-1">
+      ניהול מודעות
+    </span>
+
+    <span className="text-amber-200">
+      ›
+    </span>
+  </button>
+)}
+
 
 
             {/* החלפת תמונה */}
@@ -3076,7 +3217,17 @@ const displayedListings = baseListings
               navigate(`/מודעה/${item.id}`)
             }
           }}
-          className="group bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col cursor-pointer"
+          className={`group bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-xl
+  hover:-translate-y-1.5 transition-all duration-300 flex flex-col cursor-pointer relative ${
+    item.is_featured &&
+    item.featured_until &&
+    new Date(item.featured_until) > new Date()
+      ? 'border-amber-300 ring-2 ring-amber-100 shadow-amber-100'
+      : 'border-slate-200'
+  }`}
+
+
+  
         >
 
           {/* תמונת המודעה */}
@@ -3102,6 +3253,10 @@ const displayedListings = baseListings
                 </div>
               </div>
             )}
+
+
+
+
 
             {/* שכבת מעבר עדינה */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none" />
@@ -3662,44 +3817,66 @@ const displayedListings = baseListings
 
           <div className="flex items-center gap-4 bg-slate-50 border border-slate-100 rounded-2xl p-4">
 
-            {selectedListing.is_demo ? (
-              <div className="w-14 h-14 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
-                💡
-              </div>
-            ) : selectedListing.advertiser_avatar ? (
-              <img
-                src={selectedListing.advertiser_avatar}
-                alt="תמונת פרופיל"
-                className="w-14 h-14 shrink-0 rounded-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
-            ) : (
-              <div className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
-                {(selectedListing.advertiser_name || 'משתמש')
-                  .charAt(0)
-                  .toUpperCase()}
-              </div>
-            )}
+  {selectedListing.is_demo ? (
+    <div className="w-14 h-14 shrink-0 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-2xl">
+      💡
+    </div>
+  ) : selectedListing.advertiser_avatar ? (
+    <>
+      <img
+        src={selectedListing.advertiser_avatar}
+        alt={selectedListing.advertiser_name || 'המפרסם'}
+        className="w-14 h-14 shrink-0 rounded-full object-cover border-2 border-white"
+        onError={(e) => {
+          console.error(
+            'Advertiser avatar failed to load:',
+            e.currentTarget.src
+          )
 
-            <div className="min-w-0">
+          e.currentTarget.style.display = 'none'
 
-              <p className="font-extrabold text-slate-900">
-                {selectedListing.is_demo
-                  ? 'מודעת דוגמה'
-                  : selectedListing.advertiser_name || 'משתמש רשום'}
-              </p>
+          const fallback = e.currentTarget.nextElementSibling
 
-              <p className="text-sm text-slate-500 mt-0.5">
-                {selectedListing.is_demo
-                  ? 'מודעה לדוגמה לצורך המחשת השימוש באתר'
-                  : 'מפרסם מודעה בלוח המקומי'}
-              </p>
+          if (fallback) {
+            fallback.style.display = 'flex'
+          }
+        }}
+      />
 
-            </div>
+      <div
+        className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 items-center justify-center text-emerald-700 text-xl font-bold"
+        style={{ display: 'none' }}
+      >
+        {(selectedListing.advertiser_name || 'משתמש')
+          .charAt(0)
+          .toUpperCase()}
+      </div>
+    </>
+  ) : (
+    <div className="w-14 h-14 shrink-0 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-xl font-bold">
+      {(selectedListing.advertiser_name || 'משתמש')
+        .charAt(0)
+        .toUpperCase()}
+    </div>
+  )}
 
-          </div>
+  <div className="min-w-0">
+
+    <p className="font-extrabold text-slate-900">
+      {selectedListing.is_demo
+        ? 'מודעת דוגמה'
+        : selectedListing.advertiser_name || 'משתמש רשום'}
+    </p>
+
+    <p className="text-sm text-slate-500 mt-0.5">
+      {selectedListing.is_demo
+        ? 'מודעה לדוגמה להצגת השימוש באתר'
+        : 'פרסם מודעה בלוח המקומי'}
+    </p>
+
+  </div>
+
+</div>
 
 
           {/* כפתורי פעולה */}
@@ -4302,6 +4479,188 @@ const displayedListings = baseListings
       </div>
 
     </div>
+  </div>
+)}
+
+
+
+
+{showFeaturedAdmin && (
+  <div className="fixed inset-0 z-[90] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+
+    <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden bg-white rounded-3xl shadow-2xl border border-amber-100">
+
+      {/* כותרת */}
+      <div className="flex items-center justify-between gap-4 px-5 sm:px-6 py-4 border-b border-slate-100 bg-gradient-to-l from-amber-50 to-white">
+
+        <div className="flex items-center gap-3">
+
+          <div className="w-11 h-11 rounded-2xl bg-amber-100 flex items-center justify-center text-xl">
+            ⭐
+          </div>
+
+          <div>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900">
+              ניהול מודעות
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              הדגשת מודעות לחודש אחד
+            </p>
+          </div>
+
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowFeaturedAdmin(false)}
+          className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xl font-bold transition"
+          aria-label="סגור"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      {/* תוכן */}
+      <div className="overflow-y-auto max-h-[calc(90vh-90px)] p-4 sm:p-6">
+
+        {listings.length === 0 ? (
+
+          <div className="py-12 text-center">
+
+            <div className="text-4xl mb-3">
+              📋
+            </div>
+
+            <p className="font-bold text-slate-700">
+              אין כרגע מודעות לניהול
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div className="space-y-3">
+
+            {listings.map((listing) => {
+
+              const isFeaturedActive =
+                listing.is_featured === true &&
+                listing.featured_until &&
+                new Date(listing.featured_until) > new Date()
+
+              return (
+                <div
+                  key={listing.id}
+                  className={`rounded-2xl border p-4 transition ${
+                    isFeaturedActive
+                      ? 'border-amber-300 bg-amber-50/50'
+                      : 'border-slate-200 bg-white'
+                  }`}
+                >
+
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+
+                    {/* פרטי המודעה */}
+                    <div className="min-w-0 flex-1">
+
+                      <div className="flex items-start gap-3">
+
+                        <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 flex items-center justify-center text-lg">
+                          {isFeaturedActive ? '⭐' : '📄'}
+                        </div>
+
+                        <div className="min-w-0">
+
+                          <h3 className="font-extrabold text-slate-900 truncate">
+                            {listing.title || 'ללא כותרת'}
+                          </h3>
+
+                          <p className="text-sm text-slate-500 mt-1">
+                            {listing.advertiser_name || listing.contact_name || 'משתמש רשום'}
+                          </p>
+
+                          {listing.location && (
+                            <p className="text-xs text-slate-400 mt-1">
+                              📍 {listing.location}
+                            </p>
+                          )}
+
+                        </div>
+
+                      </div>
+
+
+                      {/* סטטוס הדגשה */}
+                      {isFeaturedActive && (
+                        <div className="mt-3 mr-12">
+
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+                            ⭐ מודעה מודגשת
+                          </span>
+
+                          <span className="mr-2 text-xs text-slate-500">
+                            עד{' '}
+                            {new Date(listing.featured_until).toLocaleDateString(
+                              'he-IL'
+                            )}
+                          </span>
+
+                        </div>
+                      )}
+
+                    </div>
+
+
+                    {/* כפתור פעולה */}
+                    <div className="shrink-0">
+
+                      {isFeaturedActive ? (
+
+                        <button
+                          type="button"
+                          disabled={featuredAdminLoading === listing.id}
+                          onClick={() => handleUnfeatureListing(listing.id)}
+                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white border border-red-200 text-red-600 hover:bg-red-50 font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {featuredAdminLoading === listing.id
+  ? 'מטפל...'
+  : 'הסר הדגשה'}
+                        </button>
+
+                      ) : (
+
+                        <button
+                          type="button"
+                          disabled={featuredAdminLoading === listing.id}
+                          onClick={() => handleFeatureListing(listing.id)}
+                          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {featuredAdminLoading === listing.id
+  ? 'מטפל...'
+  : '⭐ הדגש לחודש'}
+                        </button>
+
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+              )
+            })}
+
+          </div>
+
+        )}
+
+      </div>
+
+    </div>
+
   </div>
 )}
 
