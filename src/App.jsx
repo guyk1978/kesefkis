@@ -2551,7 +2551,7 @@ const advertiserPageCreatedAt =
       <img
         src="/hero-kesefkis.png"
         alt="כסף כיס - עבודות ושירותים מקומיים"
-        className="absolute inset-0 w-full h-full object-cover object-center"
+        className="absolute inset-0 w-full h-full object-cover object-[65%_center] sm:object-center"
       />
 
       <div
@@ -2741,9 +2741,9 @@ const advertiserPageCreatedAt =
   <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/35 to-transparent" />
 
   {/* תוכן */}
-  <div className="relative z-10 px-5 py-8 sm:px-8 sm:py-9 min-h-[230px] sm:min-h-[250px] flex items-center">
+  <div className="relative z-10 px-5 py-7 sm:px-8 sm:py-9 min-h-[270px] sm:min-h-[250px] flex items-center">
 
-    <div className="w-full md:w-[58%] text-center md:text-right">
+  <div className="w-full md:w-[58%] text-right">
 
       {/* תג */}
       <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-red-50/95 border border-red-200 text-red-600 text-xs font-bold shadow-sm backdrop-blur-sm">
@@ -2766,7 +2766,7 @@ const advertiserPageCreatedAt =
       </h2>
 
       {/* תיאור */}
-      <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl mx-auto md:mx-0">
+      <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl mr-0 ml-auto">
 
         {currentView === 'my-listings'
           ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
