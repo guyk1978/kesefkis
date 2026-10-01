@@ -3543,7 +3543,7 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
                   ? 'הסר מהמועדפים'
                   : 'הוסף למועדפים'
               }
-              className="absolute top-2 left-2 z-10 w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center text-xl md:text-2xl hover:scale-110 hover:shadow-lg transition-all"
+              className="absolute top-14 left-2 z-10 w-9 h-9 md:top-3 md:left-3 md:w-11 md:h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center text-xl md:text-2xl hover:scale-110 hover:shadow-lg transition-all"
             >
               {favoriteListings.includes(item.id) ? '❤️' : '🤍'}
             </button>
