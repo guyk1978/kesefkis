@@ -2718,75 +2718,81 @@ const advertiserPageCreatedAt =
       /* =====================================================
          מצב רגיל: המודעות שלי / המודעות שאהבתי
          ===================================================== */
-      <div className="relative px-5 py-7 sm:px-8 sm:py-8">
+      <div className="relative overflow-hidden min-h-[230px] sm:min-h-[250px]">
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+  {/* תמונת Hero */}
+  <img
+    src="/hero-favorites.png"
+    alt=""
+    aria-hidden="true"
+    className="absolute inset-0 w-full h-full object-cover object-center"
+  />
 
-          <div className="text-center md:text-right">
+  {/* גרדיאנט לבן חזק באזור הטקסט */}
+  <div
+    className="absolute inset-0"
+    style={{
+      background:
+        'linear-gradient(to left, rgba(255,255,255,1) 0%, rgba(255,255,255,0.99) 34%, rgba(255,255,255,0.94) 48%, rgba(255,255,255,0.72) 60%, rgba(255,255,255,0.20) 76%, rgba(255,255,255,0) 88%)'
+    }}
+  />
 
-            <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+  {/* שכבת ריכוך עדינה בתחתית */}
+  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/35 to-transparent" />
 
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  currentView === 'favorites'
-                    ? 'bg-red-500'
-                    : 'bg-emerald-500'
-                }`}
-              />
+  {/* תוכן */}
+  <div className="relative z-10 px-5 py-8 sm:px-8 sm:py-9 min-h-[230px] sm:min-h-[250px] flex items-center">
 
-              {currentView === 'favorites'
-                ? 'המודעות שאהבתי'
-                : 'המודעות האישיות שלי'}
+    <div className="w-full md:w-[58%] text-center md:text-right">
 
-            </div>
+      {/* תג */}
+      <div className="inline-flex items-center gap-2 mb-3 px-3 py-1.5 rounded-full bg-red-50/95 border border-red-200 text-red-600 text-xs font-bold shadow-sm backdrop-blur-sm">
 
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2">
+        <span className="w-2 h-2 rounded-full bg-red-500" />
 
-              {currentView === 'my-listings'
-                ? 'המודעות שפרסמתי'
-                : 'המודעות שאהבתי'}
-
-            </h2>
-
-            <p className="text-base sm:text-lg text-slate-600">
-
-              {currentView === 'my-listings'
-                ? 'ניהול, עריכה ומחיקת המודעות האישיות שלי'
-                : 'כל המודעות שסימנתי כמועדפות בלוח'}
-
-            </p>
-
-          </div>
-
-          {currentView === 'my-listings' ? (
-
-            <button
-              type="button"
-              onClick={() => setCurrentView('home')}
-              className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-            >
-              <span className="text-lg">
-                ←
-              </span>
-
-              חזרה ללוח
-            </button>
-
-          ) : (
-
-            <div className="hidden md:flex shrink-0 items-center justify-center w-16 h-16 rounded-2xl bg-red-50 border border-red-200 shadow-sm">
-
-              <span className="text-3xl">
-                ❤️
-              </span>
-
-            </div>
-
-          )}
-
-        </div>
+        {currentView === 'favorites'
+          ? 'המודעות ששמרת'
+          : 'המודעות האישיות שלך'}
 
       </div>
+
+      {/* כותרת */}
+      <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">
+
+        {currentView === 'my-listings'
+          ? 'המודעות שפרסמתי'
+          : 'המודעות שאהבתי'}
+
+      </h2>
+
+      {/* תיאור */}
+      <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl mx-auto md:mx-0">
+
+        {currentView === 'my-listings'
+          ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
+          : 'כל המודעות ששמרת כמועדפות במקום אחד'}
+
+      </p>
+
+      {/* חזרה ללוח */}
+      {currentView === 'my-listings' && (
+        <button
+          type="button"
+          onClick={() => setCurrentView('home')}
+          className="mt-5 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/95 border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-colors backdrop-blur-sm"
+        >
+          <span className="text-lg">
+            ←
+          </span>
+          חזרה לכל הלוח
+        </button>
+      )}
+
+    </div>
+
+  </div>
+
+</div>
 
     )}
 
