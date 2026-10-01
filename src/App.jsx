@@ -3463,7 +3463,7 @@ const advertiserPageCreatedAt =
 ) : (
   <div
   id="listings-section"
-  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6"
+  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6"
 >
 
     {displayedListings.map((item) => {
@@ -3487,8 +3487,8 @@ const advertiserPageCreatedAt =
               navigate(`/מודעה/${item.id}`)
             }
           }}
-          className={`group bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-xl
-  hover:-translate-y-1.5 transition-all duration-300 flex flex-col cursor-pointer relative ${
+          className={`group bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-xl 
+hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(0,1fr)] md:flex md:flex-col cursor-pointer relative ${
     item.is_featured &&
     item.featured_until &&
     new Date(item.featured_until) > new Date()
@@ -3501,10 +3501,10 @@ const advertiserPageCreatedAt =
         >
 
           {/* תמונת המודעה */}
-          <div className="relative">
+          <div className="relative h-full min-h-[145px] md:h-auto md:min-h-0">
 
             {item.image_url ? (
-              <div className="w-full h-52 bg-slate-100 overflow-hidden">
+              <div className="w-[120px] h-full min-h-[145px] md:w-full md:h-52 bg-slate-100 overflow-hidden">
                 <img
                   src={item.image_url}
                   alt={item.title}
@@ -3512,7 +3512,7 @@ const advertiserPageCreatedAt =
                 />
               </div>
             ) : (
-              <div className="w-full h-36 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 flex items-center justify-center">
+              <div className="w-[120px] h-full min-h-[145px] md:w-full md:h-36 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-1 text-slate-400">
                   <span className="text-2xl">
                     🖼️
@@ -3543,20 +3543,20 @@ const advertiserPageCreatedAt =
                   ? 'הסר מהמועדפים'
                   : 'הוסף למועדפים'
               }
-              className="absolute top-3 left-3 z-10 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center text-2xl hover:scale-110 hover:shadow-lg transition-all"
+              className="absolute top-2 left-2 z-10 w-9 h-9 md:w-11 md:h-11 rounded-full bg-white/95 backdrop-blur-sm shadow-md flex items-center justify-center text-xl md:text-2xl hover:scale-110 hover:shadow-lg transition-all"
             >
               {favoriteListings.includes(item.id) ? '❤️' : '🤍'}
             </button>
 
             {/* תג סוג המודעה */}
-            <div className="absolute top-3 right-3">
+            <div className="absolute top-2 right-2 md:top-3 md:right-3">
 
               {item.listing_type === 'request' ? (
-                <span className="inline-flex items-center gap-1.5 bg-blue-600/95 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 bg-blue-600/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
                   🔵 מחפש שירות
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 bg-emerald-600/95 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 bg-emerald-600/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
                   🟢 מציע שירות
                 </span>
               )}
@@ -3566,7 +3566,7 @@ const advertiserPageCreatedAt =
           </div>
 
           {/* תוכן */}
-          <div className="p-5 flex-1 flex flex-col">
+          <div className="min-w-0 p-4 md:p-5 flex-1 flex flex-col">
 
             {/* קטגוריה + תמורה */}
             <div className="flex items-start justify-between gap-3 mb-3">
@@ -3620,14 +3620,14 @@ const advertiserPageCreatedAt =
                 </span>
               )}
 
-              <h3 className="text-xl font-extrabold text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
+              <h3 className="text-base md:text-xl font-extrabold text-slate-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
                 {item.title}
               </h3>
 
             </div>
 
             {/* תיאור */}
-            <p className="text-slate-600 text-sm leading-6 mb-4 line-clamp-3">
+            <p className="text-slate-600 text-xs md:text-sm leading-5 md:leading-6 mb-3 md:mb-4 line-clamp-2 md:line-clamp-3">
               {item.description || 'ללא תיאור נוסף'}
             </p>
 
@@ -3678,7 +3678,7 @@ const advertiserPageCreatedAt =
           </div>
 
           {/* אזור תחתון */}
-          <div className="px-5 pb-5">
+          <div className="col-span-2 px-4 pb-4 md:px-5 md:pb-5">
 
             {/* טלפון */}
             {item.phone && (
