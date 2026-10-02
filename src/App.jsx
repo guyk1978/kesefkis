@@ -2522,7 +2522,7 @@ const advertiserPageCreatedAt =
 
         <div className="inline-flex items-center gap-2 mb-3 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          לוח עבודות ושירותים מקומיים
+         לוח עבודות, שירותים ופריטים מקומיים
         </div>
 
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight mb-3">
@@ -2530,7 +2530,7 @@ const advertiserPageCreatedAt =
         </h1>
 
         <p className="text-base sm:text-lg text-slate-700 leading-relaxed font-medium max-w-xl mx-auto">
-          מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
+         מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך
         </p>
 
         <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -2602,7 +2602,7 @@ const advertiserPageCreatedAt =
 
           <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/80 border border-emerald-200 text-emerald-700 text-sm font-bold backdrop-blur-sm">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            לוח עבודות ושירותים מקומיים
+           לוח עבודות, שירותים ופריטים מקומיים
           </div>
 
           <h1 className="text-4xl xl:text-5xl font-extrabold text-slate-900 leading-tight mb-4">
@@ -2610,7 +2610,7 @@ const advertiserPageCreatedAt =
           </h1>
 
           <p className="text-lg xl:text-xl text-slate-700 leading-relaxed font-medium">
-            מצא עבודות קטנות בסביבה שלך או הצע את השירותים שלך
+           מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך
           </p>
 
           <div className="mt-6 flex items-center justify-start gap-3">
