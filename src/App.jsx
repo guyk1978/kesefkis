@@ -70,6 +70,7 @@ function App() {
   'חשמל',
   'הובלות',
   'הרכבות והתקנות',
+  'חפצים',
   'מחשבים ודיגיטל',
   'עיצוב ויצירה',
   'צילום ווידאו',
@@ -1151,10 +1152,14 @@ useEffect(() => {
     titleParts.push(locationFilter)
   }
 
-  if (listingTypeFilter === 'offer') {
+    if (listingTypeFilter === 'offer') {
     titleParts.push('שירותים')
   } else if (listingTypeFilter === 'request') {
-    titleParts.push('בקשות')
+    titleParts.push('בקשות שירות')
+  } else if (listingTypeFilter === 'item_offer') {
+    titleParts.push('פריטים למכירה, מסירה והחלפה')
+  } else if (listingTypeFilter === 'item_request') {
+    titleParts.push('בקשות לפריטים')
   }
 
   if (titleParts.length > 0) {
@@ -1232,10 +1237,14 @@ useEffect(() => {
       parts.push(locationFilter)
     }
 
-    if (listingTypeFilter === 'offer') {
+        if (listingTypeFilter === 'offer') {
       parts.push('שירותים')
     } else if (listingTypeFilter === 'request') {
-      parts.push('בקשות')
+      parts.push('בקשות שירות')
+    } else if (listingTypeFilter === 'item_offer') {
+      parts.push('פריטים למכירה, מסירה והחלפה')
+    } else if (listingTypeFilter === 'item_request') {
+      parts.push('בקשות לפריטים')
     }
 
     if (searchTerm.trim()) {
@@ -1269,9 +1278,32 @@ useEffect(() => {
 
   // טיפול בשינוי קלט בטופס
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+  const { name, value } = e.target
+
+  if (name === 'category') {
+  setFormData((prev) => ({
+    ...prev,
+    category: value,
+
+    listing_type:
+      value === 'חפצים'
+        ? (prev.listing_type === 'item_request' ? 'item_request' : 'item_offer')
+        : (prev.listing_type === 'item_request' || prev.listing_type === 'item_offer'
+            ? 'offer'
+            : prev.listing_type),
+
+    ...(value !== 'חפצים' && prev.payment_type === 'free'
+      ? {
+          payment_type: 'cash',
+          price: ''
+        }
+      : {})
+  }))
+  return
+}
+
+  setFormData((prev) => ({ ...prev, [name]: value }))
+}
 
   // פונקציית עזר להעלאת קובץ ל-Supabase Storage
   const uploadFileToStorage = async (file, bucketName) => {
@@ -2818,41 +2850,49 @@ const advertiserPageCreatedAt =
 
 
 
-{/* בחירת סוג מודעה */}
+{/* =========================================================
+    בחירת סוג מודעה
+========================================================= */}
 {currentView === 'home' && (
   <div className="mb-5">
+
     <div className="text-center mb-3">
       <h3 className="text-lg font-bold text-slate-800">
         מה אתה מחפש?
       </h3>
+
       <p className="text-sm text-slate-500">
         בחר את סוג המודעות שמעניין אותך
       </p>
     </div>
 
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    {/* הכל */}
+    <button
+      onClick={() => setListingTypeFilter('all')}
+      className={`w-full rounded-2xl border-2 p-3.5 text-center transition mb-3 ${
+        listingTypeFilter === 'all'
+          ? 'border-slate-700 bg-slate-100 shadow-sm'
+          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+      }`}
+    >
+      <div className="text-xl mb-0.5">
+        📋
+      </div>
 
-      {/* כל המודעות */}
-      <button
-        onClick={() => setListingTypeFilter('all')}
-        className={`rounded-2xl border-2 p-4 text-center transition ${
-          listingTypeFilter === 'all'
-            ? 'border-slate-700 bg-slate-100 shadow-sm'
-            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-        }`}
-      >
-        <div className="text-2xl mb-1">⚪</div>
+      <div className="font-bold text-slate-800">
+        כל המודעות
+      </div>
 
-        <div className="font-bold text-slate-800">
-          כל המודעות
-        </div>
+      <div className="text-xs text-slate-500 mt-0.5">
+        הצעות ובקשות
+      </div>
+    </button>
 
-        <div className="text-xs text-slate-500 mt-1">
-          הצעות ובקשות
-        </div>
-      </button>
 
-      {/* מציע עבודה */}
+    {/* שירותים */}
+    <div className="grid grid-cols-2 gap-3 mb-3">
+
+      {/* מציע שירות */}
       <button
         onClick={() => setListingTypeFilter('offer')}
         className={`rounded-2xl border-2 p-4 text-center transition ${
@@ -2861,16 +2901,19 @@ const advertiserPageCreatedAt =
             : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
         }`}
       >
-        <div className="text-2xl mb-1">🟢</div>
+        <div className="text-2xl mb-1">
+          🟢
+        </div>
 
         <div className="font-bold text-slate-800">
-          מציע עבודה / שירות
+          מציע שירות
         </div>
 
         <div className="text-xs text-slate-500 mt-1">
-          אנשים שמציעים שירות או עבודה
+          עבודות ושירותים
         </div>
       </button>
+
 
       {/* מחפש שירות */}
       <button
@@ -2881,20 +2924,80 @@ const advertiserPageCreatedAt =
             : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
         }`}
       >
-        <div className="text-2xl mb-1">🔵</div>
+        <div className="text-2xl mb-1">
+          🔵
+        </div>
 
         <div className="font-bold text-slate-800">
-          מחפש שירות / עזרה
+          מחפש שירות
         </div>
 
         <div className="text-xs text-slate-500 mt-1">
-          אנשים שמחפשים שירות או עזרה
+          עזרה ועבודות
         </div>
       </button>
 
     </div>
+
+
+    {/* חפצים */}
+    <div className="grid grid-cols-2 gap-3">
+
+      {/* מציע פריט */}
+      <button
+        onClick={() => setListingTypeFilter('item_offer')}
+        className={`rounded-2xl border-2 p-4 text-center transition ${
+          listingTypeFilter === 'item_offer'
+            ? 'border-orange-500 bg-orange-50 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
+        }`}
+      >
+        <div className="text-2xl mb-1">
+          🟠
+        </div>
+
+        <div className="font-bold text-slate-800">
+          מציע פריט
+        </div>
+
+        <div className="text-xs text-slate-500 mt-1">
+          מכירה, מסירה או החלפה
+        </div>
+      </button>
+
+
+      {/* מחפש פריט */}
+      <button
+        onClick={() => setListingTypeFilter('item_request')}
+        className={`rounded-2xl border-2 p-4 text-center transition ${
+          listingTypeFilter === 'item_request'
+            ? 'border-purple-500 bg-purple-50 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/40'
+        }`}
+      >
+        <div className="text-2xl mb-1">
+          🟣
+        </div>
+
+        <div className="font-bold text-slate-800">
+          מחפש פריט
+        </div>
+
+        <div className="text-xs text-slate-500 mt-1">
+          מחפש חפץ מסוים
+        </div>
+      </button>
+
+    </div>
+
   </div>
 )}
+
+
+
+
+
+
 
 {/* חיפוש וסינון */}
 {currentView === 'home' && (
@@ -2938,19 +3041,48 @@ const advertiserPageCreatedAt =
           קטגוריה
         </label>
 
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700"
-        >
-          <option value="all">כל הקטגוריות</option>
+        <div className="relative">
+  <select
+    value={categoryFilter}
+    onChange={(e) => setCategoryFilter(e.target.value)}
+    className={`w-full px-3 py-2.5 pr-10 border rounded-xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
+      categoryFilter === 'חפצים'
+        ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
+        : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+    }`}
+  >
+    <option value="all">כל הקטגוריות</option>
 
-          {categories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
+    {categories.map((category) => (
+      <option key={category} value={category}>
+        {category === 'חפצים' ? '📦  חפצים' : category}
+      </option>
+    ))}
+  </select>
+
+  {/* חץ */}
+  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+    <svg
+      className="w-4 h-4"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
+  </div>
+
+  {/* סימון כאשר חפצים נבחר */}
+  {categoryFilter === 'חפצים' && (
+    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-600 pointer-events-none">
+      📦
+    </div>
+  )}
+</div>
       </div>
 
       {/* אזור */}
@@ -3551,15 +3683,23 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
             {/* תג סוג המודעה */}
             <div className="absolute top-2 right-2 md:top-3 md:right-3">
 
-              {item.listing_type === 'request' ? (
-                <span className="inline-flex items-center gap-1.5 bg-blue-600/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
-                  🔵 מחפש שירות
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 bg-emerald-600/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
-                  🟢 מציע שירות
-                </span>
-              )}
+              {item.listing_type === 'item_request' ? (
+  <span className="inline-flex items-center gap-1.5 bg-purple-600/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
+    🟣 מחפש פריט
+  </span>
+) : item.listing_type === 'item_offer' ? (
+  <span className="inline-flex items-center gap-1.5 bg-orange-500/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
+    🟠 מציע פריט
+  </span>
+) : item.listing_type === 'request' ? (
+  <span className="inline-flex items-center gap-1.5 bg-blue-600/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
+    🔵 מחפש שירות
+  </span>
+) : (
+  <span className="inline-flex items-center gap-1.5 bg-emerald-600/95 text-white text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-md backdrop-blur-sm">
+    🟢 מציע שירות
+  </span>
+)}
 
             </div>
 
@@ -3577,23 +3717,27 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
 
               <div className="flex flex-col items-end gap-1 shrink-0">
 
-                {item.payment_type === 'barter' ? (
-                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
-                    🔄 ברטר
-                  </span>
-                ) : item.payment_type === 'cash_or_barter' ? (
-                  <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
-                    💵🔄 תשלום או ברטר
-                  </span>
-                ) : item.price ? (
-                  <span className="text-xl font-extrabold text-slate-900 whitespace-nowrap">
-                    ₪{item.price}
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-400 font-medium">
-                    מחיר לא צוין
-                  </span>
-                )}
+                {item.payment_type === 'free' ? (
+  <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
+    🎁 למסירה בחינם
+  </span>
+) : item.payment_type === 'barter' ? (
+  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
+    🔄 ברטר
+  </span>
+) : item.payment_type === 'cash_or_barter' ? (
+  <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 border border-purple-200 text-sm font-bold px-2.5 py-1 rounded-lg whitespace-nowrap">
+    💵🔄 תשלום או ברטר
+  </span>
+) : item.price ? (
+  <span className="text-xl font-extrabold text-slate-900 whitespace-nowrap">
+    ₪{item.price}
+  </span>
+) : (
+  <span className="text-xs text-slate-400 font-medium">
+    מחיר לא צוין
+  </span>
+)}
 
                 {item.payment_type === 'cash_or_barter' && item.price && (
                   <span className="text-xs text-slate-500">
@@ -3954,15 +4098,23 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
 
           <div className="flex flex-wrap items-center gap-2">
 
-            {selectedListing.listing_type === 'request' ? (
-              <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-sm font-bold px-3 py-1.5 rounded-xl">
-                🔵 מחפש שירות / עזרה
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-sm font-bold px-3 py-1.5 rounded-xl">
-                🟢 מציע עבודה / שירות
-              </span>
-            )}
+            {selectedListing.listing_type === 'item_request' ? (
+  <span className="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 border border-purple-100 text-sm font-bold px-3 py-1.5 rounded-xl">
+    🟣 מחפש פריט
+  </span>
+) : selectedListing.listing_type === 'item_offer' ? (
+  <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-700 border border-orange-100 text-sm font-bold px-3 py-1.5 rounded-xl">
+    🟠 מציע פריט
+  </span>
+) : selectedListing.listing_type === 'request' ? (
+  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 text-sm font-bold px-3 py-1.5 rounded-xl">
+    🔵 מחפש שירות / עזרה
+  </span>
+) : (
+  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 text-sm font-bold px-3 py-1.5 rounded-xl">
+    🟢 מציע עבודה / שירות
+  </span>
+)}
 
             <span className="bg-slate-50 text-slate-700 border border-slate-200 text-sm font-semibold px-3 py-1.5 rounded-xl">
               {selectedListing.category || 'כללי'}
@@ -3971,7 +4123,11 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
           </div>
 
           {/* מחיר / תמורה */}
-          {selectedListing.payment_type === 'barter' ? (
+          {selectedListing.payment_type === 'free' ? (
+  <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-lg font-extrabold px-3 py-1.5 rounded-xl whitespace-nowrap">
+    🎁 למסירה בחינם
+  </span>
+) : selectedListing.payment_type === 'barter' ? (
             <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 text-lg font-extrabold px-3 py-1.5 rounded-xl whitespace-nowrap">
               🔄 ברטר
             </span>
@@ -6430,19 +6586,33 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                 </label>
 
                 <select
-                  name="listing_type"
-                  value={formData.listing_type}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
-                >
-                  <option value="offer">
-                    🟢 אני מציע עבודה / שירות
-                  </option>
+  name="listing_type"
+  value={formData.listing_type}
+  onChange={handleChange}
+  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
+>
+  {formData.category === 'חפצים' ? (
+    <>
+      <option value="item_offer">
+        🟠 מציע פריט
+      </option>
 
-                  <option value="request">
-                    🔵 אני מחפש שירות / עזרה
-                  </option>
-                </select>
+      <option value="item_request">
+        🟣 מחפש פריט
+      </option>
+    </>
+  ) : (
+    <>
+      <option value="offer">
+        🟢 מציע שירות
+      </option>
+
+      <option value="request">
+        🔵 מחפש שירות
+      </option>
+    </>
+  )}
+</select>
 
               </div>
 
@@ -6454,18 +6624,47 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                   קטגוריה
                 </label>
 
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
-                >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+  <select
+    name="category"
+    value={formData.category}
+    onChange={handleChange}
+    className={`w-full px-4 py-3.5 pr-11 border rounded-2xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
+      formData.category === 'חפצים'
+        ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
+        : 'border-slate-200 bg-white text-slate-700 focus:ring-emerald-200 focus:border-emerald-400'
+    }`}
+  >
+    {categories.map((category) => (
+      <option key={category} value={category}>
+        {category === 'חפצים' ? '📦  חפצים' : category}
+      </option>
+    ))}
+  </select>
+
+  {/* חץ */}
+  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+    <svg
+      className="w-4 h-4"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 111.08 1.04l-4.25-4.51a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
+  </div>
+
+  {/* סימון כאשר חפצים נבחר */}
+  {formData.category === 'חפצים' && (
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
+      📦
+    </div>
+  )}
+</div>
 
               </div>
 
@@ -6514,7 +6713,10 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                   placeholder="למשל: 150"
                   value={formData.price}
                   onChange={handleChange}
-                  disabled={formData.payment_type === 'barter'}
+                  disabled={
+  formData.payment_type === 'barter' ||
+  formData.payment_type === 'free'
+}
                   className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition disabled:bg-slate-100 disabled:text-slate-400"
                 />
 
@@ -6523,6 +6725,11 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                     🔄 בברטר אין צורך לציין מחיר
                   </p>
                 )}
+                {formData.payment_type === 'free' && (
+  <p className="text-xs text-emerald-600 mt-2">
+    🎁 פריט זה יימסר בחינם
+  </p>
+)}
 
               </div>
 
@@ -6623,7 +6830,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             </div>
 
 
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
 
               {/* תשלום */}
               <button
@@ -6700,7 +6907,36 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                 </span>
               </button>
 
+
+              {formData.category === 'חפצים' && (
+  <button
+    type="button"
+    onClick={() =>
+      setFormData((previous) => ({
+        ...previous,
+        payment_type: 'free',
+        price: ''
+      }))
+    }
+    className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+      formData.payment_type === 'free'
+        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+        : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+    }`}
+  >
+    <span className="text-xl">
+      🎁
+    </span>
+
+    <span className="block mt-1.5">
+      למסירה בחינם
+    </span>
+  </button>
+)}
+
             </div>
+
+        
 
 
             {formData.payment_type === 'barter' && (
@@ -7096,54 +7332,115 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             </div>
 
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div
+  className={
+    formData.category === 'חפצים'
+      ? 'grid grid-cols-1 sm:grid-cols-2 gap-3'
+      : 'grid grid-cols-1 sm:grid-cols-2 gap-3'
+  }
+>
 
-              {/* מחפש שירות */}
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    listing_type: 'request'
-                  }))
-                }
-                className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
-                  formData.listing_type === 'request'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/40'
-                }`}
-              >
-                <span className="block text-xl mb-1">
-                  🔵
-                </span>
+  {formData.category === 'חפצים' ? (
+    <>
 
-                מחפש שירות / עזרה
-              </button>
+      {/* מציע פריט */}
+      <button
+        type="button"
+        onClick={() =>
+          setFormData((prev) => ({
+            ...prev,
+            listing_type: 'item_offer'
+          }))
+        }
+        className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+          formData.listing_type === 'item_offer'
+            ? 'border-orange-500 bg-orange-50 text-orange-700 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-orange-200 hover:bg-orange-50/40'
+        }`}
+      >
+        <span className="block text-xl mb-1">
+          🟠
+        </span>
+
+        מציע פריט
+      </button>
 
 
-              {/* מציע שירות */}
-              <button
-                type="button"
-                onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    listing_type: 'offer'
-                  }))
-                }
-                className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
-                  formData.listing_type === 'offer'
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
-                }`}
-              >
-                <span className="block text-xl mb-1">
-                  🟢
-                </span>
+      {/* מחפש פריט */}
+      <button
+        type="button"
+        onClick={() =>
+          setFormData((prev) => ({
+            ...prev,
+            listing_type: 'item_request'
+          }))
+        }
+        className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+          formData.listing_type === 'item_request'
+            ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-purple-200 hover:bg-purple-50/40'
+        }`}
+      >
+        <span className="block text-xl mb-1">
+          🟣
+        </span>
 
-                מציע עבודה / שירות
-              </button>
+        מחפש פריט
+      </button>
 
-            </div>
+    </>
+  ) : (
+    <>
+
+      {/* מציע שירות */}
+      <button
+        type="button"
+        onClick={() =>
+          setFormData((prev) => ({
+            ...prev,
+            listing_type: 'offer'
+          }))
+        }
+        className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+          formData.listing_type === 'offer'
+            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+        }`}
+      >
+        <span className="block text-xl mb-1">
+          🟢
+        </span>
+
+        מציע שירות
+      </button>
+
+
+      {/* מחפש שירות */}
+      <button
+        type="button"
+        onClick={() =>
+          setFormData((prev) => ({
+            ...prev,
+            listing_type: 'request'
+          }))
+        }
+        className={`p-4 rounded-2xl border-2 text-sm font-bold transition-all ${
+          formData.listing_type === 'request'
+            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/40'
+        }`}
+      >
+        <span className="block text-xl mb-1">
+          🔵
+        </span>
+
+        מחפש שירות
+      </button>
+
+    </>
+  )}
+
+</div>
 
           </div>
 
@@ -7199,18 +7496,47 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                 קטגוריה
               </label>
 
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-700 transition"
-              >
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+  <select
+    name="category"
+    value={formData.category}
+    onChange={handleChange}
+    className={`w-full px-4 py-3.5 pr-11 border rounded-2xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
+      formData.category === 'חפצים'
+        ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
+        : 'border-slate-200 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-200 focus:border-emerald-400'
+    }`}
+  >
+    {categories.map((category) => (
+      <option key={category} value={category}>
+        {category === 'חפצים' ? '📦  חפצים' : category}
+      </option>
+    ))}
+  </select>
+
+  {/* חץ */}
+  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+    <svg
+      className="w-4 h-4"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51A.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
+  </div>
+
+  {/* סימון כאשר חפצים נבחר */}
+  {formData.category === 'חפצים' && (
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
+      📦
+    </div>
+  )}
+</div>
 
             </div>
 
@@ -7251,13 +7577,23 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                   מחיר (₪)
                 </label>
 
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 transition"
-                />
+                
+                  <input
+  type="number"
+  name="price"
+  value={formData.price}
+  onChange={handleChange}
+  disabled={
+    formData.payment_type === 'barter' ||
+    formData.payment_type === 'free'
+  }
+  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 transition disabled:bg-slate-100 disabled:text-slate-400"
+/>
+{formData.payment_type === 'free' && (
+  <p className="text-xs text-emerald-600 mt-2">
+    🎁 פריט זה יימסר בחינם
+  </p>
+)}
 
               </div>
 
@@ -7322,7 +7658,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
   </div>
 
 
-  <div className="grid grid-cols-3 gap-2.5">
+  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
 
     {/* תשלום */}
     <button
@@ -7397,7 +7733,33 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
       <span className="block mt-1.5">
         תשלום או ברטר
       </span>
-    </button>
+        </button>
+
+    {formData.category === 'חפצים' && (
+      <button
+        type="button"
+        onClick={() =>
+          setFormData((previous) => ({
+            ...previous,
+            payment_type: 'free',
+            price: ''
+          }))
+        }
+        className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
+          formData.payment_type === 'free'
+            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+        }`}
+      >
+        <span className="text-xl">
+          🎁
+        </span>
+
+        <span className="block mt-1.5">
+          למסירה בחינם
+        </span>
+      </button>
+    )}
 
   </div>
 
