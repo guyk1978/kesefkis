@@ -1133,7 +1133,7 @@ useEffect(() => {
   }
 
   if (categoryFromUrl) {
-    document.title = `${categoryFromUrl} - מודעות, עבודות ושירותים | כסף כיס`
+    document.title = `${categoryFromUrl} - מודעות, עבודות, שירותים ופריטים | כסף כיס`
     return
   }
 
@@ -1222,10 +1222,10 @@ useEffect(() => {
     description = `${parts.join(' | ')} - כסף כיס`
   } else if (categoryFromUrl) {
   description =
-    `מודעות, עבודות ושירותים בתחום ${categoryFromUrl} - חיפוש ומציאת עבודות ושירותים בכסף כיס`
+    `מודעות, עבודות, שירותים ופריטים בתחום ${categoryFromUrl} - חיפוש ומציאת עבודות, שירותים ופריטים בכסף כיס`
 } else if (locationFilter !== 'all') {
   description =
-    `מודעות, עבודות ושירותים ב${locationFilter} - חיפוש ומציאת עבודות ושירותים מקומיים בכסף כיס`
+    `מודעות, עבודות, שירותים ופריטים ב${locationFilter} - חיפוש ומציאת עבודות, שירותים ופריטים מקומיים בכסף כיס`
   } else {
     const parts = []
 
@@ -2513,7 +2513,7 @@ const advertiserPageCreatedAt =
       <div className="relative w-full overflow-hidden">
         <img
           src="/hero-kesefkis.png"
-          alt="כסף כיס - עבודות ושירותים מקומיים"
+          alt="כסף כיס - עבודות, שירותים ופריטים מקומיים"
           className="w-full h-auto block"
         />
       </div>
@@ -2582,7 +2582,7 @@ const advertiserPageCreatedAt =
 
       <img
         src="/hero-kesefkis.png"
-        alt="כסף כיס - עבודות ושירותים מקומיים"
+        alt="כסף כיס - עבודות, שירותים ופריטים מקומיים"
         className="absolute inset-0 w-full h-full object-cover object-[65%_center] sm:object-center"
       />
 
@@ -8503,7 +8503,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             </div>
 
             <p className="text-sm text-slate-300 mt-1">
-              כסף כיס — לוח עבודות ושירותים מקומיים.
+              כסף כיס — לוח עבודות, שירותים ופריטים מקומיים.
             </p>
           </div>
 
@@ -8552,7 +8552,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
         </div>
 
         <p className="text-sm text-slate-300 mt-3 leading-6">
-          לוח עבודות ושירותים מקומיים
+          לוח עבודות, שירותים ופריטים מקומיים
         </p>
 
         <p className="text-xs text-slate-500 mt-1">
@@ -8580,7 +8580,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             type="button"
             onClick={() => {
               const text =
-                'כסף כיס – לוח עבודות ושירותים מקומיים. מציעים עבודה או מחפשים שירות? בואו לראות:'
+                'כסף כיס – לוח עבודות, שירותים ופריטים מקומיים. מצאו עבודה, שירות או פריט בסביבה שלכם, או פרסמו בעצמכם:'
               const url = window.location.origin
 
               window.open(
@@ -8626,7 +8626,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             type="button"
             onClick={() => {
               const url = window.location.origin
-              const text = 'כסף כיס – לוח עבודות ושירותים מקומיים'
+              const text = 'כסף כיס – לוח עבודות, שירותים ופריטים מקומיים'
 
               window.open(
                 `https://t.me/share/url?url=${encodeURIComponent(
@@ -9496,7 +9496,7 @@ function TermsPage() {
 
             <div className="border-t border-slate-200 pt-6 mt-10">
               <p className="text-sm text-slate-400">
-                כסף כיס – לוח עבודות ושירותים מקומיים
+                כסף כיס – לוח עבודות, שירותים ופריטים מקומיים
               </p>
 
               <p className="text-xs text-slate-400 mt-1">
@@ -9915,7 +9915,7 @@ function PrivacyPage() {
 
             <div className="border-t border-slate-200 pt-6 mt-10">
               <p className="text-sm text-slate-400">
-                כסף כיס – לוח עבודות ושירותים מקומיים
+                כסף כיס – לוח עבודות, שירותים ופריטים מקומיים
               </p>
 
               <p className="text-xs text-slate-400 mt-1">
