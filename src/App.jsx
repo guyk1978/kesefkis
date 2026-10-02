@@ -2487,7 +2487,7 @@ const advertiserPageCreatedAt =
 
 
       {/* אזור מרכזי */}
-<main className="max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
+<main className="w-full min-w-0 max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
 
   {/* =========================================================
     HERO - כסף כיס
