@@ -391,6 +391,7 @@ useEffect(() => {
 
 
   const [selectedListing, setSelectedListing] = useState(null)
+  const [expandedListings, setExpandedListings] = useState({})
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
 const [reportReason, setReportReason] = useState('')
@@ -3595,48 +3596,264 @@ const advertiserPageCreatedAt =
 ) : (
   <div
   id="listings-section"
-  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6"
+  className="w-full"
 >
 
     {displayedListings.map((item) => {
 
-      const isOwner =
-        user && (item.user_id === user.id || !item.user_id)
+  const isOwner =
+    user && (item.user_id === user.id || !item.user_id)
 
-      return (
-        <div
-          key={item.id}
-          onClick={() => {
-            setSelectedListing(item)
-            navigate(`/מודעה/${item.id}`)
-          }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setSelectedListing(item)
-              navigate(`/מודעה/${item.id}`)
-            }
-          }}
-          className={`group bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-xl 
-hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(0,1fr)] md:flex md:flex-col cursor-pointer relative ${
-    item.is_featured &&
-    item.featured_until &&
-    new Date(item.featured_until) > new Date()
-      ? 'border-amber-300 ring-2 ring-amber-100 shadow-amber-100'
-      : 'border-slate-200'
-  }`}
+  const isExpanded = !!expandedListings[item.id]
 
+  const toggleListingExpanded = (e) => {
+    e.stopPropagation()
 
-  
+    setExpandedListings((prev) => ({
+      ...prev,
+      [item.id]: !prev[item.id]
+    }))
+  }
+
+  if (!isExpanded) {
+    return (
+      <div
+        key={item.id}
+        className={`group h-[50px] overflow-hidden flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 border-b transition-all duration-700 ease-in-out ${
+  item.listing_type === 'item_request'
+    ? 'bg-purple-50/80 border-purple-200'
+    : item.listing_type === 'item_offer'
+      ? 'bg-orange-50/80 border-orange-200'
+      : item.listing_type === 'request'
+        ? 'bg-blue-50/80 border-blue-200'
+        : 'bg-emerald-50/80 border-emerald-200'
+}`}
+      >
+
+        {/* סוג המודעה */}
+        <span
+          className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-xl text-sm ${
+            item.listing_type === 'item_request'
+              ? 'bg-purple-50 text-purple-700'
+              : item.listing_type === 'item_offer'
+                ? 'bg-orange-50 text-orange-700'
+                : item.listing_type === 'request'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'bg-emerald-50 text-emerald-700'
+          }`}
+          title={
+            item.listing_type === 'item_request'
+              ? 'מחפש פריט'
+              : item.listing_type === 'item_offer'
+                ? 'מציע פריט'
+                : item.listing_type === 'request'
+                  ? 'מחפש שירות'
+                  : 'מציע שירות'
+          }
         >
+          {item.listing_type === 'item_request'
+            ? '🟣'
+            : item.listing_type === 'item_offer'
+              ? '🟠'
+              : item.listing_type === 'request'
+                ? '🔵'
+                : '🟢'}
+        </span>
+
+        {/* כותרת */}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+            {item.title}
+          </h3>
+        </div>
+
+        {/* מיקום - במחשב */}
+        {item.location && (
+  <div className="flex items-center gap-1 shrink-0 min-w-0 max-w-[110px] sm:max-w-[150px]">
+    <span className="text-xs sm:text-sm shrink-0">📍</span>
+    <span className="text-[11px] sm:text-xs font-medium text-slate-600 truncate">
+      {item.location}
+    </span>
+  </div>
+)}
+
+        {/* מחיר / תמורה */}
+        <div className="shrink-0 hidden sm:block">
+          {item.payment_type === 'free' ? (
+            <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">
+              🎁 חינם
+            </span>
+          ) : item.payment_type === 'barter' ? (
+            <span className="text-xs font-bold text-amber-700 whitespace-nowrap">
+              🔄 ברטר
+            </span>
+          ) : item.payment_type === 'cash_or_barter' ? (
+            <span className="text-xs font-bold text-purple-700 whitespace-nowrap">
+              💰/🔄
+            </span>
+          ) : item.price ? (
+            <span className="text-sm font-extrabold text-slate-800 whitespace-nowrap">
+              ₪{item.price}
+            </span>
+          ) : null}
+        </div>
+
+        {/* כפתור פתיחה */}
+        <button
+          type="button"
+          onClick={toggleListingExpanded}
+          aria-expanded={false}
+          aria-label={`פתח את המודעה ${item.title}`}
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
+        >
+          <span>＋</span>
+          <span>פתח</span>
+        </button>
+
+      </div>
+    )
+  }
+
+  return (
+        <div
+  key={item.id}
+  onClick={() => {
+    if (!isExpanded) {
+      setSelectedListing(item)
+      navigate(`/מודעה/${item.id}`)
+    }
+  }}
+  role="button"
+  tabIndex={0}
+  onKeyDown={(e) => {
+    if (!isExpanded && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault()
+      setSelectedListing(item)
+      navigate(`/מודעה/${item.id}`)
+    }
+  }}
+  className={`group w-full overflow-hidden border-b transition-all duration-700 ease-in-out ${
+    item.listing_type === 'item_request'
+      ? 'bg-purple-50/80 border-purple-200'
+      : item.listing_type === 'item_offer'
+        ? 'bg-orange-50/80 border-orange-200'
+        : item.listing_type === 'request'
+          ? 'bg-blue-50/80 border-blue-200'
+          : 'bg-emerald-50/80 border-emerald-200'
+  } ${
+    isExpanded
+      ? 'max-h-[1400px]'
+      : 'h-[50px] max-h-[50px]'
+  }`}
+>
+
+
+
+          {/* =====================================================
+              שורת מודעה קומפקטית
+              ===================================================== */}
+          <div
+  className={`h-[50px] min-h-[50px] flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 ${
+    isExpanded ? 'border-b border-black/5' : ''
+  }`}
+>
+
+  {/* סוג */}
+  <span
+    className={`shrink-0 inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm ${
+      item.listing_type === 'item_request'
+        ? 'bg-purple-100 text-purple-700'
+        : item.listing_type === 'item_offer'
+          ? 'bg-orange-100 text-orange-700'
+          : item.listing_type === 'request'
+            ? 'bg-blue-100 text-blue-700'
+            : 'bg-emerald-100 text-emerald-700'
+    }`}
+  >
+    {item.listing_type === 'item_request'
+      ? '🟣'
+      : item.listing_type === 'item_offer'
+        ? '🟠'
+        : item.listing_type === 'request'
+          ? '🔵'
+          : '🟢'}
+  </span>
+
+  {/* כותרת */}
+  <div className="min-w-0 flex-1">
+    <h3 className="text-xs sm:text-base font-extrabold text-slate-900 truncate">
+      {item.title}
+    </h3>
+  </div>
+
+  {/* מיקום */}
+  {item.location && (
+    <div className="flex items-center gap-0.5 shrink-0 max-w-[82px] sm:max-w-[170px]">
+      <span className="text-[11px] sm:text-sm shrink-0">
+        📍
+      </span>
+
+      <span className="text-[10px] sm:text-xs font-semibold text-slate-600 truncate">
+        {item.location}
+      </span>
+    </div>
+  )}
+
+  {/* מחיר — רק בדסקטופ */}
+  <div className="hidden sm:block shrink-0">
+    {item.payment_type === 'free' ? (
+      <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">
+        🎁 חינם
+      </span>
+    ) : item.payment_type === 'barter' ? (
+      <span className="text-xs font-bold text-amber-700 whitespace-nowrap">
+        🔄 ברטר
+      </span>
+    ) : item.payment_type === 'cash_or_barter' ? (
+      <span className="text-xs font-bold text-purple-700 whitespace-nowrap">
+        💰/🔄
+      </span>
+    ) : item.price ? (
+      <span className="text-sm font-extrabold text-slate-800 whitespace-nowrap">
+        ₪{item.price}
+      </span>
+    ) : null}
+  </div>
+
+  {/* פתיחה / סגירה */}
+  <button
+    type="button"
+    onClick={toggleListingExpanded}
+    aria-expanded={isExpanded}
+    aria-label={
+      isExpanded
+        ? `סגור את המודעה ${item.title}`
+        : `פתח את המודעה ${item.title}`
+    }
+    className={`shrink-0 w-7 h-7 sm:w-auto sm:h-8 sm:px-3 inline-flex items-center justify-center gap-1 text-xs font-bold transition-all ${
+      isExpanded
+        ? 'bg-white/60 text-slate-600 border border-slate-200 hover:bg-white'
+        : 'bg-white/70 text-slate-700 border border-black/10 hover:bg-white'
+    }`}
+  >
+    <span className="text-base leading-none">
+      {isExpanded ? '−' : '+'}
+    </span>
+
+    <span className="hidden sm:inline">
+      {isExpanded ? 'סגור' : 'פתח'}
+    </span>
+  </button>
+
+</div>
+
+
 
           {/* תמונת המודעה */}
           <div className="relative h-full min-h-[145px] md:h-auto md:min-h-0">
 
             {item.image_url ? (
-              <div className="w-[120px] h-full min-h-[145px] md:w-full md:h-52 bg-slate-100 overflow-hidden">
+              <div className="w-full h-full min-h-[145px] md:h-52 bg-slate-100 overflow-hidden">
                 <img
                   src={item.image_url}
                   alt={item.title}
@@ -3644,7 +3861,7 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
                 />
               </div>
             ) : (
-              <div className="w-[120px] h-full min-h-[145px] md:w-full md:h-36 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 flex items-center justify-center">
+              <div className="w-full h-full min-h-[145px] md:h-36 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-1 text-slate-400">
                   <span className="text-2xl">
                     🖼️
@@ -3707,6 +3924,8 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
 
           {/* תוכן */}
           <div className="min-w-0 p-4 md:p-5 flex-1 flex flex-col">
+
+                        
 
             {/* קטגוריה + תמורה */}
             <div className="flex items-start justify-between gap-3 mb-3">
@@ -3805,24 +4024,32 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
             {/* צפייה בפרטים */}
             <div className="mt-auto">
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      setSelectedListing(item)
+      navigate(`/מודעה/${item.id}`)
+    }}
+    className="w-full flex items-center justify-between pt-4 border-t border-slate-200 text-right"
+  >
 
-                <span className="text-emerald-600 text-sm font-bold group-hover:translate-x-[-3px] transition-transform">
-                  לצפייה בפרטים
-                </span>
+    <span className="text-emerald-600 text-sm font-bold hover:text-emerald-700 transition-colors">
+      צפייה בפרטים
+    </span>
 
-                <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition">
-                  ←
-                </span>
+    <span className="w-8 h-8 bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition">
+      →
+    </span>
 
-              </div>
+  </button>
 
-            </div>
+</div>
 
           </div>
 
           {/* אזור תחתון */}
-          <div className="col-span-2 px-4 pb-4 md:px-5 md:pb-5">
+          <div className="px-3 pb-4 sm:px-4 md:px-5 md:pb-5">
 
             {/* טלפון */}
             {item.phone && (
@@ -3886,8 +4113,8 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
     }}
   >
     <div
-      className="bg-white w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl shadow-2xl overflow-hidden"
-      dir="rtl"
+  className="bg-white w-full max-w-4xl max-h-[94vh] overflow-y-auto rounded-none shadow-2xl overflow-hidden"
+  dir="rtl"
       onClick={(e) => e.stopPropagation()}
     >
 
@@ -3978,7 +4205,7 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
 
           if (allImages.length === 0) {
             return (
-              <div className="w-full h-40 sm:h-52 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 rounded-2xl flex flex-col items-center justify-center text-slate-400 gap-2">
+              <div className="w-full h-40 sm:h-52 bg-gradient-to-br from-slate-100 via-slate-50 to-emerald-50 rounded-none flex flex-col items-center justify-center text-slate-400 gap-2">
                 <span className="text-3xl">
                   🖼️
                 </span>
@@ -4000,7 +4227,7 @@ hover:-translate-y-1.5 transition-all duration-300 grid grid-cols-[120px_minmax(
               <button
                 type="button"
                 onClick={() => setGalleryImage(mainImage)}
-                className="relative w-full h-64 sm:h-72 md:h-80 bg-slate-200 rounded-2xl overflow-hidden group cursor-zoom-in block"
+                className="relative w-full h-64 sm:h-72 md:h-80 bg-slate-200 rounded-none overflow-hidden group cursor-zoom-in block"
               >
 
                 <img
