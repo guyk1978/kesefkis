@@ -2387,15 +2387,15 @@ const advertiserPageCreatedAt =
   <div>
     {/* התחברות */}
     <button
-      type="button"
-      onClick={() => {
-        setAuthMode('login')
-        setIsAuthModalOpen(true)
-      }}
-      className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-emerald-600/90 border border-emerald-400/50 shadow-sm hover:bg-emerald-500 hover:border-emerald-300 hover:shadow-md transition-all whitespace-nowrap"
-    >
-      התחברות
-    </button>
+  type="button"
+  onClick={() => {
+    setAuthMode('login')
+    setIsAuthModalOpen(true)
+  }}
+  className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-slate-900 bg-white border border-amber-400 shadow-sm hover:bg-amber-50 hover:border-amber-500 hover:shadow-md transition-all whitespace-nowrap"
+>
+  התחברות
+</button>
   </div>
 )}
 
