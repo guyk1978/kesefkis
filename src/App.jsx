@@ -28,6 +28,71 @@ function App() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const getRelativeTime = (createdAt) => {
+    if (!createdAt) return ''
+
+    const created = new Date(createdAt)
+    const now = new Date()
+
+    if (Number.isNaN(created.getTime())) return ''
+
+    const diffMs = now.getTime() - created.getTime()
+
+    // אם מסיבה כלשהי התאריך בעתיד
+    if (diffMs < 0) return 'עלה עכשיו'
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60))
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffMinutes < 1) {
+      return 'עלה עכשיו'
+    }
+
+    if (diffMinutes < 60) {
+      return diffMinutes === 1
+        ? 'עלה לפני דקה'
+        : `עלה לפני ${diffMinutes} דקות`
+    }
+
+    if (diffHours < 24) {
+      if (diffHours === 1) return 'עלה לפני שעה'
+      if (diffHours === 2) return 'עלה לפני שעתיים'
+
+      return `עלה לפני ${diffHours} שעות`
+    }
+
+    if (diffDays === 1) {
+      return 'עלה אתמול'
+    }
+
+    if (diffDays < 7) {
+      return `עלה לפני ${diffDays} ימים`
+    }
+
+    const diffWeeks = Math.floor(diffDays / 7)
+
+    if (diffWeeks < 4) {
+      return diffWeeks === 1
+        ? 'עלה לפני שבוע'
+        : `עלה לפני ${diffWeeks} שבועות`
+    }
+
+    const diffMonths = Math.floor(diffDays / 30)
+
+    if (diffMonths < 12) {
+      return diffMonths === 1
+        ? 'עלה לפני חודש'
+        : `עלה לפני ${diffMonths} חודשים`
+    }
+
+    const diffYears = Math.floor(diffDays / 365)
+
+    return diffYears === 1
+      ? 'עלה לפני שנה'
+      : `עלה לפני ${diffYears} שנים`
+  }
+
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [scrollToListings, setScrollToListings] = useState(false)
 
@@ -260,6 +325,7 @@ const [locationError, setLocationError] = useState('')
 const [nearbyOnly, setNearbyOnly] = useState(false)
 const [locationRadius, setLocationRadius] = useState(5)
 const [sortByDistance, setSortByDistance] = useState(false)
+const [listingSort, setListingSort] = useState('newest')
 
 const requestUserLocation = () => {
   if (!navigator.geolocation) {
@@ -1872,37 +1938,45 @@ const displayedListings = baseListings
     )
   })
   .sort((a, b) => {
-    const now = new Date()
+  const now = new Date()
 
-    const aFeatured =
-      a.is_featured === true &&
-      a.featured_until &&
-      new Date(a.featured_until) > now
+  const aFeatured =
+    a.is_featured === true &&
+    a.featured_until &&
+    new Date(a.featured_until) > now
 
-    const bFeatured =
-      b.is_featured === true &&
-      b.featured_until &&
-      new Date(b.featured_until) > now
+  const bFeatured =
+    b.is_featured === true &&
+    b.featured_until &&
+    new Date(b.featured_until) > now
 
-    // קודם כל מודעות מודגשות
-    if (aFeatured && !bFeatured) return -1
-    if (!aFeatured && bFeatured) return 1
+  // מודעות מודגשות תמיד נשארות בראש
+  if (aFeatured && !bFeatured) return -1
+  if (!aFeatured && bFeatured) return 1
 
-    // אם אין מיון לפי מרחק - שומרים על הסדר הקיים
-    if (!sortByDistance || !userLocation) {
-      return 0
-    }
-
+  // מיון לפי מרחק
+  if (sortByDistance && userLocation) {
     const distanceA = getListingDistance(a)
     const distanceB = getListingDistance(b)
 
-    // מודעות בלי קואורדינטות עוברות לסוף
     if (distanceA === null && distanceB === null) return 0
     if (distanceA === null) return 1
     if (distanceB === null) return -1
 
     return distanceA - distanceB
-  })
+  }
+
+  // מיון לפי תאריך
+  const dateA = new Date(a.created_at).getTime()
+  const dateB = new Date(b.created_at).getTime()
+
+  if (listingSort === 'oldest') {
+    return dateA - dateB
+  }
+
+  // ברירת מחדל: החדשות ביותר קודם
+  return dateB - dateA
+})
 
 const advertiserPageProfile = advertiserFilter
   ? listings.find(
@@ -2310,18 +2384,20 @@ const advertiserPageCreatedAt =
 
       </div>
     ) : (
-      /* התחברות */
-      <button
-        type="button"
-        onClick={() => {
-          setAuthMode('login')
-          setIsAuthModalOpen(true)
-        }}
-        className="h-9 sm:h-10 px-2.5 sm:px-4 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:text-white hover:bg-white/10 transition whitespace-nowrap"
-      >
-        התחברות
-      </button>
-    )}
+  <div>
+    {/* התחברות */}
+    <button
+      type="button"
+      onClick={() => {
+        setAuthMode('login')
+        setIsAuthModalOpen(true)
+      }}
+      className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-emerald-600/90 border border-emerald-400/50 shadow-sm hover:bg-emerald-500 hover:border-emerald-300 hover:shadow-md transition-all whitespace-nowrap"
+    >
+      התחברות
+    </button>
+  </div>
+)}
 
   </div>
 
@@ -3378,7 +3454,7 @@ const advertiserPageCreatedAt =
 
         </div>
 
-        {/* מידע וכלי המיקום */}
+                {/* מידע וכלי מיקום */}
         {userCity && (
           <div className="mt-5 pt-5 border-t border-slate-200/80">
 
@@ -3389,11 +3465,11 @@ const advertiserPageCreatedAt =
                 <span>📍</span>
 
                 <span className="text-sm font-extrabold">
-                  המיקום שלך: {userCity}
+                  המיקום שלי: {userCity}
                 </span>
               </div>
 
-              {/* אזור */}
+              {/* הצגת מודעות באזור */}
               <button
                 type="button"
                 onClick={() => setNearbyOnly(!nearbyOnly)}
@@ -3404,79 +3480,108 @@ const advertiserPageCreatedAt =
                 }`}
               >
                 {nearbyOnly
-                  ? '✓ מציג מודעות באזור שלי'
+                  ? '📍 הצג מודעות באזור שלי'
                   : 'הצג מודעות באזור שלי'}
               </button>
 
             </div>
 
-            {/* כלי מיון */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-600">
-                  מיון:
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => setSortByDistance(false)}
-                  className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
-                    !sortByDistance
-                      ? 'bg-slate-800 text-white shadow-sm'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  🕐 החדשות ביותר
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSortByDistance(true)}
-                  className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
-                    sortByDistance
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
-                  }`}
-                >
-                  📍 הקרובות ביותר
-                </button>
-              </div>
-
-              {/* רדיוס */}
-              {nearbyOnly && (
-                <div className="flex items-center gap-2">
-
-                  <span className="text-sm font-bold text-slate-600">
-                    רדיוס:
-                  </span>
-
-                  <div className="flex items-center gap-1.5">
-
-                    {[1, 5, 10, 20].map((radius) => (
-                      <button
-                        key={radius}
-                        type="button"
-                        onClick={() => setLocationRadius(radius)}
-                        className={`min-w-[48px] px-2.5 py-2 rounded-xl text-sm font-bold transition-all ${
-                          locationRadius === radius
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
-                        }`}
-                      >
-                        {radius} ק"מ
-                      </button>
-                    ))}
-
-                  </div>
-
-                </div>
-              )}
-
-            </div>
-
           </div>
         )}
+
+        {/* מיון מודעות - תמיד מוצג */}
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+
+            <span className="text-sm font-bold text-slate-600">
+              מיון:
+            </span>
+
+            {/* החדשות ביותר */}
+            <button
+              type="button"
+              onClick={() => {
+                setSortByDistance(false)
+                setListingSort('newest')
+              }}
+              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                !sortByDistance && listingSort === 'newest'
+                  ? 'bg-slate-800 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              🕐 החדשות ביותר
+            </button>
+
+            {/* הישנות ביותר */}
+            <button
+              type="button"
+              onClick={() => {
+                setSortByDistance(false)
+                setListingSort('oldest')
+              }}
+              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                !sortByDistance && listingSort === 'oldest'
+                  ? 'bg-slate-800 text-white shadow-sm'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              🕰️ הישנות ביותר
+            </button>
+
+            {/* הקרובות ביותר */}
+            {userLocation && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSortByDistance(true)
+                }}
+                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                  sortByDistance
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
+                }`}
+              >
+                📍 הקרובות ביותר
+              </button>
+            )}
+
+          </div>
+
+          {/* רדיוס */}
+          {nearbyOnly && userLocation && (
+            <div className="flex items-center gap-2">
+
+              <span className="text-sm font-bold text-slate-600">
+                רדיוס:
+              </span>
+
+              <div className="flex items-center gap-1.5">
+
+                {[1, 5, 10, 20].map((radius) => (
+                  <button
+                    key={radius}
+                    type="button"
+                    onClick={() => setLocationRadius(radius)}
+                    className={`min-w-[48px] px-2.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                      locationRadius === radius
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+                    }`}
+                  >
+                    {radius} ק"מ
+                  </button>
+                ))}
+
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+          
 
         {/* שגיאת מיקום */}
         {locationError && (
@@ -3616,103 +3721,113 @@ const advertiserPageCreatedAt =
   }
 
   if (!isExpanded) {
-    return (
-      <div
-        key={item.id}
-        className={`group h-[50px] overflow-hidden flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 border-b transition-all duration-700 ease-in-out ${
-  item.listing_type === 'item_request'
-    ? 'bg-purple-50/80 border-purple-200'
-    : item.listing_type === 'item_offer'
-      ? 'bg-orange-50/80 border-orange-200'
-      : item.listing_type === 'request'
-        ? 'bg-blue-50/80 border-blue-200'
-        : 'bg-emerald-50/80 border-emerald-200'
-}`}
-      >
+  return (
+    <div
+      key={item.id}
+      onClick={toggleListingExpanded}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          toggleListingExpanded(e)
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={`פתח את המודעה ${item.title}`}
+      className={`group h-[50px] overflow-hidden flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 border-b cursor-pointer transition-all duration-300 hover:brightness-[0.98] ${
+    item.is_featured &&
+    item.featured_until &&
+    new Date(item.featured_until) > new Date()
+      ? 'border-r-4 border-r-amber-400'
+      : ''
+  } ${
+    item.listing_type === 'item_request'
+      ? 'bg-purple-50/80 border-purple-200'
+      : item.listing_type === 'item_offer'
+        ? 'bg-orange-50/80 border-orange-200'
+        : item.listing_type === 'request'
+          ? 'bg-blue-50/80 border-blue-200'
+          : 'bg-emerald-50/80 border-emerald-200'
+  }`}
+    >
 
-        {/* סוג המודעה */}
-        <span
-          className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-xl text-sm ${
-            item.listing_type === 'item_request'
-              ? 'bg-purple-50 text-purple-700'
-              : item.listing_type === 'item_offer'
-                ? 'bg-orange-50 text-orange-700'
-                : item.listing_type === 'request'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'bg-emerald-50 text-emerald-700'
-          }`}
-          title={
-            item.listing_type === 'item_request'
-              ? 'מחפש פריט'
-              : item.listing_type === 'item_offer'
-                ? 'מציע פריט'
-                : item.listing_type === 'request'
-                  ? 'מחפש שירות'
-                  : 'מציע שירות'
-          }
-        >
-          {item.listing_type === 'item_request'
-            ? '🟣'
+      {/* סוג המודעה */}
+      <span
+        className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-xl text-sm ${
+          item.listing_type === 'item_request'
+            ? 'bg-purple-50 text-purple-700'
             : item.listing_type === 'item_offer'
-              ? '🟠'
+              ? 'bg-orange-50 text-orange-700'
               : item.listing_type === 'request'
-                ? '🔵'
-                : '🟢'}
-        </span>
+                ? 'bg-blue-50 text-blue-700'
+                : 'bg-emerald-50 text-emerald-700'
+        }`}
+        title={
+          item.listing_type === 'item_request'
+            ? 'מחפש פריט'
+            : item.listing_type === 'item_offer'
+              ? 'מציע פריט'
+              : item.listing_type === 'request'
+                ? 'מחפש שירות'
+                : 'מציע שירות'
+        }
+      >
+        {item.listing_type === 'item_request'
+          ? '🔎'
+          : item.listing_type === 'item_offer'
+            ? '📦'
+            : item.listing_type === 'request'
+              ? '🙋'
+              : '🛠️'}
+      </span>
 
-        {/* כותרת */}
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
-            {item.title}
-          </h3>
-        </div>
-
-        {/* מיקום - במחשב */}
-        {item.location && (
-  <div className="flex items-center gap-1 shrink-0 min-w-0 max-w-[110px] sm:max-w-[150px]">
-    <span className="text-xs sm:text-sm shrink-0">📍</span>
-    <span className="text-[11px] sm:text-xs font-medium text-slate-600 truncate">
-      {item.location}
-    </span>
-  </div>
-)}
-
-        {/* מחיר / תמורה */}
-        <div className="shrink-0 hidden sm:block">
-          {item.payment_type === 'free' ? (
-            <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">
-              🎁 חינם
-            </span>
-          ) : item.payment_type === 'barter' ? (
-            <span className="text-xs font-bold text-amber-700 whitespace-nowrap">
-              🔄 ברטר
-            </span>
-          ) : item.payment_type === 'cash_or_barter' ? (
-            <span className="text-xs font-bold text-purple-700 whitespace-nowrap">
-              💰/🔄
-            </span>
-          ) : item.price ? (
-            <span className="text-sm font-extrabold text-slate-800 whitespace-nowrap">
-              ₪{item.price}
-            </span>
-          ) : null}
-        </div>
-
-        {/* כפתור פתיחה */}
-        <button
-          type="button"
-          onClick={toggleListingExpanded}
-          aria-expanded={false}
-          aria-label={`פתח את המודעה ${item.title}`}
-          className="shrink-0 inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all"
-        >
-          <span>＋</span>
-          <span>פתח</span>
-        </button>
-
+      {/* כותרת */}
+      <div className="min-w-0 flex-1">
+        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+          {item.title}
+        </h3>
       </div>
-    )
-  }
+
+      {/* מיקום */}
+      {item.location && (
+        <div className="flex items-center gap-1 shrink-0 min-w-0 max-w-[110px] sm:max-w-[150px]">
+          <span className="text-xs sm:text-sm shrink-0">📍</span>
+          <span className="text-[11px] sm:text-xs font-medium text-slate-600 truncate">
+            {item.location}
+          </span>
+        </div>
+      )}
+
+      
+            {/* מחיר / תמורה */}
+      <div className="shrink-0 hidden sm:block">
+        {item.payment_type === 'free' ? (
+          <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">
+            חינם
+          </span>
+        ) : item.payment_type === 'barter' ? (
+          <span className="text-xs font-bold text-amber-700 whitespace-nowrap">
+            🔄 ברטר
+          </span>
+        ) : item.payment_type === 'cash_or_barter' ? (
+          <span className="text-xs font-bold text-purple-700 whitespace-nowrap">
+            💰/🔄
+          </span>
+        ) : item.price ? (
+          <span className="text-sm font-extrabold text-slate-800 whitespace-nowrap">
+            ₪{item.price}
+          </span>
+        ) : null}
+      </div>
+
+      {/* זמן פרסום */}
+      <span className="shrink-0 text-[10px] sm:text-xs font-medium text-slate-500 whitespace-nowrap">
+        {getRelativeTime(item.created_at)}
+      </span>
+
+    </div>
+  )
+}
 
   return (
         <div
@@ -3733,13 +3848,17 @@ const advertiserPageCreatedAt =
     }
   }}
   className={`group w-full overflow-hidden border-b transition-all duration-700 ease-in-out ${
-    item.listing_type === 'item_request'
-      ? 'bg-purple-50/80 border-purple-200'
-      : item.listing_type === 'item_offer'
-        ? 'bg-orange-50/80 border-orange-200'
-        : item.listing_type === 'request'
-          ? 'bg-blue-50/80 border-blue-200'
-          : 'bg-emerald-50/80 border-emerald-200'
+    item.is_featured &&
+    item.featured_until &&
+    new Date(item.featured_until) > new Date()
+      ? 'bg-amber-50/70 border-2 border-amber-400 shadow-[0_0_0_2px_rgba(251,191,36,0.18)]'
+      : item.listing_type === 'item_request'
+        ? 'bg-purple-50/80 border-purple-200'
+        : item.listing_type === 'item_offer'
+          ? 'bg-orange-50/80 border-orange-200'
+          : item.listing_type === 'request'
+            ? 'bg-blue-50/80 border-blue-200'
+            : 'bg-emerald-50/80 border-emerald-200'
   } ${
     isExpanded
       ? 'max-h-[1400px]'
@@ -3753,9 +3872,18 @@ const advertiserPageCreatedAt =
               שורת מודעה קומפקטית
               ===================================================== */}
           <div
-  className={`h-[50px] min-h-[50px] flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 ${
+  className={`h-[50px] min-h-[50px] flex items-center gap-1.5 sm:gap-3 px-2 sm:px-3 cursor-pointer ${
     isExpanded ? 'border-b border-black/5' : ''
   }`}
+  onClick={toggleListingExpanded}
+  role="button"
+  tabIndex={0}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      toggleListingExpanded(e)
+    }
+  }}
 >
 
   {/* סוג */}
@@ -3820,30 +3948,7 @@ const advertiserPageCreatedAt =
     ) : null}
   </div>
 
-  {/* פתיחה / סגירה */}
-  <button
-    type="button"
-    onClick={toggleListingExpanded}
-    aria-expanded={isExpanded}
-    aria-label={
-      isExpanded
-        ? `סגור את המודעה ${item.title}`
-        : `פתח את המודעה ${item.title}`
-    }
-    className={`shrink-0 w-7 h-7 sm:w-auto sm:h-8 sm:px-3 inline-flex items-center justify-center gap-1 text-xs font-bold transition-all ${
-      isExpanded
-        ? 'bg-white/60 text-slate-600 border border-slate-200 hover:bg-white'
-        : 'bg-white/70 text-slate-700 border border-black/10 hover:bg-white'
-    }`}
-  >
-    <span className="text-base leading-none">
-      {isExpanded ? '−' : '+'}
-    </span>
-
-    <span className="hidden sm:inline">
-      {isExpanded ? 'סגור' : 'פתח'}
-    </span>
-  </button>
+  
 
 </div>
 
@@ -10171,3 +10276,4 @@ export default function AppRouter() {
     </BrowserRouter>
   )
 }
+
