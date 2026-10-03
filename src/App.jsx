@@ -2935,135 +2935,205 @@ const advertiserPageCreatedAt =
 
     <div className="text-center mb-3">
       <h3 className="text-lg font-bold text-slate-800">
-        מה אתה מחפש?
+        בחר את סוג המודעות שמעניין אותך
       </h3>
 
       <p className="text-sm text-slate-500">
-        בחר את סוג המודעות שמעניין אותך
+        סנן את המודעות לפי מה שאתה מחפש
       </p>
     </div>
 
-    {/* הכל */}
-    <button
-      onClick={() => setListingTypeFilter('all')}
-      className={`w-full rounded-2xl border-2 p-3.5 text-center transition mb-3 ${
-        listingTypeFilter === 'all'
-          ? 'border-slate-700 bg-slate-100 shadow-sm'
-          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-      }`}
-    >
-      <div className="text-xl mb-0.5">
-        📋
-      </div>
+    {/* מחשב: שורה אחת | מובייל: המבנה הקיים */}
+    <div className="hidden md:grid md:grid-cols-5 gap-3">
 
-      <div className="font-bold text-slate-800">
-        כל המודעות
-      </div>
-
-      <div className="text-xs text-slate-500 mt-0.5">
-        הצעות ובקשות
-      </div>
-    </button>
-
-
-    {/* שירותים */}
-    <div className="grid grid-cols-2 gap-3 mb-3">
+      {/* הכל */}
+      <button
+        onClick={() => setListingTypeFilter('all')}
+        className={`rounded-xl p-3 text-center transition ${
+          listingTypeFilter === 'all'
+            ? 'bg-slate-100 text-slate-800'
+            : 'bg-white text-slate-700 hover:bg-slate-100'
+        }`}
+      >
+        <div className="text-2xl mb-1">📋</div>
+        <div className="font-bold text-sm">
+          כל המודעות
+        </div>
+      </button>
 
       {/* מציע שירות */}
       <button
         onClick={() => setListingTypeFilter('offer')}
-        className={`rounded-2xl border-2 p-4 text-center transition ${
+        className={`rounded-xl p-3 text-center transition ${
           listingTypeFilter === 'offer'
-            ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-            : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
+            ? 'bg-emerald-50 text-emerald-700'
+            : 'bg-white text-slate-700 hover:bg-emerald-50'
         }`}
       >
-        <div className="text-2xl mb-1">
-          🟢
-        </div>
-
-        <div className="font-bold text-slate-800">
+        <div className="text-2xl mb-1">🟢</div>
+        <div className="font-bold text-sm">
           מציע שירות
         </div>
-
-        <div className="text-xs text-slate-500 mt-1">
+        <div className="text-xs text-slate-500">
           עבודות ושירותים
         </div>
       </button>
 
-
       {/* מחפש שירות */}
       <button
         onClick={() => setListingTypeFilter('request')}
-        className={`rounded-2xl border-2 p-4 text-center transition ${
+        className={`rounded-xl p-3 text-center transition ${
           listingTypeFilter === 'request'
-            ? 'border-blue-500 bg-blue-50 shadow-sm'
-            : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+            ? 'bg-blue-50 text-blue-700'
+            : 'bg-white text-slate-700 hover:bg-blue-50'
         }`}
       >
-        <div className="text-2xl mb-1">
-          🔵
-        </div>
-
-        <div className="font-bold text-slate-800">
+        <div className="text-2xl mb-1">🔵</div>
+        <div className="font-bold text-sm">
           מחפש שירות
         </div>
-
-        <div className="text-xs text-slate-500 mt-1">
+        <div className="text-xs text-slate-500">
           עזרה ועבודות
+        </div>
+      </button>
+
+      {/* מציע פריט */}
+      <button
+        onClick={() => setListingTypeFilter('item_offer')}
+        className={`rounded-xl p-3 text-center transition ${
+          listingTypeFilter === 'item_offer'
+            ? 'bg-orange-50 text-orange-700'
+            : 'bg-white text-slate-700 hover:bg-orange-50'
+        }`}
+      >
+        <div className="text-2xl mb-1">🟠</div>
+        <div className="font-bold text-sm">
+          מציע פריט
+        </div>
+        <div className="text-xs text-slate-500">
+          מכירה, מסירה או החלפה
+        </div>
+      </button>
+
+      {/* מחפש פריט */}
+      <button
+        onClick={() => setListingTypeFilter('item_request')}
+        className={`rounded-xl p-3 text-center transition ${
+          listingTypeFilter === 'item_request'
+            ? 'bg-purple-50 text-purple-700'
+            : 'bg-white text-slate-700 hover:bg-purple-50'
+        }`}
+      >
+        <div className="text-2xl mb-1">🟣</div>
+        <div className="font-bold text-sm">
+          מחפש פריט
+        </div>
+        <div className="text-xs text-slate-500">
+          מחפש חפץ מסוים
         </div>
       </button>
 
     </div>
 
+    {/* מובייל: נשאר במבנה הקיים */}
+    <div className="md:hidden">
 
-    {/* חפצים */}
-    <div className="grid grid-cols-2 gap-3">
-
-      {/* מציע פריט */}
+      {/* הכל */}
       <button
-        onClick={() => setListingTypeFilter('item_offer')}
-        className={`rounded-2xl border-2 p-4 text-center transition ${
-          listingTypeFilter === 'item_offer'
-            ? 'border-orange-500 bg-orange-50 shadow-sm'
-            : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
+        onClick={() => setListingTypeFilter('all')}
+        className={`w-full rounded-2xl border-2 p-3.5 text-center transition mb-3 ${
+          listingTypeFilter === 'all'
+            ? 'border-slate-700 bg-slate-100 shadow-sm'
+            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
         }`}
       >
-        <div className="text-2xl mb-1">
-          🟠
-        </div>
-
-        <div className="font-bold text-slate-800">
-          מציע פריט
-        </div>
-
-        <div className="text-xs text-slate-500 mt-1">
-          מכירה, מסירה או החלפה
+        <div className="text-2xl mb-1">📋</div>
+        <div className="font-bold text-sm">
+          כל המודעות
         </div>
       </button>
 
+      {/* שירותים */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
 
-      {/* מחפש פריט */}
-      <button
-        onClick={() => setListingTypeFilter('item_request')}
-        className={`rounded-2xl border-2 p-4 text-center transition ${
-          listingTypeFilter === 'item_request'
-            ? 'border-purple-500 bg-purple-50 shadow-sm'
-            : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/40'
-        }`}
-      >
-        <div className="text-2xl mb-1">
-          🟣
-        </div>
+        {/* מציע שירות */}
+        <button
+          onClick={() => setListingTypeFilter('offer')}
+          className={`rounded-2xl border-2 p-4 text-center transition ${
+            listingTypeFilter === 'offer'
+              ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
+          }`}
+        >
+          <div className="text-2xl mb-1">🟢</div>
+          <div className="font-bold text-sm">
+            מציע שירות
+          </div>
+          <div className="text-xs text-slate-500">
+            עבודות ושירותים
+          </div>
+        </button>
 
-        <div className="font-bold text-slate-800">
-          מחפש פריט
-        </div>
+        {/* מחפש שירות */}
+        <button
+          onClick={() => setListingTypeFilter('request')}
+          className={`rounded-2xl border-2 p-4 text-center transition ${
+            listingTypeFilter === 'request'
+              ? 'border-blue-500 bg-blue-50 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+          }`}
+        >
+          <div className="text-2xl mb-1">🔵</div>
+          <div className="font-bold text-sm">
+            מחפש שירות
+          </div>
+          <div className="text-xs text-slate-500">
+            עזרה ועבודות
+          </div>
+        </button>
 
-        <div className="text-xs text-slate-500 mt-1">
-          מחפש חפץ מסוים
-        </div>
-      </button>
+      </div>
+
+      {/* חפצים */}
+      <div className="grid grid-cols-2 gap-3">
+
+        {/* מציע פריט */}
+        <button
+          onClick={() => setListingTypeFilter('item_offer')}
+          className={`rounded-2xl border-2 p-4 text-center transition ${
+            listingTypeFilter === 'item_offer'
+              ? 'border-orange-500 bg-orange-50 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
+          }`}
+        >
+          <div className="text-2xl mb-1">🟠</div>
+          <div className="font-bold text-sm">
+            מציע פריט
+          </div>
+          <div className="text-xs text-slate-500">
+            מכירה, מסירה או החלפה
+          </div>
+        </button>
+
+        {/* מחפש פריט */}
+        <button
+          onClick={() => setListingTypeFilter('item_request')}
+          className={`rounded-2xl border-2 p-4 text-center transition ${
+            listingTypeFilter === 'item_request'
+              ? 'border-purple-500 bg-purple-50 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/40'
+          }`}
+        >
+          <div className="text-2xl mb-1">🟣</div>
+          <div className="font-bold text-sm">
+            מחפש פריט
+          </div>
+          <div className="text-xs text-slate-500">
+            מחפש חפץ מסוים
+          </div>
+        </button>
+
+      </div>
 
     </div>
 
@@ -3078,7 +3148,7 @@ const advertiserPageCreatedAt =
 
 {/* חיפוש וסינון */}
 {currentView === 'home' && (
-  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5 mb-8">
+  <div className="bg-white p-4 md:p-5 mb-8">
 
     {/* חיפוש */}
     <div className="mb-5">
@@ -3283,10 +3353,9 @@ const advertiserPageCreatedAt =
   <section className="mb-8">
 
     {/* כותרת האזור */}
-    <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-emerald-50/40 shadow-sm p-5 sm:p-6">
+    <div className="relative overflow-hidden bg-white p-5 sm:p-6">
 
-      {/* כתם רקע עדין */}
-      <div className="absolute -top-20 -left-20 w-48 h-48 rounded-full bg-emerald-200/20 blur-3xl pointer-events-none" />
+      
 
       <div className="relative">
 
@@ -3405,11 +3474,9 @@ const advertiserPageCreatedAt =
 {currentView === 'home' && (
   <div className="mb-7">
 
-    <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-cyan-50/30 shadow-sm p-5 sm:p-6">
+    <div className="relative overflow-hidden bg-white p-5 sm:p-6">
 
-      {/* כתמי רקע עדינים */}
-      <div className="absolute -top-16 -right-16 w-44 h-44 rounded-full bg-cyan-200/20 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-16 w-48 h-48 rounded-full bg-emerald-200/15 blur-3xl pointer-events-none" />
+      
 
       <div className="relative">
 
@@ -3641,7 +3708,7 @@ const advertiserPageCreatedAt =
     </span>
   </div>
 ) : displayedListings.length === 0 ? (
-  <div className="relative overflow-hidden bg-white rounded-3xl border border-slate-200 p-10 sm:p-14 text-center shadow-sm">
+  <div className="relative overflow-hidden bg-white p-10 sm:p-14 text-center">
 
     <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-emerald-100/40 blur-3xl pointer-events-none" />
     <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full bg-cyan-100/30 blur-3xl pointer-events-none" />
