@@ -3777,7 +3777,9 @@ const advertiserPageCreatedAt =
   className="w-full"
 >
 
-    {displayedListings.map((item) => {
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+
+  {displayedListings.map((item) => {
 
   const isOwner =
     user && (item.user_id === user.id || !item.user_id)
@@ -3797,107 +3799,206 @@ const advertiserPageCreatedAt =
   return (
     <div
       key={item.id}
-      onClick={toggleListingExpanded}
+      onClick={(e) => {
+  e.stopPropagation()
+  setSelectedListing(item)
+}}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          toggleListingExpanded(e)
-        }
-      }}
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    setSelectedListing(item)
+  }
+}}
       role="button"
       tabIndex={0}
       aria-label={`פתח את המודעה ${item.title}`}
-      className={`group h-[50px] overflow-hidden flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3 border-b cursor-pointer transition-all duration-300 hover:brightness-[0.98] ${
-    item.is_featured &&
-    item.featured_until &&
-    new Date(item.featured_until) > new Date()
-      ? 'border-r-4 border-r-amber-400'
-      : ''
-  } ${
-    item.listing_type === 'item_request'
-      ? 'bg-purple-50/80 border-purple-200'
-      : item.listing_type === 'item_offer'
-        ? 'bg-orange-50/80 border-orange-200'
-        : item.listing_type === 'request'
-          ? 'bg-blue-50/80 border-blue-200'
-          : 'bg-emerald-50/80 border-emerald-200'
-  }`}
+      className={`group relative min-w-0 h-[190px] sm:h-[205px] overflow-hidden rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+        item.is_featured &&
+        item.featured_until &&
+        new Date(item.featured_until) > new Date()
+          ? 'border-amber-400 ring-1 ring-amber-200'
+          : item.listing_type === 'item_request'
+            ? 'border-purple-200'
+            : item.listing_type === 'item_offer'
+              ? 'border-orange-200'
+              : item.listing_type === 'request'
+                ? 'border-blue-200'
+                : 'border-emerald-200'
+      }`}
     >
 
-      {/* סוג המודעה */}
-      <span
-        className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-xl text-sm ${
+      {/* פס צבעוני עליון */}
+      <div
+        className={`absolute top-0 inset-x-0 h-1 ${
           item.listing_type === 'item_request'
-            ? 'bg-purple-50 text-purple-700'
+            ? 'bg-purple-500'
             : item.listing_type === 'item_offer'
-              ? 'bg-orange-50 text-orange-700'
+              ? 'bg-orange-500'
               : item.listing_type === 'request'
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-emerald-50 text-emerald-700'
+                ? 'bg-blue-500'
+                : 'bg-emerald-500'
         }`}
-        title={
-          item.listing_type === 'item_request'
-            ? 'מחפש פריט'
-            : item.listing_type === 'item_offer'
-              ? 'מציע פריט'
-              : item.listing_type === 'request'
-                ? 'מחפש שירות'
-                : 'מציע שירות'
-        }
-      >
-        {item.listing_type === 'item_request'
-          ? '🔎'
-          : item.listing_type === 'item_offer'
-            ? '📦'
-            : item.listing_type === 'request'
-              ? '🙋'
-              : '🛠️'}
-      </span>
+      />
 
-      {/* כותרת */}
-      <div className="min-w-0 flex-1">
-        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 truncate">
+      <div className="h-full p-3 sm:p-4 flex flex-col">
+
+        {/* =====================================================
+            שורה עליונה — משתמש + מועדפים
+            ===================================================== */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+
+          {/* משתמש */}
+          <div className="flex items-center gap-2 min-w-0">
+
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
+
+              {item.profiles?.avatar_url ? (
+                <img
+                  src={item.profiles.avatar_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-sm sm:text-base font-extrabold text-slate-500">
+                  {(item.advertiser_name || item.contact_name || 'מ').charAt(0)}
+                </span>
+              )}
+
+            </div>
+
+            <span className="text-xs sm:text-sm font-bold text-slate-700 truncate">
+              {item.advertiser_name || item.contact_name || 'משתמש'}
+            </span>
+
+          </div>
+
+          {/* לב */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleFavorite(item.id)
+            }}
+            aria-label={
+              favoriteListings.includes(item.id)
+                ? 'הסר מהמועדפים'
+                : 'הוסף למועדפים'
+            }
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base hover:bg-slate-100 transition"
+          >
+            {favoriteListings.includes(item.id) ? '❤️' : '🤍'}
+          </button>
+
+        </div>
+
+        {/* =====================================================
+            סוג מודעה
+            ===================================================== */}
+        <div className="mb-1.5">
+
+          <span
+            className={`text-[10px] sm:text-xs font-bold ${
+              item.listing_type === 'item_request'
+                ? 'text-purple-600'
+                : item.listing_type === 'item_offer'
+                  ? 'text-orange-600'
+                  : item.listing_type === 'request'
+                    ? 'text-blue-600'
+                    : 'text-emerald-600'
+            }`}
+          >
+            {item.listing_type === 'item_request'
+              ? 'מחפש פריט'
+              : item.listing_type === 'item_offer'
+                ? 'מציע פריט'
+                : item.listing_type === 'request'
+                  ? 'מחפש שירות'
+                  : 'מציע שירות'}
+          </span>
+
+        </div>
+
+        {/* =====================================================
+            כותרת
+            ===================================================== */}
+        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 line-clamp-2 leading-snug">
           {item.title}
         </h3>
-      </div>
 
-      {/* מיקום */}
-      {item.location && (
-        <div className="flex items-center gap-1 shrink-0 min-w-0 max-w-[110px] sm:max-w-[150px]">
-          <span className="text-xs sm:text-sm shrink-0">📍</span>
-          <span className="text-[11px] sm:text-xs font-medium text-slate-600 truncate">
-            {item.location}
-          </span>
+        {/* =====================================================
+            תיאור קצר
+            ===================================================== */}
+        <p className="mt-1.5 text-[11px] sm:text-xs text-slate-500 leading-5 line-clamp-2">
+          {item.description || 'ללא תיאור נוסף'}
+        </p>
+
+        {/* =====================================================
+            תחתית — מחיר + מיקום + זמן
+            ===================================================== */}
+        <div className="mt-auto pt-3 border-t border-slate-100">
+
+          <div className="flex items-center justify-between gap-2">
+
+            {/* מחיר */}
+            <div className="min-w-0">
+
+              {item.payment_type === 'free' ? (
+                <span className="text-xs sm:text-sm font-extrabold text-emerald-700">
+                  🎁 חינם
+                </span>
+              ) : item.payment_type === 'barter' ? (
+                <span className="text-xs sm:text-sm font-extrabold text-amber-700">
+                  🔄 ברטר
+                </span>
+              ) : item.payment_type === 'cash_or_barter' ? (
+                <span className="text-xs sm:text-sm font-extrabold text-purple-700">
+                  ₪{item.price || ''} / 🔄
+                </span>
+              ) : item.price ? (
+                <span className="text-sm sm:text-base font-extrabold text-slate-900">
+                  ₪{item.price}
+                </span>
+              ) : (
+                <span className="text-[10px] text-slate-400">
+                  מחיר לא צוין
+                </span>
+              )}
+
+            </div>
+
+            {/* זמן */}
+            <span className="text-[9px] sm:text-[10px] text-slate-400 whitespace-nowrap">
+              {getRelativeTime(item.created_at)}
+            </span>
+
+          </div>
+
+          {/* מיקום */}
+          {item.location && (
+            <div className="flex items-center gap-1 mt-2 min-w-0">
+
+              <span className="text-xs shrink-0">
+                📍
+              </span>
+
+              <span className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">
+                {item.location}
+              </span>
+
+              {getListingDistance(item) !== null && (
+                <span className="hidden sm:inline text-[9px] text-emerald-600 font-bold whitespace-nowrap">
+                  {getListingDistance(item) < 1
+                    ? `${Math.round(getListingDistance(item) * 1000)} מ'`
+                    : `${getListingDistance(item).toFixed(1)} ק"מ`}
+                </span>
+              )}
+
+            </div>
+          )}
+
         </div>
-      )}
 
-      
-            {/* מחיר / תמורה */}
-      <div className="shrink-0 hidden sm:block">
-        {item.payment_type === 'free' ? (
-          <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">
-            חינם
-          </span>
-        ) : item.payment_type === 'barter' ? (
-          <span className="text-xs font-bold text-amber-700 whitespace-nowrap">
-            🔄 ברטר
-          </span>
-        ) : item.payment_type === 'cash_or_barter' ? (
-          <span className="text-xs font-bold text-purple-700 whitespace-nowrap">
-            💰/🔄
-          </span>
-        ) : item.price ? (
-          <span className="text-sm font-extrabold text-slate-800 whitespace-nowrap">
-            ₪{item.price}
-          </span>
-        ) : null}
       </div>
-
-      {/* זמן פרסום */}
-      <span className="shrink-0 text-[10px] sm:text-xs font-medium text-slate-500 whitespace-nowrap">
-        {getRelativeTime(item.created_at)}
-      </span>
-
     </div>
   )
 }
@@ -3920,7 +4021,7 @@ const advertiserPageCreatedAt =
       navigate(`/מודעה/${item.id}`)
     }
   }}
-  className={`group w-full overflow-hidden border-b transition-all duration-700 ease-in-out ${
+  className={`group col-span-full w-full overflow-hidden border-b transition-all duration-700 ease-in-out ${
     item.is_featured &&
     item.featured_until &&
     new Date(item.featured_until) > new Date()
@@ -4271,8 +4372,9 @@ const advertiserPageCreatedAt =
 
         </div>
       )
-    })}
+        })}
 
+    </div>
   </div>
 )}
 </main>
