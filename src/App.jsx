@@ -1131,6 +1131,12 @@ useEffect(() => {
     return
   }
 
+
+
+
+
+
+
   const listingId = pathParts[1]
 
   const listing = listings.find(
@@ -9083,6 +9089,13 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
           </Link>
 
           <Link
+  to="/why-kesef-kis"
+  className="text-slate-400 hover:text-emerald-400 transition"
+>
+  למה כסף כיס?
+</Link>
+
+          <Link
             to="/contact"
             className="text-slate-400 hover:text-emerald-400 transition"
           >
@@ -10330,16 +10343,246 @@ function PrivacyPage() {
 }
 
 
+
+function WhyKesefKisPage() {
+  return (
+    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+
+        <div className="mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition"
+          >
+            ← חזרה ללוח המודעות
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+
+          {/* כותרת */}
+          <div className="px-6 py-8 md:px-10 md:py-10 bg-gradient-to-l from-emerald-50 to-white border-b border-slate-100">
+            <div className="text-4xl mb-4">💡</div>
+
+            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900">
+              למה כסף כיס?
+            </h1>
+
+            <p className="mt-4 text-lg md:text-xl text-slate-600 leading-relaxed">
+              כי קבוצת וואטסאפ או פייסבוק היא מקום לדבר.
+              <br />
+              כסף כיס הוא מקום למצוא.
+            </p>
+          </div>
+
+          <div className="px-6 py-8 md:px-10 md:py-10 space-y-10">
+
+            {/* הפתיחה */}
+            <section>
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-4">
+                אז למה צריך עוד אתר?
+              </h2>
+
+              <p className="text-slate-600 leading-8">
+                היום רובנו נמצאים בקבוצות וואטסאפ ופייסבוק.
+                שם אנשים מפרסמים עבודות, מציעים שירותים, מוסרים דברים,
+                מוכרים חפצים ומבקשים עזרה.
+              </p>
+
+              <p className="mt-4 text-slate-600 leading-8">
+                אבל קבוצות נועדו בעיקר לשיחה. הודעה חדשה דוחפת הודעה ישנה,
+                ומה שהיה רלוונטי אתמול יכול להיעלם בתוך מאות הודעות.
+              </p>
+
+              <p className="mt-4 font-bold text-slate-800 leading-8">
+                כסף כיס נבנה למטרה אחרת: להפוך את כל הדברים האלה ללוח מקומי,
+                מסודר ונוח לחיפוש.
+              </p>
+            </section>
+
+            {/* השוואה */}
+            <section>
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-5">
+                קבוצות מדברות. כסף כיס מסדר.
+              </h2>
+
+              <div className="grid md:grid-cols-2 gap-5">
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="text-2xl mb-3">💬</div>
+
+                  <h3 className="font-extrabold text-lg mb-3">
+                    בקבוצות
+                  </h3>
+
+                  <ul className="space-y-3 text-sm text-slate-600 leading-6">
+                    <li>• פוסט חדש דוחף פוסטים ישנים למטה.</li>
+                    <li>• צריך להיות חבר בקבוצה כדי לראות את הפרסום.</li>
+                    <li>• קשה למצוא משהו שפורסם לפני כמה ימים.</li>
+                    <li>• קבוצות שונות עוסקות בנושאים שונים.</li>
+                    <li>• מי שלא ראה את הפוסט בזמן עלול לפספס אותו.</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
+                  <div className="text-2xl mb-3">📋</div>
+
+                  <h3 className="font-extrabold text-lg mb-3">
+                    בכסף כיס
+                  </h3>
+
+                  <ul className="space-y-3 text-sm text-slate-700 leading-6">
+                    <li>• המודעות נשארות מסודרות בלוח.</li>
+                    <li>• אפשר לחפש לפי מה שמעניין אותך.</li>
+                    <li>• אפשר לסנן לפי קטגוריה וסוג מודעה.</li>
+                    <li>• אפשר להתמקד במה שנמצא באזור שלך.</li>
+                    <li>• המודעה מחכה למי שבאמת מחפש אותה.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </section>
+
+            {/* מקומי */}
+            <section>
+              <div className="rounded-3xl bg-slate-950 text-white p-6 md:p-8">
+                <div className="text-3xl mb-4">📍</div>
+
+                <h2 className="text-2xl font-extrabold mb-4">
+                  הדבר הכי חשוב: מקומי
+                </h2>
+
+                <p className="text-slate-300 leading-8">
+                  כסף כיס נועד לחבר בין אנשים שנמצאים קרוב אחד לשני.
+                  במקום לחפש בתוך קבוצות כלליות, אפשר להגיע למודעות
+                  של עבודות, שירותים ופריטים באזור שלך.
+                </p>
+
+                <p className="mt-4 text-white font-bold leading-8">
+                  כי כשאתה צריך מישהו שירכיב מדף, יעזור בהובלה קטנה,
+                  יוציא כלב לטיול, יבצע תיקון קטן או כשיש לך חפץ למסירה —
+                  הרבה פעמים מה שחשוב הוא לא רק מה מציעים, אלא איפה זה נמצא.
+                </p>
+              </div>
+            </section>
+
+            {/* מה אפשר למצוא */}
+            <section>
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-5">
+                מה אפשר למצוא בכסף כיס?
+              </h2>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+
+                <div className="p-5 rounded-2xl border border-slate-200">
+                  <div className="text-2xl mb-2">🛠️</div>
+                  <h3 className="font-extrabold mb-2">עבודות קטנות</h3>
+                  <p className="text-sm text-slate-500 leading-6">
+                    עבודות מזדמנות שאנשים צריכים לבצע או מחפשים לבצע.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-slate-200">
+                  <div className="text-2xl mb-2">🤝</div>
+                  <h3 className="font-extrabold mb-2">שירותים ועזרה</h3>
+                  <p className="text-sm text-slate-500 leading-6">
+                    שירותים מקומיים ועזרה בין אנשים מהאזור.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-slate-200">
+                  <div className="text-2xl mb-2">📦</div>
+                  <h3 className="font-extrabold mb-2">חפצים</h3>
+                  <p className="text-sm text-slate-500 leading-6">
+                    חפצים למסירה, למכירה במחיר נמוך או להחלפה.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-slate-200">
+                  <div className="text-2xl mb-2">🔄</div>
+                  <h3 className="font-extrabold mb-2">ברטר</h3>
+                  <p className="text-sm text-slate-500 leading-6">
+                    החלפת שירותים, חפצים או שילוב של תשלום וברטר.
+                  </p>
+                </div>
+
+              </div>
+            </section>
+
+            {/* למה לפרסם */}
+            <section>
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-4">
+                ומה יוצא מזה למי שמפרסם?
+              </h2>
+
+              <p className="text-slate-600 leading-8">
+                במקום לפרסם את אותו הדבר שוב ושוב בקבוצות שונות,
+                אפשר ליצור מודעה במקום שמי שמחפש את השירות, העבודה
+                או הפריט יכול להגיע אליו.
+              </p>
+
+              <p className="mt-4 text-slate-600 leading-8">
+                ככל שיותר אנשים באזור משתמשים בלוח, כך גדל הסיכוי
+                שמי שמציע משהו יפגוש בדיוק את האדם שמחפש אותו.
+              </p>
+            </section>
+
+            {/* סיכום */}
+            <section className="border-t border-slate-200 pt-8">
+              <h2 className="text-2xl font-extrabold text-slate-900 mb-4">
+                אז כסף כיס מחליף את הקבוצות?
+              </h2>
+
+              <p className="text-slate-600 leading-8">
+                לא. וגם לא צריך.
+              </p>
+
+              <p className="mt-4 text-slate-600 leading-8">
+                קבוצות וואטסאפ ופייסבוק מצוינות לשיחות, קהילה,
+                המלצות ועדכונים. כסף כיס נועד להשלים אותן —
+                כמקום שבו אפשר לפרסם ולמצוא עבודות, שירותים ופריטים
+                בצורה מסודרת ומקומית.
+              </p>
+
+              <div className="mt-6 rounded-2xl bg-emerald-50 border border-emerald-100 p-5">
+                <p className="text-lg font-extrabold text-emerald-800 leading-8">
+                  במקום לחפש בתוך שיחה — נכנסים ללוח ומחפשים
+                  את מה שצריך.
+                </p>
+              </div>
+            </section>
+
+            {/* CTA */}
+            <section className="text-center pt-2">
+              <Link
+                to="/"
+                className="inline-flex items-center justify-center px-7 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold shadow-sm hover:shadow-md transition"
+              >
+                כניסה ללוח המודעות
+              </Link>
+            </section>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="*" element={<App />} />
-      </Routes>
+  <Route path="/" element={<App />} />
+  <Route path="/contact" element={<ContactPage />} />
+  <Route path="/terms" element={<TermsPage />} />
+  <Route path="/privacy" element={<PrivacyPage />} />
+  <Route path="/why-kesef-kis" element={<WhyKesefKisPage />} />
+  <Route path="*" element={<App />} />
+</Routes>
     </BrowserRouter>
   )
 }
