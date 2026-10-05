@@ -2028,14 +2028,7 @@ const advertiserPageCreatedAt =
   onClick={() => setCurrentView('home')}
   className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0 shrink-0"
 >
-  {/* אייקון - מובייל מוסתר, בדסקטופ נשאר */}
-  <div className="relative shrink-0 hidden sm:block">
-    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-950/30 group-hover:scale-105 group-hover:rotate-1 transition-all duration-200">
-      <span className="text-3xl leading-none">
-        נ’°
-      </span>
-    </div>
-  </div>
+  
 
   <div className="block text-right leading-tight">
     <div className="text-2xl sm:text-2xl font-black text-white sm:text-slate-900 tracking-tight whitespace-nowrap">
