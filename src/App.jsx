@@ -2010,7 +2010,7 @@ const advertiserPageCreatedAt =
     <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans flex flex-col">
       {/* סרגל עליון Header */}
       <header
-  className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
+  className="sticky top-0 z-50 bg-teal-500 sm:bg-white/95 backdrop-blur-md border-b border-teal-600 sm:border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
 >
   <div className="max-w-6xl mx-auto px-2.5 sm:px-4">
 
@@ -2023,31 +2023,30 @@ const advertiserPageCreatedAt =
   <div className="flex items-center gap-2 sm:gap-4 min-w-0 shrink-0 flex-1">
 
     {/* לוגו */}
-    <button
-      type="button"
-      onClick={() => setCurrentView('home')}
-      className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0 shrink-0"
-    >
-      <div className="relative shrink-0">
-
-        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-950/30 group-hover:scale-105 group-hover:rotate-1 transition-all duration-200">
-          <span className="text-xl sm:text-3xl leading-none">
-            💰
-          </span>
-        </div>
-
-      </div>
-
-      <div className="block text-right leading-tight">
-  <div className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight whitespace-nowrap">
-    כסף כיס
+<button
+  type="button"
+  onClick={() => setCurrentView('home')}
+  className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0 shrink-0"
+>
+  {/* אייקון - מובייל מוסתר, בדסקטופ נשאר */}
+  <div className="relative shrink-0 hidden sm:block">
+    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-950/30 group-hover:scale-105 group-hover:rotate-1 transition-all duration-200">
+      <span className="text-3xl leading-none">
+        נ’°
+      </span>
+    </div>
   </div>
 
-  <div className="hidden sm:block text-[10px] sm:text-[11px] font-medium text-slate-500 mt-0.5">
-    עבודות • שירותים • אנשים
+  <div className="block text-right leading-tight">
+    <div className="text-2xl sm:text-2xl font-black text-white sm:text-slate-900 tracking-tight whitespace-nowrap">
+      כסף כיס
+    </div>
+
+    <div className="hidden sm:block text-[11px] font-medium text-slate-500 mt-0.5">
+      עבודות • שירותים • אנשים
+    </div>
   </div>
-</div>
-    </button>
+</button>
 
 
 
@@ -2064,7 +2063,7 @@ const advertiserPageCreatedAt =
         onChange={(e) => setSearchTerm(e.target.value)}
         autoFocus
         placeholder="חיפוש..."
-        className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-8 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+        className="w-full h-10 rounded-2xl border border-white/40 bg-white text-sm text-slate-800 pr-9 pl-8 outline-none focus:border-white focus:ring-2 focus:ring-white/30 shadow-sm"
       />
 
       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
