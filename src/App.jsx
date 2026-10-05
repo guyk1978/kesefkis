@@ -179,8 +179,7 @@ const handleShareListing = async (listing) => {
   if (!listing) return
 
   const shareUrl =
-    `${window.location.origin}${window.location.pathname}` +
-    `?listing=${listing.id}`
+  `${window.location.origin}/share/${listing.id}`
 
   const shareData = {
     title: listing.title || 'מודעה בכסף כיס',
