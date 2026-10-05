@@ -94,6 +94,7 @@ function App() {
   }
 
   const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [shareListing, setShareListing] = useState(null)
   const [scrollToListings, setScrollToListings] = useState(false)
 
   useEffect(() => {
@@ -179,7 +180,7 @@ const handleShareListing = async (listing) => {
   if (!listing) return
 
   const shareUrl =
-  `${window.location.origin}/share/${listing.id}`
+    `https://kesefkis.co.il/share/${listing.id}`
 
   const shareData = {
     title: listing.title || 'מודעה בכסף כיס',
@@ -189,29 +190,30 @@ const handleShareListing = async (listing) => {
     url: shareUrl
   }
 
-  try {
-    if (navigator.share) {
+  // במובייל — להשתמש בחלון השיתוף הטבעי של המכשיר
+  const isMobile =
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+  if (isMobile && typeof navigator.share === 'function') {
+    try {
       await navigator.share(shareData)
       return
-    }
+    } catch (error) {
+      // המשתמש סגר את חלון השיתוף
+      if (error?.name === 'AbortError') {
+        return
+      }
 
-    await navigator.clipboard.writeText(shareUrl)
-
-    alert('הקישור למודעה הועתק בהצלחה.')
-  } catch (error) {
-    // המשתמש סגר את חלון השיתוף — לא צריך להציג שגיאה
-    if (error?.name === 'AbortError') {
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      alert('הקישור למודעה הועתק בהצלחה.')
-    } catch (clipboardError) {
-      console.error('שגיאה בשיתוף המודעה:', clipboardError)
-      alert('לא ניתן היה ליצור קישור לשיתוף.')
+      // אם השיתוף הטבעי נכשל — נפתח את חלון השיתוף שלנו
     }
   }
+
+  // במחשב — חלון שיתוף מותאם אישית
+  setShareListing({
+    listing,
+    shareUrl,
+    shareData
+  })
 }
 
   const [listings, setListings] = useState([])
@@ -5534,7 +5536,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
       {/* תוכן */}
       <div className="p-6 space-y-5">
 
-        {selectedListing && (
+                {selectedListing && (
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
 
             <p className="text-xs text-slate-400 font-semibold mb-1">
@@ -5727,6 +5729,143 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     </div>
   </div>
 )}
+
+      {shareListing && (
+        <div
+          className="fixed inset-0 z-[70] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShareListing(null)}
+        >
+          <div
+            className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            dir="rtl"
+          >
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  שתף את המודעה
+                </h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  בחר איפה לשתף
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShareListing(null)}
+                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-lg transition"
+                aria-label="סגירת חלון השיתוף"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3">
+              {/* WhatsApp */}
+              <button
+                type="button"
+                onClick={() => {
+                  const url =
+                    `https://wa.me/?text=${encodeURIComponent(
+                      `${shareListing.shareData.text}\n\n${shareListing.shareUrl}`
+                    )}`
+                  window.open(url, '_blank', 'noopener,noreferrer')
+                  setShareListing(null)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold transition"
+              >
+                <span className="text-2xl">💬</span>
+                <span>WhatsApp</span>
+              </button>
+
+              {/* Facebook */}
+              <button
+                type="button"
+                onClick={() => {
+                  const url =
+                    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+                      shareListing.shareUrl
+                    )}`
+                  window.open(url, '_blank', 'width=700,height=600')
+                  setShareListing(null)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold transition"
+              >
+                <span className="text-2xl">f</span>
+                <span>Facebook</span>
+              </button>
+
+              {/* Telegram */}
+              <button
+                type="button"
+                onClick={() => {
+                  const url =
+                    `https://t.me/share/url?url=${encodeURIComponent(
+                      shareListing.shareUrl
+                    )}&text=${encodeURIComponent(
+                      shareListing.shareData.text
+                    )}`
+                  window.open(url, '_blank', 'noopener,noreferrer')
+                  setShareListing(null)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold transition"
+              >
+                <span className="text-2xl">✈️</span>
+                <span>Telegram</span>
+              </button>
+
+              {/* Email */}
+              <button
+                type="button"
+                onClick={() => {
+                  const subject = encodeURIComponent(
+                    shareListing.shareData.title
+                  )
+
+                  const body = encodeURIComponent(
+                    `${shareListing.shareData.text}\n\n${shareListing.shareUrl}`
+                  )
+
+                  window.location.href =
+                    `mailto:?subject=${subject}&body=${body}`
+
+                  setShareListing(null)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold transition"
+              >
+                <span className="text-2xl">✉️</span>
+                <span>אימייל</span>
+              </button>
+
+              {/* Copy link */}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(
+                      shareListing.shareUrl
+                    )
+                    setShareListing(null)
+                    alert('הקישור למודעה הועתק בהצלחה.')
+                  } catch (error) {
+                    console.error(
+                      'שגיאה בהעתקת הקישור:',
+                      error
+                    )
+                    alert('לא ניתן היה להעתיק את הקישור.')
+                  }
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold transition"
+              >
+                <span className="text-2xl">🔗</span>
+                <span>העתק קישור</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
 
 
