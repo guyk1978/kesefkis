@@ -3190,7 +3190,7 @@ const advertiserPageCreatedAt =
 {currentView === 'home' && (
   <div
   id="search-filters-section"
-  className="bg-white p-4 md:p-5 mb-8 scroll-mt-20"
+  className="bg-transparent md:bg-white p-0 md:p-5 mb-8 scroll-mt-20"
 >
 
     {/* =================================================
@@ -3204,7 +3204,7 @@ const advertiserPageCreatedAt =
         onClick={() =>
           setShowMobileSearchFilters((prev) => !prev)
         }
-        className="w-full min-h-[58px] flex items-center justify-between gap-3 px-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-emerald-300 hover:bg-emerald-50/30 transition text-right"
+        className="w-full min-h-[58px] flex items-center justify-between gap-3 px-4 border-b border-slate-100 bg-white hover:bg-emerald-50/30 transition text-right"
       >
 
         <div className="flex items-center gap-2.5 min-w-0">
@@ -3899,7 +3899,7 @@ const advertiserPageCreatedAt =
         onClick={() =>
           setShowMobileCategories((prev) => !prev)
         }
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-emerald-300 hover:bg-emerald-50/30 transition"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-emerald-50/30 transition"
       >
 
         <div className="flex items-center gap-2.5">
@@ -4175,7 +4175,7 @@ const advertiserPageCreatedAt =
         onClick={() =>
           setShowMobileLocationSort((prev) => !prev)
         }
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-cyan-300 hover:bg-cyan-50/30 transition"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-cyan-50/30 transition"
       >
 
         <div className="flex items-center gap-2.5">
