@@ -45,9 +45,9 @@ export async function onRequestGet(context) {
 
     const shareUrl = new URL(`/share/${encodeURIComponent(id)}`, context.request.url)
     const listingUrl = new URL(
-      `/?listing=${encodeURIComponent(id)}`,
-      context.request.url
-    )
+  `/מודעה/${encodeURIComponent(id)}`,
+  context.request.url
+)
 
     const escapeHtml = (value) =>
       String(value)

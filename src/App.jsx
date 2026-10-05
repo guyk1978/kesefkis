@@ -1135,22 +1135,16 @@ useEffect(() => {
     return
   }
 
-
-
-
-
-
-
   const listingId = pathParts[1]
 
   const listing = listings.find(
     (item) => String(item.id) === String(listingId)
   )
 
-      if (listing) {
-      setSelectedListing(listing)
-    }
-  }, [listings, location.pathname])
+  if (listing) {
+    setSelectedListing(listing)
+  }
+}, [listings, location.pathname])
 
 
   useEffect(() => {
@@ -4719,11 +4713,13 @@ const advertiserPageCreatedAt =
       onClick={(e) => {
   e.stopPropagation()
   setSelectedListing(item)
+  navigate(`/מודעה/${item.id}`)
 }}
       onKeyDown={(e) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault()
     setSelectedListing(item)
+    navigate(`/מודעה/${item.id}`)
   }
 }}
       role="button"
