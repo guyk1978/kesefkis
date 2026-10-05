@@ -67,7 +67,7 @@ export async function onRequestGet(context) {
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${escapeHtml(imageUrl)}" />
-  <meta property="og:url" content="${escapeHtml(shareUrl.toString())}" />
+  <meta property="og:url" content="${escapeHtml(listingUrl.toString())}" />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />
