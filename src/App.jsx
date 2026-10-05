@@ -2007,7 +2007,7 @@ const advertiserPageCreatedAt =
   advertiserPageProfile?.advertiser_created_at || null
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl font-sans flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl flex flex-col">
       {/* סרגל עליון Header */}
       <header
   className="sticky top-0 z-50 bg-teal-500 sm:bg-white/95 backdrop-blur-md border-b border-teal-600 sm:border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
@@ -3190,14 +3190,17 @@ const advertiserPageCreatedAt =
 {currentView === 'home' && (
   <div
   id="search-filters-section"
-  className="bg-transparent md:bg-white p-0 md:p-5 mb-8 scroll-mt-20"
->
+  className="bg-transparent md:bg-white p-0 md:p-5 mb-0 md:mb-8 scroll-mt-20"
+>    
+    <div className="md:hidden rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
-    {/* =================================================
-        מובייל - אקורדיון משולב:
-        חיפוש + סוג מודעה + סינון
-        ================================================= */}
-    <div className="md:hidden">
+      <div className="px-4 py-4 border-b border-slate-100 bg-slate-50/70">
+  <div className="text-lg font-extrabold text-slate-900">
+    &#x05D7;&#x05D9;&#x05E4;&#x05D5;&#x05E9; &#x05D5;&#x05E1;&#x05D9;&#x05E0;&#x05D5;&#x05DF; &#x05DE;&#x05EA;&#x05E7;&#x05D3;&#x05DD;
+  </div>
+</div>
+
+<div className="md:hidden">
 
       <button
         type="button"
@@ -3265,7 +3268,7 @@ const advertiserPageCreatedAt =
       <div
         className={`overflow-hidden transition-all duration-300 ${
           showMobileSearchFilters
-            ? 'max-h-[1400px] opacity-100 mt-4'
+            ? 'max-h-[1400px] opacity-100 mt-4 px-3 pb-3'
             : 'max-h-0 opacity-0'
         }`}
       >
@@ -3630,6 +3633,383 @@ const advertiserPageCreatedAt =
 
     </div>
 
+<div className="md:hidden">
+
+      <button
+        type="button"
+        onClick={() =>
+          setShowMobileCategories((prev) => !prev)
+        }
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-emerald-50/30 transition"
+      >
+
+        <div className="flex items-center gap-2.5">
+
+          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700">
+            🧩
+          </span>
+
+          <div className="text-right">
+            <div className="text-base font-extrabold text-slate-900">
+              קטגוריות
+            </div>
+
+            <div className="text-xs text-slate-500 mt-0.5">
+              מצאו עבודות, שירותים ופריטים לפי תחום
+            </div>
+          </div>
+
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-emerald-700">
+          <span>
+            {showMobileCategories
+              ? 'הסתר'
+              : 'הצג קטגוריות'}
+          </span>
+
+          <span
+            className={`text-xs transition-transform duration-200 ${
+              showMobileCategories
+                ? 'rotate-180'
+                : ''
+            }`}
+          >
+            ▼
+          </span>
+        </div>
+
+      </button>
+
+      {/* תוכן האקורדיון */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          showMobileCategories
+            ? 'max-h-[2000px] opacity-100 mt-3'
+            : 'max-h-0 opacity-0'
+        }`}
+      >
+
+        <div className="bg-white rounded-2xl border border-slate-200 p-3">
+
+          {/* כפתור הצגת כל הקטגוריות */}
+          {categoryFilter !== 'all' && (
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryFilter('all')
+                navigate('/')
+              }}
+              className="w-full mb-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+            >
+              ↻ הצג את כל הקטגוריות
+            </button>
+          )}
+
+          {/* רשימת קטגוריות */}
+          <div className="grid grid-cols-2 gap-2.5">
+
+            {categories.map((category) => {
+
+              const slug = category
+                .trim()
+                .replace(/\s+/g, '-')
+
+              const isActive = categoryFilter === category
+
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter(category)
+                    navigate(`/קטגוריה/${slug}`)
+                  }}
+                  className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
+                    isActive
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+                  }`}
+                >
+
+                  <span className="flex items-center justify-between gap-2">
+
+                    <span className="truncate">
+                      {category}
+                    </span>
+
+                    <span
+                      className={`shrink-0 text-xs ${
+                        isActive
+                          ? 'text-emerald-100'
+                          : 'text-slate-300 group-hover:text-emerald-400'
+                      }`}
+                    >
+                      ←
+                    </span>
+
+                  </span>
+
+                </button>
+              )
+            })}
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+<div className="md:hidden">
+
+      <button
+        type="button"
+        onClick={() =>
+          setShowMobileLocationSort((prev) => !prev)
+        }
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-cyan-50/30 transition"
+      >
+
+        <div className="flex items-center gap-2.5">
+
+          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700">
+            📍
+          </span>
+
+          <div className="text-right">
+
+            <div className="text-base font-extrabold text-slate-900">
+              מיקום ומיון
+            </div>
+
+            <div className="text-xs text-slate-500 mt-0.5">
+              {userCity
+                ? `המיקום שלי: ${userCity}`
+                : 'מצאו מודעות קרובות ומיינו לפי תאריך'}
+            </div>
+
+          </div>
+
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-cyan-700">
+
+          <span>
+            {showMobileLocationSort
+              ? 'הסתר'
+              : 'הצג אפשרויות'}
+          </span>
+
+          <span
+            className={`text-xs transition-transform duration-200 ${
+              showMobileLocationSort
+                ? 'rotate-180'
+                : ''
+            }`}
+          >
+            ▼
+          </span>
+
+        </div>
+
+      </button>
+
+
+      {/* תוכן האקורדיון */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          showMobileLocationSort
+            ? 'max-h-[1200px] opacity-100 mt-3'
+            : 'max-h-0 opacity-0'
+        }`}
+      >
+
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+
+          {/* זיהוי מיקום */}
+          <div className="flex justify-center">
+
+            <button
+              type="button"
+              onClick={requestUserLocation}
+              disabled={locationLoading}
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm shadow-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 disabled:opacity-60"
+            >
+              <span className="text-lg">
+                📍
+              </span>
+
+              {locationLoading
+                ? 'מזהה את המיקום...'
+                : userCity
+                  ? 'עדכן את המיקום שלי'
+                  : 'מצא את המיקום שלי'}
+            </button>
+
+          </div>
+
+
+          {/* מיקום שזוהה */}
+          {userCity && (
+            <div className="mt-3 pt-3 border-t border-slate-200">
+
+              <div className="flex flex-col gap-2.5">
+
+                <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
+                  <span>📍</span>
+
+                  <span className="text-sm font-extrabold">
+                    המיקום שלי: {userCity}
+                  </span>
+                </div>
+
+
+                {/* הצגת מודעות באזור */}
+                <button
+                  type="button"
+                  onClick={() => setNearbyOnly(!nearbyOnly)}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
+                    nearbyOnly
+                      ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+                  }`}
+                >
+                  {nearbyOnly
+                    ? '📍 הצג מודעות באזור שלי'
+                    : 'הצג מודעות באזור שלי'}
+                </button>
+
+              </div>
+
+            </div>
+          )}
+
+
+          {/* מיון */}
+          <div className="mt-4 pt-4 border-t border-slate-200">
+
+            <div className="text-sm font-bold text-slate-600 mb-2">
+              מיון מודעות
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+
+              {/* החדשות ביותר */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSortByDistance(false)
+                  setListingSort('newest')
+                }}
+                className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  !sortByDistance && listingSort === 'newest'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                🕐 החדשות ביותר
+              </button>
+
+
+              {/* הישנות ביותר */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSortByDistance(false)
+                  setListingSort('oldest')
+                }}
+                className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  !sortByDistance && listingSort === 'oldest'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                🕰️ הישנות ביותר
+              </button>
+
+
+              {/* הקרובות ביותר */}
+              {userLocation && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortByDistance(true)
+                  }}
+                  className={`col-span-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    sortByDistance
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
+                  }`}
+                >
+                  📍 הקרובות ביותר
+                </button>
+              )}
+
+            </div>
+
+
+            {/* רדיוס */}
+            {nearbyOnly && userLocation && (
+              <div className="mt-4">
+
+                <div className="text-sm font-bold text-slate-600 mb-2">
+                  רדיוס
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5">
+
+                  {[1, 5, 10, 20].map((radius) => (
+                    <button
+                      key={radius}
+                      type="button"
+                      onClick={() => setLocationRadius(radius)}
+                      className={`px-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                        locationRadius === radius
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+                      }`}
+                    >
+                      {radius} ק"מ
+                    </button>
+                  ))}
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+
+          {/* שגיאת מיקום */}
+          {locationError && (
+            <div className="flex justify-center mt-4">
+
+              <div className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium text-center">
+                <span>⚠️</span>
+                <span>{locationError}</span>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+    </div>
+
+    </div>
+
+
+    {/* =================================================
+        מובייל - אקורדיון משולב:
+        חיפוש + סוג מודעה + סינון
+        ================================================= */}
+    
+
 
     {/* =================================================
         Desktop - החיפוש נשאר פתוח
@@ -3892,134 +4272,7 @@ const advertiserPageCreatedAt =
     {/* =====================================================
         מובייל - אקורדיון קטגוריות
     ===================================================== */}
-    <div className="md:hidden">
-
-      <button
-        type="button"
-        onClick={() =>
-          setShowMobileCategories((prev) => !prev)
-        }
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-emerald-50/30 transition"
-      >
-
-        <div className="flex items-center gap-2.5">
-
-          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700">
-            🧩
-          </span>
-
-          <div className="text-right">
-            <div className="text-base font-extrabold text-slate-900">
-              קטגוריות
-            </div>
-
-            <div className="text-xs text-slate-500 mt-0.5">
-              מצאו עבודות, שירותים ופריטים לפי תחום
-            </div>
-          </div>
-
-        </div>
-
-        <div className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-emerald-700">
-          <span>
-            {showMobileCategories
-              ? 'הסתר'
-              : 'הצג קטגוריות'}
-          </span>
-
-          <span
-            className={`text-xs transition-transform duration-200 ${
-              showMobileCategories
-                ? 'rotate-180'
-                : ''
-            }`}
-          >
-            ▼
-          </span>
-        </div>
-
-      </button>
-
-      {/* תוכן האקורדיון */}
-      <div
-        className={`overflow-hidden transition-all duration-300 ${
-          showMobileCategories
-            ? 'max-h-[2000px] opacity-100 mt-3'
-            : 'max-h-0 opacity-0'
-        }`}
-      >
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-3">
-
-          {/* כפתור הצגת כל הקטגוריות */}
-          {categoryFilter !== 'all' && (
-            <button
-              type="button"
-              onClick={() => {
-                setCategoryFilter('all')
-                navigate('/')
-              }}
-              className="w-full mb-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
-            >
-              ↻ הצג את כל הקטגוריות
-            </button>
-          )}
-
-          {/* רשימת קטגוריות */}
-          <div className="grid grid-cols-2 gap-2.5">
-
-            {categories.map((category) => {
-
-              const slug = category
-                .trim()
-                .replace(/\s+/g, '-')
-
-              const isActive = categoryFilter === category
-
-              return (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => {
-                    setCategoryFilter(category)
-                    navigate(`/קטגוריה/${slug}`)
-                  }}
-                  className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
-                    isActive
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
-                  }`}
-                >
-
-                  <span className="flex items-center justify-between gap-2">
-
-                    <span className="truncate">
-                      {category}
-                    </span>
-
-                    <span
-                      className={`shrink-0 text-xs ${
-                        isActive
-                          ? 'text-emerald-100'
-                          : 'text-slate-300 group-hover:text-emerald-400'
-                      }`}
-                    >
-                      ←
-                    </span>
-
-                  </span>
-
-                </button>
-              )
-            })}
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
+    
 
 
     {/* =====================================================
@@ -4168,244 +4421,7 @@ const advertiserPageCreatedAt =
     {/* =====================================================
         מובייל - אקורדיון
     ===================================================== */}
-    <div className="md:hidden">
-
-      <button
-        type="button"
-        onClick={() =>
-          setShowMobileLocationSort((prev) => !prev)
-        }
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-cyan-50/30 transition"
-      >
-
-        <div className="flex items-center gap-2.5">
-
-          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700">
-            📍
-          </span>
-
-          <div className="text-right">
-
-            <div className="text-base font-extrabold text-slate-900">
-              מיקום ומיון
-            </div>
-
-            <div className="text-xs text-slate-500 mt-0.5">
-              {userCity
-                ? `המיקום שלי: ${userCity}`
-                : 'מצאו מודעות קרובות ומיינו לפי תאריך'}
-            </div>
-
-          </div>
-
-        </div>
-
-        <div className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-cyan-700">
-
-          <span>
-            {showMobileLocationSort
-              ? 'הסתר'
-              : 'הצג אפשרויות'}
-          </span>
-
-          <span
-            className={`text-xs transition-transform duration-200 ${
-              showMobileLocationSort
-                ? 'rotate-180'
-                : ''
-            }`}
-          >
-            ▼
-          </span>
-
-        </div>
-
-      </button>
-
-
-      {/* תוכן האקורדיון */}
-      <div
-        className={`overflow-hidden transition-all duration-300 ${
-          showMobileLocationSort
-            ? 'max-h-[1200px] opacity-100 mt-3'
-            : 'max-h-0 opacity-0'
-        }`}
-      >
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-
-          {/* זיהוי מיקום */}
-          <div className="flex justify-center">
-
-            <button
-              type="button"
-              onClick={requestUserLocation}
-              disabled={locationLoading}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm shadow-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 disabled:opacity-60"
-            >
-              <span className="text-lg">
-                📍
-              </span>
-
-              {locationLoading
-                ? 'מזהה את המיקום...'
-                : userCity
-                  ? 'עדכן את המיקום שלי'
-                  : 'מצא את המיקום שלי'}
-            </button>
-
-          </div>
-
-
-          {/* מיקום שזוהה */}
-          {userCity && (
-            <div className="mt-3 pt-3 border-t border-slate-200">
-
-              <div className="flex flex-col gap-2.5">
-
-                <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
-                  <span>📍</span>
-
-                  <span className="text-sm font-extrabold">
-                    המיקום שלי: {userCity}
-                  </span>
-                </div>
-
-
-                {/* הצגת מודעות באזור */}
-                <button
-                  type="button"
-                  onClick={() => setNearbyOnly(!nearbyOnly)}
-                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
-                    nearbyOnly
-                      ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
-                  }`}
-                >
-                  {nearbyOnly
-                    ? '📍 הצג מודעות באזור שלי'
-                    : 'הצג מודעות באזור שלי'}
-                </button>
-
-              </div>
-
-            </div>
-          )}
-
-
-          {/* מיון */}
-          <div className="mt-4 pt-4 border-t border-slate-200">
-
-            <div className="text-sm font-bold text-slate-600 mb-2">
-              מיון מודעות
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-
-              {/* החדשות ביותר */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSortByDistance(false)
-                  setListingSort('newest')
-                }}
-                className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  !sortByDistance && listingSort === 'newest'
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                🕐 החדשות ביותר
-              </button>
-
-
-              {/* הישנות ביותר */}
-              <button
-                type="button"
-                onClick={() => {
-                  setSortByDistance(false)
-                  setListingSort('oldest')
-                }}
-                className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                  !sortByDistance && listingSort === 'oldest'
-                    ? 'bg-slate-800 text-white shadow-sm'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                🕰️ הישנות ביותר
-              </button>
-
-
-              {/* הקרובות ביותר */}
-              {userLocation && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortByDistance(true)
-                  }}
-                  className={`col-span-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                    sortByDistance
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
-                  }`}
-                >
-                  📍 הקרובות ביותר
-                </button>
-              )}
-
-            </div>
-
-
-            {/* רדיוס */}
-            {nearbyOnly && userLocation && (
-              <div className="mt-4">
-
-                <div className="text-sm font-bold text-slate-600 mb-2">
-                  רדיוס
-                </div>
-
-                <div className="grid grid-cols-4 gap-1.5">
-
-                  {[1, 5, 10, 20].map((radius) => (
-                    <button
-                      key={radius}
-                      type="button"
-                      onClick={() => setLocationRadius(radius)}
-                      className={`px-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                        locationRadius === radius
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
-                      }`}
-                    >
-                      {radius} ק"מ
-                    </button>
-                  ))}
-
-                </div>
-
-              </div>
-            )}
-
-          </div>
-
-
-          {/* שגיאת מיקום */}
-          {locationError && (
-            <div className="flex justify-center mt-4">
-
-              <div className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium text-center">
-                <span>⚠️</span>
-                <span>{locationError}</span>
-              </div>
-
-            </div>
-          )}
-
-        </div>
-
-      </div>
-
-    </div>
+    
 
 
     {/* =====================================================
