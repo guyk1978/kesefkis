@@ -4722,7 +4722,7 @@ const advertiserPageCreatedAt =
       role="button"
       tabIndex={0}
       aria-label={`פתח את המודעה ${item.title}`}
-      className={`group relative min-w-0 h-[190px] sm:h-[205px] overflow-hidden rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+      className={`group relative min-w-0 h-[200px] sm:h-[215px] overflow-hidden rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
         item.is_featured &&
         item.featured_until &&
         new Date(item.featured_until) > new Date()
@@ -4831,16 +4831,16 @@ const advertiserPageCreatedAt =
         {/* =====================================================
             כותרת
             ===================================================== */}
-        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 line-clamp-2 leading-snug">
-          {item.title}
-        </h3>
+        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-5 min-h-[40px]">
+  {item.title}
+</h3>
 
         {/* =====================================================
             תיאור קצר
             ===================================================== */}
-        <p className="mt-1.5 text-[11px] sm:text-xs text-slate-500 leading-5 line-clamp-2">
-          {item.description || 'ללא תיאור נוסף'}
-        </p>
+        <p className="mt-1 text-[11px] sm:text-xs text-slate-500 leading-4 line-clamp-2">
+  {item.description || 'ללא תיאור נוסף'}
+</p>
 
         {/* =====================================================
             תחתית — מחיר + מיקום + זמן
