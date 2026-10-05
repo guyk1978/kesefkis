@@ -323,9 +323,13 @@ const [userCity, setUserCity] = useState('')
 const [locationLoading, setLocationLoading] = useState(false)
 const [locationError, setLocationError] = useState('')
 const [nearbyOnly, setNearbyOnly] = useState(false)
+const [showMobileLocationSort, setShowMobileLocationSort] = useState(false)
 const [locationRadius, setLocationRadius] = useState(5)
 const [sortByDistance, setSortByDistance] = useState(false)
 const [listingSort, setListingSort] = useState('newest')
+const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+const [showMobileSearchFilters, setShowMobileSearchFilters] = useState(false)
+const [showMobileSearchPanel, setShowMobileSearchPanel] = useState(false)
 
 const requestUserLocation = () => {
   if (!navigator.geolocation) {
@@ -454,6 +458,7 @@ useEffect(() => {
   // ניהול תצוגה: 'home' ללוח הראשי, 'my-listings' למודעות שלי
   const [currentView, setCurrentView] = useState('home')
   const [showAllCategories, setShowAllCategories] = useState(false)
+  const [showMobileCategories, setShowMobileCategories] = useState(false)
 
 
   const [selectedListing, setSelectedListing] = useState(null)
@@ -2015,13 +2020,13 @@ const advertiserPageCreatedAt =
   {/* =========================================
       צד ימין - לוגו + משתמש
       ========================================= */}
-  <div className="flex items-center gap-2 sm:gap-4 min-w-0 shrink-0">
+  <div className="flex items-center gap-2 sm:gap-4 min-w-0 shrink-0 flex-1">
 
     {/* לוגו */}
     <button
       type="button"
       onClick={() => setCurrentView('home')}
-      className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0"
+      className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0 shrink-0"
     >
       <div className="relative shrink-0">
 
@@ -2043,6 +2048,68 @@ const advertiserPageCreatedAt =
   </div>
 </div>
     </button>
+
+
+
+
+{/* =========================================
+    חיפוש במובייל
+    ========================================= */}
+<div className="flex-1 min-w-0 sm:hidden">
+  {mobileSearchOpen ? (
+    <div className="relative w-full">
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        autoFocus
+        placeholder="חיפוש..."
+        className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 pr-9 pl-8 text-sm text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+      />
+
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+        🔍
+      </span>
+
+      {searchTerm && (
+        <button
+          type="button"
+          onClick={() => setSearchTerm('')}
+          className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition"
+          aria-label="נקה חיפוש"
+        >
+          ×
+        </button>
+      )}
+    </div>
+  ) : (
+    <button
+  type="button"
+  onClick={() => {
+    setMobileSearchOpen(true)
+
+    setTimeout(() => {
+      document
+        .getElementById('search-filters-section')
+        ?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+    }, 50)
+  }}
+  className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-100 transition"
+  title="חיפוש"
+  aria-label="חיפוש"
+>
+  <span className="text-xl">
+    🔍
+  </span>
+</button>
+  )}
+</div>
+
+
+
 
 
     {/* =========================================
@@ -2105,9 +2172,9 @@ const advertiserPageCreatedAt =
               תפריט המשתמש
               ========================================= */}
           <div
-            className="absolute right-0 mt-3 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-950/20 overflow-hidden z-[100]"
-            dir="rtl"
-          >
+  className="absolute left-0 sm:left-auto sm:right-0 mt-3 w-[min(340px,calc(100vw-20px))] sm:w-64 max-h-[calc(100vh-80px)] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-2xl shadow-slate-950/20 z-[100]"
+  dir="rtl"
+>
 
             {/* פרטי המשתמש */}
             <div className="px-4 py-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
@@ -2167,6 +2234,35 @@ const advertiserPageCreatedAt =
             {/* פעולות */}
             <div className="p-2">
 
+
+
+{/* איך זה עובד */}
+<button
+  type="button"
+  onClick={(e) => {
+    e.currentTarget
+      .closest('details')
+      ?.removeAttribute('open')
+
+    setIsHowItWorksOpen(true)
+  }}
+  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition"
+>
+  <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">
+    ❓
+  </span>
+
+  <span className="flex-1">
+    איך זה עובד?
+  </span>
+
+  <span className="text-slate-300">
+    ‹
+  </span>
+</button>
+
+
+
               {/* המודעות שלי */}
               <button
                 type="button"
@@ -2201,6 +2297,37 @@ const advertiserPageCreatedAt =
                   ‹
                 </span>
               </button>
+
+
+
+
+{/* פרסום מודעה */}
+<button
+  type="button"
+  onClick={(e) => {
+    e.currentTarget
+      .closest('details')
+      ?.removeAttribute('open')
+
+    handleOpenPublishModal()
+  }}
+  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-emerald-700 hover:bg-emerald-50 transition"
+>
+  <span className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-lg">
+    +
+  </span>
+
+  <span className="flex-1">
+    פרסם מודעה
+  </span>
+
+  <span className="text-emerald-200">
+    ‹
+  </span>
+</button>
+
+
+
 
 
               {/* מועדפים */}
@@ -2442,7 +2569,7 @@ const advertiserPageCreatedAt =
           )
         }
         title="המועדפים שלי"
-        className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition ${
+        className={`hidden sm:flex relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition ${
           currentView === 'favorites'
             ? 'bg-red-500/15 text-red-300'
             : 'text-slate-500 hover:text-red-500 hover:bg-red-50'
@@ -2469,7 +2596,7 @@ const advertiserPageCreatedAt =
         type="button"
         onClick={() => setMessagesModalOpen(true)}
         title="הודעות"
-        className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
+        className="hidden sm:flex relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
       >
         <span className="text-base sm:text-lg leading-none">
           💬
@@ -2544,7 +2671,7 @@ const advertiserPageCreatedAt =
 <button
   type="button"
   onClick={handleOpenPublishModal}
-  className="relative h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(5,150,105,0.35)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.45)] border border-emerald-700 transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+  className="hidden sm:flex relative h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(5,150,105,0.35)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.45)] border border-emerald-700 transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
 >
   <span className="relative text-2xl sm:text-3xl leading-none font-normal">
     +
@@ -2586,44 +2713,133 @@ const advertiserPageCreatedAt =
     {/* דף הבית */}
     {currentView === 'home' ? (
 
-  <div className="relative">
+  /* =====================================================
+     HERO - דף הבית
+     ===================================================== */
+  <div className="relative overflow-hidden">
 
-    {/* =========================
-       מובייל — תמונה מעל התוכן
-       ========================= */}
-    <div className="block lg:hidden">
+  {/* =====================================================
+      מובייל - תמונה מעל התוכן
+  ===================================================== */}
+  <div className="sm:hidden">
 
-      <div className="relative w-full overflow-hidden">
-        <img
-          src="/hero-kesefkis.png"
-          alt="כסף כיס - עבודות, שירותים ופריטים מקומיים"
-          className="w-full h-auto block"
-        />
+    {/* תמונה */}
+    <div className="relative h-[185px] overflow-hidden">
+      <img
+        src="/hero-kesefkis.png"
+        alt="כסף כיס - עבודות, שירותים ופריטים מקומיים"
+        className="w-full h-full object-cover object-[68%_center]"
+      />
+    </div>
+
+    {/* תוכן מתחת לתמונה */}
+    <div className="bg-white px-5 py-5 text-right">
+
+      <div className="inline-flex items-center gap-2 mb-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+        לוח עבודות, שירותים ופריטים מקומיים
       </div>
 
-      <div className="relative bg-white px-5 py-7 sm:px-8 sm:py-8 text-center">
+      <h1 className="text-3xl font-extrabold text-slate-900 leading-tight mb-2">
+        כסף כיס
+      </h1>
 
-        <div className="inline-flex items-center gap-2 mb-3 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-         לוח עבודות, שירותים ופריטים מקומיים
+      <p className="text-sm text-slate-700 leading-relaxed font-medium">
+        מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך לתת
+      </p>
+
+      <div className="mt-4 flex gap-2">
+
+        <button
+          type="button"
+          onClick={handleOpenPublishModal}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm shadow-[0_4px_14px_rgba(5,150,105,0.30)] transition-all duration-200"
+        >
+          <span className="text-xl leading-none font-normal">
+            +
+          </span>
+
+          <span>
+            צור מודעה
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            document.getElementById('listings-section')?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            })
+          }}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-sm transition-all duration-200"
+        >
+          <span>
+            מצא עבודות
+          </span>
+
+          <span className="text-base">
+            ↓
+          </span>
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  {/* =====================================================
+      מחשב / טאבלט - Hero רחב
+  ===================================================== */}
+  <div className="hidden sm:block relative min-h-[250px] lg:min-h-[300px]">
+
+    <img
+      src="/hero-kesefkis.png"
+      alt="כסף כיס - עבודות, שירותים ופריטים מקומיים"
+      className="absolute inset-0 w-full h-full object-cover object-center"
+    />
+
+    {/* שכבת בהירות לטקסט */}
+    <div
+      className="absolute inset-0"
+      style={{
+        background:
+          'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 30%, rgba(255,255,255,0.68) 45%, rgba(255,255,255,0.18) 62%, rgba(255,255,255,0) 76%)'
+      }}
+    />
+
+    {/* מעבר עדין ללבן בתחתית */}
+    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/60 to-transparent" />
+
+
+    {/* תוכן */}
+    <div className="relative z-10 min-h-[250px] lg:min-h-[300px] flex items-center">
+
+      <div className="w-full lg:w-[56%] px-5 py-6 sm:px-8 sm:py-7 lg:px-12 lg:py-8 text-right">
+
+        <div className="inline-flex items-center gap-2 mb-2.5 px-3 py-1.5 rounded-full bg-white/85 border border-emerald-200 text-emerald-700 text-xs sm:text-sm font-bold backdrop-blur-sm shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          לוח עבודות, שירותים ופריטים מקומיים
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight mb-3">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-2">
           כסף כיס
         </h1>
 
-        <p className="text-base sm:text-lg text-slate-700 leading-relaxed font-medium max-w-xl mx-auto">
-         מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך
+        <p className="text-sm sm:text-base lg:text-lg text-slate-700 leading-relaxed font-medium max-w-xl">
+          מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך לתת
         </p>
 
-        <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-2.5">
 
           <button
             type="button"
             onClick={handleOpenPublishModal}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.40)] transition-all duration-200"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] transition-all duration-200"
           >
-            <span className="text-2xl leading-none font-normal">
+            <span className="text-xl leading-none font-normal">
               +
             </span>
 
@@ -2640,13 +2856,13 @@ const advertiserPageCreatedAt =
                 block: 'start'
               })
             }}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white hover:bg-emerald-50 border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm hover:shadow-md transition-all duration-200"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/90 hover:bg-white border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
           >
             <span>
               מצא עבודות ושירותים
             </span>
 
-            <span className="text-lg">
+            <span className="text-base">
               ↓
             </span>
           </button>
@@ -2657,89 +2873,9 @@ const advertiserPageCreatedAt =
 
     </div>
 
-
-    {/* =========================
-       מחשב — Hero רחב עם התמונה כרקע
-       ========================= */}
-    <div className="hidden lg:block relative min-h-[390px]">
-
-      <img
-        src="/hero-kesefkis.png"
-        alt="כסף כיס - עבודות, שירותים ופריטים מקומיים"
-        className="absolute inset-0 w-full h-full object-cover object-[65%_center] sm:object-center"
-      />
-
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 28%, rgba(255,255,255,0.70) 43%, rgba(255,255,255,0.18) 57%, rgba(255,255,255,0) 68%)'
-        }}
-      />
-
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/50 to-transparent" />
-
-      <div className="relative z-10 min-h-[390px] flex items-center">
-
-        <div className="w-[54%] px-12 py-10 text-right">
-
-          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-white/80 border border-emerald-200 text-emerald-700 text-sm font-bold backdrop-blur-sm">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-           לוח עבודות, שירותים ופריטים מקומיים
-          </div>
-
-          <h1 className="text-4xl xl:text-5xl font-extrabold text-slate-900 leading-tight mb-4">
-            כסף כיס
-          </h1>
-
-          <p className="text-lg xl:text-xl text-slate-700 leading-relaxed font-medium">
-           מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך
-          </p>
-
-          <div className="mt-6 flex items-center justify-start gap-3">
-
-            <button
-              type="button"
-              onClick={handleOpenPublishModal}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.40)] transition-all duration-200"
-            >
-              <span className="text-2xl leading-none font-normal">
-                +
-              </span>
-
-              <span>
-                צור מודעה
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                document.getElementById('listings-section')?.scrollIntoView({
-                  behavior: 'smooth',
-                  block: 'start'
-                })
-              }}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white/90 hover:bg-white border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-base shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
-            >
-              <span>
-                מצא עבודות ושירותים
-              </span>
-
-              <span className="text-lg">
-                ↓
-              </span>
-            </button>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
   </div>
+
+</div>
 
 ) : isAdvertiserPage ? (
 
@@ -2939,204 +3075,108 @@ const advertiserPageCreatedAt =
 {currentView === 'home' && (
   <div className="mb-5">
 
-    <div className="text-center mb-3">
-      <h3 className="text-lg font-bold text-slate-800">
-        בחר את סוג המודעות שמעניין אותך
-      </h3>
+    
 
-      <p className="text-sm text-slate-500">
-        סנן את המודעות לפי מה שאתה מחפש
-      </p>
-    </div>
 
-    {/* מחשב: שורה אחת | מובייל: המבנה הקיים */}
-    <div className="hidden md:grid md:grid-cols-5 gap-3">
+    {/* =====================================================
+        מחשב - קוביות פתוחות
+    ===================================================== */}
+    <div className="hidden md:block">
 
-      {/* הכל */}
-      <button
-        onClick={() => setListingTypeFilter('all')}
-        className={`rounded-xl p-3 text-center transition ${
-          listingTypeFilter === 'all'
-            ? 'bg-slate-100 text-slate-800'
-            : 'bg-white text-slate-700 hover:bg-slate-100'
-        }`}
-      >
-        <div className="text-2xl mb-1">📋</div>
-        <div className="font-bold text-sm">
-          כל המודעות
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-slate-800">
+            מה אתה מחפש?
+          </h3>
+
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            בחר סוג מודעה
+          </p>
         </div>
-      </button>
 
-      {/* מציע שירות */}
-      <button
-        onClick={() => setListingTypeFilter('offer')}
-        className={`rounded-xl p-3 text-center transition ${
-          listingTypeFilter === 'offer'
-            ? 'bg-emerald-50 text-emerald-700'
-            : 'bg-white text-slate-700 hover:bg-emerald-50'
-        }`}
-      >
-        <div className="text-2xl mb-1">🟢</div>
-        <div className="font-bold text-sm">
-          מציע שירות
-        </div>
-        <div className="text-xs text-slate-500">
-          עבודות ושירותים
-        </div>
-      </button>
-
-      {/* מחפש שירות */}
-      <button
-        onClick={() => setListingTypeFilter('request')}
-        className={`rounded-xl p-3 text-center transition ${
-          listingTypeFilter === 'request'
-            ? 'bg-blue-50 text-blue-700'
-            : 'bg-white text-slate-700 hover:bg-blue-50'
-        }`}
-      >
-        <div className="text-2xl mb-1">🔵</div>
-        <div className="font-bold text-sm">
-          מחפש שירות
-        </div>
-        <div className="text-xs text-slate-500">
-          עזרה ועבודות
-        </div>
-      </button>
-
-      {/* מציע פריט */}
-      <button
-        onClick={() => setListingTypeFilter('item_offer')}
-        className={`rounded-xl p-3 text-center transition ${
-          listingTypeFilter === 'item_offer'
-            ? 'bg-orange-50 text-orange-700'
-            : 'bg-white text-slate-700 hover:bg-orange-50'
-        }`}
-      >
-        <div className="text-2xl mb-1">🟠</div>
-        <div className="font-bold text-sm">
-          מציע פריט
-        </div>
-        <div className="text-xs text-slate-500">
-          מכירה, מסירה או החלפה
-        </div>
-      </button>
-
-      {/* מחפש פריט */}
-      <button
-        onClick={() => setListingTypeFilter('item_request')}
-        className={`rounded-xl p-3 text-center transition ${
-          listingTypeFilter === 'item_request'
-            ? 'bg-purple-50 text-purple-700'
-            : 'bg-white text-slate-700 hover:bg-purple-50'
-        }`}
-      >
-        <div className="text-2xl mb-1">🟣</div>
-        <div className="font-bold text-sm">
-          מחפש פריט
-        </div>
-        <div className="text-xs text-slate-500">
-          מחפש חפץ מסוים
-        </div>
-      </button>
-
-    </div>
-
-    {/* מובייל: נשאר במבנה הקיים */}
-    <div className="md:hidden">
-
-      {/* הכל */}
-      <button
-        onClick={() => setListingTypeFilter('all')}
-        className={`w-full rounded-2xl border-2 p-3.5 text-center transition mb-3 ${
-          listingTypeFilter === 'all'
-            ? 'border-slate-700 bg-slate-100 shadow-sm'
-            : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-        }`}
-      >
-        <div className="text-2xl mb-1">📋</div>
-        <div className="font-bold text-sm">
-          כל המודעות
-        </div>
-      </button>
-
-      {/* שירותים */}
-      <div className="grid grid-cols-2 gap-3 mb-3">
-
-        {/* מציע שירות */}
-        <button
-          onClick={() => setListingTypeFilter('offer')}
-          className={`rounded-2xl border-2 p-4 text-center transition ${
-            listingTypeFilter === 'offer'
-              ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-              : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/40'
-          }`}
-        >
-          <div className="text-2xl mb-1">🟢</div>
-          <div className="font-bold text-sm">
-            מציע שירות
-          </div>
-          <div className="text-xs text-slate-500">
-            עבודות ושירותים
-          </div>
-        </button>
-
-        {/* מחפש שירות */}
-        <button
-          onClick={() => setListingTypeFilter('request')}
-          className={`rounded-2xl border-2 p-4 text-center transition ${
-            listingTypeFilter === 'request'
-              ? 'border-blue-500 bg-blue-50 shadow-sm'
-              : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
-          }`}
-        >
-          <div className="text-2xl mb-1">🔵</div>
-          <div className="font-bold text-sm">
-            מחפש שירות
-          </div>
-          <div className="text-xs text-slate-500">
-            עזרה ועבודות
-          </div>
-        </button>
+        {listingTypeFilter !== 'all' && (
+          <button
+            type="button"
+            onClick={() => setListingTypeFilter('all')}
+            className="shrink-0 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-700 transition-colors"
+          >
+            הצג הכל
+          </button>
+        )}
 
       </div>
 
-      {/* חפצים */}
-      <div className="grid grid-cols-2 gap-3">
+
+      <div className="grid grid-cols-5 gap-2.5">
+
+        {/* כל המודעות */}
+        <button
+          type="button"
+          onClick={() => setListingTypeFilter('all')}
+          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
+            listingTypeFilter === 'all'
+              ? 'bg-slate-800 border-slate-800 text-white shadow-sm'
+              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+          }`}
+        >
+          כל המודעות
+        </button>
+
+
+        {/* מציע שירות */}
+        <button
+          type="button"
+          onClick={() => setListingTypeFilter('offer')}
+          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
+            listingTypeFilter === 'offer'
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+              : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+          }`}
+        >
+          מציע שירות
+        </button>
+
+
+        {/* מחפש שירות */}
+        <button
+          type="button"
+          onClick={() => setListingTypeFilter('request')}
+          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
+            listingTypeFilter === 'request'
+              ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+              : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50'
+          }`}
+        >
+          מחפש שירות
+        </button>
+
 
         {/* מציע פריט */}
         <button
+          type="button"
           onClick={() => setListingTypeFilter('item_offer')}
-          className={`rounded-2xl border-2 p-4 text-center transition ${
+          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
             listingTypeFilter === 'item_offer'
-              ? 'border-orange-500 bg-orange-50 shadow-sm'
-              : 'border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/40'
+              ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
+              : 'bg-white border-slate-200 text-slate-700 hover:border-orange-300 hover:bg-orange-50'
           }`}
         >
-          <div className="text-2xl mb-1">🟠</div>
-          <div className="font-bold text-sm">
-            מציע פריט
-          </div>
-          <div className="text-xs text-slate-500">
-            מכירה, מסירה או החלפה
-          </div>
+          מציע פריט
         </button>
+
 
         {/* מחפש פריט */}
         <button
+          type="button"
           onClick={() => setListingTypeFilter('item_request')}
-          className={`rounded-2xl border-2 p-4 text-center transition ${
+          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
             listingTypeFilter === 'item_request'
-              ? 'border-purple-500 bg-purple-50 shadow-sm'
-              : 'border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/40'
+              ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+              : 'bg-white border-slate-200 text-slate-700 hover:border-purple-300 hover:bg-purple-50'
           }`}
         >
-          <div className="text-2xl mb-1">🟣</div>
-          <div className="font-bold text-sm">
-            מחפש פריט
-          </div>
-          <div className="text-xs text-slate-500">
-            מחפש חפץ מסוים
-          </div>
+          מחפש פריט
         </button>
 
       </div>
@@ -3152,200 +3192,699 @@ const advertiserPageCreatedAt =
 
 
 
-{/* חיפוש וסינון */}
+{/* =====================================================
+    חיפוש וסינון
+    ===================================================== */}
 {currentView === 'home' && (
-  <div className="bg-white p-4 md:p-5 mb-8">
+  <div
+  id="search-filters-section"
+  className="bg-white p-4 md:p-5 mb-8 scroll-mt-20"
+>
 
-    {/* חיפוש */}
-    <div className="mb-5">
-      <label className="block text-sm font-bold text-slate-700 mb-2">
-        🔎 חיפוש במודעות
-      </label>
+    {/* =================================================
+        מובייל - אקורדיון משולב:
+        חיפוש + סוג מודעה + סינון
+        ================================================= */}
+    <div className="md:hidden">
 
-      <div className="relative">
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
-          className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-slate-800 placeholder:text-slate-400"
-        />
+      <button
+        type="button"
+        onClick={() =>
+          setShowMobileSearchFilters((prev) => !prev)
+        }
+        className="w-full min-h-[58px] flex items-center justify-between gap-3 px-4 rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-emerald-300 hover:bg-emerald-50/30 transition text-right"
+      >
 
-        {searchTerm && (
-          <button
-            type="button"
-            onClick={() => setSearchTerm('')}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition"
-            aria-label="נקה חיפוש"
-            title="נקה חיפוש"
+        <div className="flex items-center gap-2.5 min-w-0">
+
+          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 shrink-0">
+            🔎
+          </span>
+
+          <div className="min-w-0">
+
+            <div className="text-base font-extrabold text-slate-900">
+              חיפוש וסינון
+            </div>
+
+            <div className="text-xs text-slate-500 mt-0.5 truncate">
+              חיפוש במודעות • מה אתה מחפש?
+            </div>
+
+          </div>
+
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+
+          {(
+            searchTerm ||
+            listingTypeFilter !== 'all' ||
+            categoryFilter !== 'all' ||
+            locationFilter !== 'all'
+          ) && (
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          )}
+
+          <span>
+            {showMobileSearchFilters
+              ? 'הסתר'
+              : 'הצג אפשרויות'}
+          </span>
+
+          <span
+            className={`text-slate-400 transition-transform duration-200 ${
+              showMobileSearchFilters
+                ? 'rotate-180'
+                : ''
+            }`}
           >
-            ×
-          </button>
-        )}
+            ▼
+          </span>
+
+        </div>
+
+      </button>
+
+
+      {/* =================================================
+          תוכן האקורדיון המשולב
+          ================================================= */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          showMobileSearchFilters
+            ? 'max-h-[1400px] opacity-100 mt-4'
+            : 'max-h-0 opacity-0'
+        }`}
+      >
+
+        {/* =================================================
+            חיפוש במודעות
+            ================================================= */}
+        <div className="mb-5">
+
+          <label className="block text-sm font-bold text-slate-700 mb-2">
+            🔎 חיפוש במודעות
+          </label>
+
+          <div className="relative">
+
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
+              className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-slate-800 placeholder:text-slate-400"
+            />
+
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition"
+                aria-label="נקה חיפוש"
+                title="נקה חיפוש"
+              >
+                ×
+              </button>
+            )}
+
+          </div>
+
+        </div>
+
+
+        {/* =================================================
+            מה אתה מחפש?
+            ================================================= */}
+        <div className="mb-5">
+
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+
+            <div>
+
+              <div className="text-sm font-extrabold text-slate-800">
+                מה אתה מחפש?
+              </div>
+
+              <div className="text-xs text-slate-500 mt-0.5">
+                בחר סוג מודעה
+              </div>
+
+            </div>
+
+            {listingTypeFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setListingTypeFilter('all')}
+                className="shrink-0 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors"
+              >
+                הצג הכל
+              </button>
+            )}
+
+          </div>
+
+
+          <div className="grid grid-cols-2 gap-2.5">
+
+            {/* כל המודעות */}
+            <button
+              type="button"
+              onClick={() => setListingTypeFilter('all')}
+              className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+                listingTypeFilter === 'all'
+                  ? 'bg-slate-800 border-slate-800 text-white shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+              }`}
+            >
+              כל המודעות
+            </button>
+
+
+            {/* מציע שירות */}
+            <button
+              type="button"
+              onClick={() => setListingTypeFilter('offer')}
+              className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+                listingTypeFilter === 'offer'
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+              }`}
+            >
+              מציע שירות
+            </button>
+
+
+            {/* מחפש שירות */}
+            <button
+              type="button"
+              onClick={() => setListingTypeFilter('request')}
+              className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+                listingTypeFilter === 'request'
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50'
+              }`}
+            >
+              מחפש שירות
+            </button>
+
+
+            {/* מציע פריט */}
+            <button
+              type="button"
+              onClick={() => setListingTypeFilter('item_offer')}
+              className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+                listingTypeFilter === 'item_offer'
+                  ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-orange-300 hover:bg-orange-50'
+              }`}
+            >
+              מציע פריט
+            </button>
+
+
+            {/* מחפש פריט */}
+            <button
+              type="button"
+              onClick={() => setListingTypeFilter('item_request')}
+              className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+                listingTypeFilter === 'item_request'
+                  ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-purple-300 hover:bg-purple-50'
+              }`}
+            >
+              מחפש פריט
+            </button>
+
+          </div>
+
+        </div>
+
+
+        {/* =================================================
+            פילטרים
+            ================================================= */}
+        <div className="grid grid-cols-1 gap-3">
+
+          {/* קטגוריה */}
+          <div>
+
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              קטגוריה
+            </label>
+
+            <div className="relative">
+
+              <select
+                value={categoryFilter}
+                onChange={(e) =>
+                  setCategoryFilter(e.target.value)
+                }
+                className={`w-full px-3 py-2.5 pr-10 border rounded-xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
+                  categoryFilter === 'חפצים'
+                    ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
+                    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+                }`}
+              >
+
+                <option value="all">
+                  כל הקטגוריות
+                </option>
+
+                {categories.map((category) => (
+                  <option
+                    key={category}
+                    value={category}
+                  >
+                    {category === 'חפצים'
+                      ? '📦  חפצים'
+                      : category}
+                  </option>
+                ))}
+
+              </select>
+
+
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+
+              </div>
+
+
+              {categoryFilter === 'חפצים' && (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-600 pointer-events-none">
+                  📦
+                </div>
+              )}
+
+            </div>
+
+          </div>
+
+
+          {/* אזור */}
+          <div>
+
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              אזור
+            </label>
+
+            <div className="relative">
+
+              <input
+                type="text"
+                value={
+                  locationFilter === 'all'
+                    ? ''
+                    : locationFilter
+                }
+                onChange={(e) => {
+                  setLocationFilter(e.target.value)
+                }}
+                placeholder="חפש עיר או יישוב..."
+                autoComplete="off"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400"
+              />
+
+
+              {locationFilter !== 'all' &&
+                locationFilter.trim().length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+
+                    {israeliLocations
+                      .filter((location) =>
+                        location
+                          .toLowerCase()
+                          .includes(
+                            locationFilter
+                              .trim()
+                              .toLowerCase()
+                          )
+                      )
+                      .slice(0, 12)
+                      .map((location) => (
+                        <button
+                          key={location}
+                          type="button"
+                          onClick={() =>
+                            setLocationFilter(location)
+                          }
+                          className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                        >
+                          📍 {location}
+                        </button>
+                      ))}
+
+
+                    {israeliLocations.filter((location) =>
+                      location
+                        .toLowerCase()
+                        .includes(
+                          locationFilter
+                            .trim()
+                            .toLowerCase()
+                        )
+                    ).length === 0 && (
+                      <div className="px-4 py-3 text-sm text-slate-500">
+                        לא נמצא יישוב מתאים
+                      </div>
+                    )}
+
+                  </div>
+                )}
+
+
+              {locationFilter === 'all' && (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-sm">
+                  כל האזורים
+                </div>
+              )}
+
+
+              {locationFilter !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setLocationFilter('all')
+                  }
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-sm transition"
+                  aria-label="נקה אזור"
+                  title="נקה אזור"
+                >
+                  ×
+                </button>
+              )}
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* =================================================
+            שורת תוצאות
+            ================================================= */}
+        <div className="flex flex-col gap-3 mt-5 pt-4 border-t border-slate-100">
+
+          <div className="text-sm text-slate-500">
+
+            נמצאו{' '}
+
+            <span className="font-extrabold text-slate-800">
+              {displayedListings.length}
+            </span>{' '}
+
+            מודעות
+
+          </div>
+
+
+          {(searchTerm ||
+            listingTypeFilter !== 'all' ||
+            categoryFilter !== 'all' ||
+            locationFilter !== 'all') && (
+
+            <button
+              onClick={() => {
+                setSearchTerm('')
+                setListingTypeFilter('all')
+                setCategoryFilter('all')
+                setLocationFilter('all')
+              }}
+              className="self-start text-sm font-bold text-red-500 hover:text-red-600 transition"
+            >
+              ✕ נקה סינון
+            </button>
+
+          )}
+
+        </div>
+
       </div>
+
     </div>
 
-    {/* פילטרים */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-      {/* קטגוריה */}
-      <div>
-        <label className="block text-xs font-bold text-slate-600 mb-1.5">
-          קטגוריה
-        </label>
+    {/* =================================================
+        Desktop - החיפוש נשאר פתוח
+        ================================================= */}
+    <div className="hidden md:block">
 
-        <div className="relative">
-  <select
-    value={categoryFilter}
-    onChange={(e) => setCategoryFilter(e.target.value)}
-    className={`w-full px-3 py-2.5 pr-10 border rounded-xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
-      categoryFilter === 'חפצים'
-        ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
-        : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
-    }`}
-  >
-    <option value="all">כל הקטגוריות</option>
+      {/* חיפוש */}
+      <div className="mb-5">
 
-    {categories.map((category) => (
-      <option key={category} value={category}>
-        {category === 'חפצים' ? '📦  חפצים' : category}
-      </option>
-    ))}
-  </select>
-
-  {/* חץ */}
-  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-    <svg
-      className="w-4 h-4"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path
-        fillRule="evenodd"
-        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z"
-        clipRule="evenodd"
-      />
-    </svg>
-  </div>
-
-  {/* סימון כאשר חפצים נבחר */}
-  {categoryFilter === 'חפצים' && (
-    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-600 pointer-events-none">
-      📦
-    </div>
-  )}
-</div>
-      </div>
-
-      {/* אזור */}
-      <div>
-        <label className="block text-xs font-bold text-slate-600 mb-1.5">
-          אזור
+        <label className="block text-sm font-bold text-slate-700 mb-2">
+          🔎 חיפוש במודעות
         </label>
 
         <div className="relative">
 
           <input
             type="text"
-            value={locationFilter === 'all' ? '' : locationFilter}
-            onChange={(e) => {
-              setLocationFilter(e.target.value)
-            }}
-            placeholder="חפש עיר או יישוב..."
-            autoComplete="off"
-            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
+            className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-slate-800 placeholder:text-slate-400"
           />
 
-          {locationFilter !== 'all' &&
-            locationFilter.trim().length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-
-                {israeliLocations
-                  .filter((location) =>
-                    location
-                      .toLowerCase()
-                      .includes(
-                        locationFilter.trim().toLowerCase()
-                      )
-                  )
-                  .slice(0, 12)
-                  .map((location) => (
-                    <button
-                      key={location}
-                      type="button"
-                      onClick={() => setLocationFilter(location)}
-                      className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
-                    >
-                      📍 {location}
-                    </button>
-                  ))}
-
-                {israeliLocations.filter((location) =>
-                  location
-                    .toLowerCase()
-                    .includes(
-                      locationFilter.trim().toLowerCase()
-                    )
-                ).length === 0 && (
-                  <div className="px-4 py-3 text-sm text-slate-500">
-                    לא נמצא יישוב מתאים
-                  </div>
-                )}
-
-              </div>
-            )}
-
-          {locationFilter === 'all' && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-sm">
-              כל האזורים
-            </div>
-          )}
-
-          {locationFilter !== 'all' && (
+          {searchTerm && (
             <button
               type="button"
-              onClick={() => setLocationFilter('all')}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-sm transition"
-              aria-label="נקה אזור"
-              title="נקה אזור"
+              onClick={() => setSearchTerm('')}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition"
+              aria-label="נקה חיפוש"
+              title="נקה חיפוש"
             >
               ×
             </button>
           )}
 
         </div>
+
       </div>
 
-    </div>
 
-    {/* שורת תוצאות */}
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-5 pt-4 border-t border-slate-100">
+      {/* פילטרים */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
-      <div className="text-sm text-slate-500">
-        נמצאו{' '}
-        <span className="font-extrabold text-slate-800">
-          {displayedListings.length}
-        </span>{' '}
-        מודעות
+        {/* קטגוריה */}
+        <div>
+
+          <label className="block text-xs font-bold text-slate-600 mb-1.5">
+            קטגוריה
+          </label>
+
+          <div className="relative">
+
+            <select
+              value={categoryFilter}
+              onChange={(e) =>
+                setCategoryFilter(e.target.value)
+              }
+              className={`w-full px-3 py-2.5 pr-10 border rounded-xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
+                categoryFilter === 'חפצים'
+                  ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
+                  : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+              }`}
+            >
+
+              <option value="all">
+                כל הקטגוריות
+              </option>
+
+              {categories.map((category) => (
+                <option
+                  key={category}
+                  value={category}
+                >
+                  {category === 'חפצים'
+                    ? '📦  חפצים'
+                    : category}
+                </option>
+              ))}
+
+            </select>
+
+
+            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25-4.51a.75.75 0 01-1.08 1.04l-4.25-4.51a.75.75 0 01-1.08-1.06z"
+                  clipRule="evenodd"
+                />
+              </svg>
+
+            </div>
+
+
+            {categoryFilter === 'חפצים' && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-600 pointer-events-none">
+                📦
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+
+        {/* אזור */}
+        <div>
+
+          <label className="block text-xs font-bold text-slate-600 mb-1.5">
+            אזור
+          </label>
+
+          <div className="relative">
+
+            <input
+              type="text"
+              value={
+                locationFilter === 'all'
+                  ? ''
+                  : locationFilter
+              }
+              onChange={(e) => {
+                setLocationFilter(e.target.value)
+              }}
+              placeholder="חפש עיר או יישוב..."
+              autoComplete="off"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400"
+            />
+
+
+            {locationFilter !== 'all' &&
+              locationFilter.trim().length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+
+                  {israeliLocations
+                    .filter((location) =>
+                      location
+                        .toLowerCase()
+                        .includes(
+                          locationFilter
+                            .trim()
+                            .toLowerCase()
+                        )
+                    )
+                    .slice(0, 12)
+                    .map((location) => (
+                      <button
+                        key={location}
+                        type="button"
+                        onClick={() =>
+                          setLocationFilter(location)
+                        }
+                        className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                      >
+                        📍 {location}
+                      </button>
+                    ))}
+
+
+                  {israeliLocations.filter((location) =>
+                    location
+                      .toLowerCase()
+                      .includes(
+                        locationFilter
+                          .trim()
+                          .toLowerCase()
+                      )
+                  ).length === 0 && (
+                    <div className="px-4 py-3 text-sm text-slate-500">
+                      לא נמצא יישוב מתאים
+                    </div>
+                  )}
+
+                </div>
+              )}
+
+
+            {locationFilter === 'all' && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-sm">
+                כל האזורים
+              </div>
+            )}
+
+
+            {locationFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() =>
+                  setLocationFilter('all')
+                }
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-sm transition"
+                aria-label="נקה אזור"
+                title="נקה אזור"
+              >
+                ×
+              </button>
+            )}
+
+          </div>
+
+        </div>
+
       </div>
 
-      {(searchTerm ||
-        listingTypeFilter !== 'all' ||
-        categoryFilter !== 'all' ||
-        locationFilter !== 'all') && (
-        <button
-          onClick={() => {
-            setSearchTerm('')
-            setListingTypeFilter('all')
-            setCategoryFilter('all')
-            setLocationFilter('all')
-          }}
-          className="text-sm font-bold text-red-500 hover:text-red-600 transition"
-        >
-          ✕ נקה סינון
-        </button>
-      )}
+
+      {/* שורת תוצאות */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-5 pt-4 border-t border-slate-100">
+
+        <div className="text-sm text-slate-500">
+
+          נמצאו{' '}
+
+          <span className="font-extrabold text-slate-800">
+            {displayedListings.length}
+          </span>{' '}
+
+          מודעות
+
+        </div>
+
+
+        {(searchTerm ||
+          listingTypeFilter !== 'all' ||
+          categoryFilter !== 'all' ||
+          locationFilter !== 'all') && (
+
+          <button
+            onClick={() => {
+              setSearchTerm('')
+              setListingTypeFilter('all')
+              setCategoryFilter('all')
+              setLocationFilter('all')
+            }}
+            className="text-sm font-bold text-red-500 hover:text-red-600 transition"
+          >
+            ✕ נקה סינון
+          </button>
+
+        )}
+
+      </div>
 
     </div>
 
@@ -3356,114 +3895,265 @@ const advertiserPageCreatedAt =
 
   {/* קטגוריות SEO */}
 {currentView === 'home' && (
-  <section className="mb-8">
+  <section className="mb-6">
 
-    {/* כותרת האזור */}
-    <div className="relative overflow-hidden bg-white p-5 sm:p-6">
+    {/* =====================================================
+        מובייל - אקורדיון קטגוריות
+    ===================================================== */}
+    <div className="md:hidden">
 
-      
+      <button
+        type="button"
+        onClick={() =>
+          setShowMobileCategories((prev) => !prev)
+        }
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-emerald-300 hover:bg-emerald-50/30 transition"
+      >
 
-      <div className="relative">
+        <div className="flex items-center gap-2.5">
 
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
+          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700">
+            🧩
+          </span>
 
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700">
-                🧩
-              </span>
-
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                קטגוריות
-              </h2>
+          <div className="text-right">
+            <div className="text-base font-extrabold text-slate-900">
+              קטגוריות
             </div>
 
-            <p className="text-sm text-slate-500">
-              מצאו עבודות, שירותים ועזרה לפי תחום
-            </p>
+            <div className="text-xs text-slate-500 mt-0.5">
+              מצאו עבודות, שירותים ופריטים לפי תחום
+            </div>
           </div>
 
+        </div>
+
+        <div className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-emerald-700">
+          <span>
+            {showMobileCategories
+              ? 'הסתר'
+              : 'הצג קטגוריות'}
+          </span>
+
+          <span
+            className={`text-xs transition-transform duration-200 ${
+              showMobileCategories
+                ? 'rotate-180'
+                : ''
+            }`}
+          >
+            ▼
+          </span>
+        </div>
+
+      </button>
+
+      {/* תוכן האקורדיון */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          showMobileCategories
+            ? 'max-h-[2000px] opacity-100 mt-3'
+            : 'max-h-0 opacity-0'
+        }`}
+      >
+
+        <div className="bg-white rounded-2xl border border-slate-200 p-3">
+
+          {/* כפתור הצגת כל הקטגוריות */}
           {categoryFilter !== 'all' && (
             <button
+              type="button"
               onClick={() => {
                 setCategoryFilter('all')
                 navigate('/')
               }}
-              className="self-start sm:self-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+              className="w-full mb-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
             >
               ↻ הצג את כל הקטגוריות
             </button>
           )}
 
-        </div>
+          {/* רשימת קטגוריות */}
+          <div className="grid grid-cols-2 gap-2.5">
 
-        {/* רשימת קטגוריות */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+            {categories.map((category) => {
 
-          {(showAllCategories
-            ? categories
-            : categories.slice(0, 12)
-          ).map((category) => {
+              const slug = category
+                .trim()
+                .replace(/\s+/g, '-')
 
-            const slug = category
-              .trim()
-              .replace(/\s+/g, '-')
+              const isActive = categoryFilter === category
 
-            const isActive = categoryFilter === category
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter(category)
+                    navigate(`/קטגוריה/${slug}`)
+                  }}
+                  className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
+                    isActive
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+                  }`}
+                >
 
-            return (
-              <button
-                key={category}
-                onClick={() => {
-                  setCategoryFilter(category)
-                  navigate(`/קטגוריה/${slug}`)
-                }}
-                className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
-                  isActive
-                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-                    : 'bg-white/90 border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:-translate-y-0.5 hover:shadow-sm'
-                }`}
-              >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="truncate">
-                    {category}
+                  <span className="flex items-center justify-between gap-2">
+
+                    <span className="truncate">
+                      {category}
+                    </span>
+
+                    <span
+                      className={`shrink-0 text-xs ${
+                        isActive
+                          ? 'text-emerald-100'
+                          : 'text-slate-300 group-hover:text-emerald-400'
+                      }`}
+                    >
+                      ←
+                    </span>
+
                   </span>
 
-                  <span
-                    className={`shrink-0 text-xs transition-transform duration-200 group-hover:-translate-x-0.5 ${
-                      isActive
-                        ? 'text-emerald-100'
-                        : 'text-slate-300 group-hover:text-emerald-400'
-                    }`}
-                  >
-                    ←
-                  </span>
-                </span>
-              </button>
-            )
-          })}
-
-        </div>
-
-        {/* הצגת כל הקטגוריות */}
-        {categories.length > 12 && (
-          <div className="flex justify-center mt-5">
-
-            <button
-              onClick={() =>
-                setShowAllCategories((prev) => !prev)
-              }
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
-            >
-              {showAllCategories
-                ? '▲ הצג פחות קטגוריות'
-                : `▼ הצג את כל הקטגוריות (${categories.length})`}
-            </button>
+                </button>
+              )
+            })}
 
           </div>
-        )}
+
+        </div>
 
       </div>
+
+    </div>
+
+
+    {/* =====================================================
+        מחשב - קטגוריות פתוחות
+    ===================================================== */}
+    <div className="hidden md:block">
+
+      <div className="relative overflow-hidden bg-white p-5 sm:p-6">
+
+        <div className="relative">
+
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-5">
+
+            <div>
+
+              <div className="flex items-center gap-2 mb-1.5">
+
+                <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700">
+                  🧩
+                </span>
+
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                  קטגוריות
+                </h2>
+
+              </div>
+
+              <p className="text-sm text-slate-500">
+                מצאו עבודות, שירותים ועזרה לפי תחום
+              </p>
+
+            </div>
+
+            {categoryFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryFilter('all')
+                  navigate('/')
+                }}
+                className="self-start sm:self-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+              >
+                ↻ הצג את כל הקטגוריות
+              </button>
+            )}
+
+          </div>
+
+
+          {/* רשימת קטגוריות */}
+          <div className="grid grid-cols-3 lg:grid-cols-6 gap-2.5">
+
+            {(showAllCategories
+              ? categories
+              : categories.slice(0, 12)
+            ).map((category) => {
+
+              const slug = category
+                .trim()
+                .replace(/\s+/g, '-')
+
+              const isActive = categoryFilter === category
+
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter(category)
+                    navigate(`/קטגוריה/${slug}`)
+                  }}
+                  className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
+                    isActive
+                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                      : 'bg-white/90 border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:-translate-y-0.5 hover:shadow-sm'
+                  }`}
+                >
+
+                  <span className="flex items-center justify-between gap-2">
+
+                    <span className="truncate">
+                      {category}
+                    </span>
+
+                    <span
+                      className={`shrink-0 text-xs transition-transform duration-200 group-hover:-translate-x-0.5 ${
+                        isActive
+                          ? 'text-emerald-100'
+                          : 'text-slate-300 group-hover:text-emerald-400'
+                      }`}
+                    >
+                      ←
+                    </span>
+
+                  </span>
+
+                </button>
+              )
+            })}
+
+          </div>
+
+
+          {/* הצגת כל הקטגוריות */}
+          {categories.length > 12 && (
+            <div className="flex justify-center mt-5">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowAllCategories((prev) => !prev)
+                }
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
+              >
+                {showAllCategories
+                  ? '▲ הצג פחות קטגוריות'
+                  : `▼ הצג את כל הקטגוריות (${categories.length})`}
+              </button>
+
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
     </div>
 
   </section>
@@ -3477,99 +4167,331 @@ const advertiserPageCreatedAt =
 
 
 
+{/* =========================================================
+    מיקום + מיון
+========================================================= */}
 {currentView === 'home' && (
-  <div className="mb-7">
+  <div className="mb-6">
 
-    <div className="relative overflow-hidden bg-white p-5 sm:p-6">
+    {/* =====================================================
+        מובייל - אקורדיון
+    ===================================================== */}
+    <div className="md:hidden">
 
-      
+      <button
+        type="button"
+        onClick={() =>
+          setShowMobileLocationSort((prev) => !prev)
+        }
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-white border border-slate-200 shadow-sm hover:border-cyan-300 hover:bg-cyan-50/30 transition"
+      >
 
-      <div className="relative">
+        <div className="flex items-center gap-2.5">
 
-        {/* כותרת */}
-        <div className="text-center mb-5">
+          <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700">
+            📍
+          </span>
 
-          <div className="flex items-center justify-center gap-2 mb-1.5">
-            <span className="flex items-center justify-center w-9 h-9 rounded-xl bg-cyan-100 text-cyan-700">
-              📍
-            </span>
+          <div className="text-right">
 
-            <h3 className="text-lg sm:text-xl font-extrabold text-slate-900">
-              מצאו מודעות בסביבה שלכם
-            </h3>
-          </div>
+            <div className="text-base font-extrabold text-slate-900">
+              מיקום ומיון
+            </div>
 
-          <p className="text-sm text-slate-500">
-            אפשרו גישה למיקום כדי למצוא עבודות ושירותים קרובים אליכם
-          </p>
-
-        </div>
-
-        {/* כפתור זיהוי מיקום */}
-        <div className="flex justify-center">
-
-          <button
-            type="button"
-            onClick={requestUserLocation}
-            disabled={locationLoading}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm shadow-sm hover:bg-emerald-50 hover:border-emerald-300 hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:hover:translate-y-0"
-          >
-            <span className="text-lg">
-              📍
-            </span>
-
-            {locationLoading
-              ? 'מזהה את המיקום...'
-              : userCity
-                ? 'עדכן את המיקום שלי'
-                : 'מצא את המיקום שלי'}
-          </button>
-
-        </div>
-
-                {/* מידע וכלי מיקום */}
-        {userCity && (
-          <div className="mt-5 pt-5 border-t border-slate-200/80">
-
-            {/* העיר שזוהתה */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 mb-4">
-
-              <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
-                <span>📍</span>
-
-                <span className="text-sm font-extrabold">
-                  המיקום שלי: {userCity}
-                </span>
-              </div>
-
-              {/* הצגת מודעות באזור */}
-              <button
-                type="button"
-                onClick={() => setNearbyOnly(!nearbyOnly)}
-                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
-                  nearbyOnly
-                    ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
-                }`}
-              >
-                {nearbyOnly
-                  ? '📍 הצג מודעות באזור שלי'
-                  : 'הצג מודעות באזור שלי'}
-              </button>
-
+            <div className="text-xs text-slate-500 mt-0.5">
+              {userCity
+                ? `המיקום שלי: ${userCity}`
+                : 'מצאו מודעות קרובות ומיינו לפי תאריך'}
             </div>
 
           </div>
-        )}
 
-        {/* מיון מודעות - תמיד מוצג */}
-        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+        </div>
 
-          <div className="flex items-center gap-2 flex-wrap justify-center">
+        <div className="shrink-0 flex items-center gap-1.5 text-sm font-bold text-cyan-700">
+
+          <span>
+            {showMobileLocationSort
+              ? 'הסתר'
+              : 'הצג אפשרויות'}
+          </span>
+
+          <span
+            className={`text-xs transition-transform duration-200 ${
+              showMobileLocationSort
+                ? 'rotate-180'
+                : ''
+            }`}
+          >
+            ▼
+          </span>
+
+        </div>
+
+      </button>
+
+
+      {/* תוכן האקורדיון */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          showMobileLocationSort
+            ? 'max-h-[1200px] opacity-100 mt-3'
+            : 'max-h-0 opacity-0'
+        }`}
+      >
+
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+
+          {/* זיהוי מיקום */}
+          <div className="flex justify-center">
+
+            <button
+              type="button"
+              onClick={requestUserLocation}
+              disabled={locationLoading}
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm shadow-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 disabled:opacity-60"
+            >
+              <span className="text-lg">
+                📍
+              </span>
+
+              {locationLoading
+                ? 'מזהה את המיקום...'
+                : userCity
+                  ? 'עדכן את המיקום שלי'
+                  : 'מצא את המיקום שלי'}
+            </button>
+
+          </div>
+
+
+          {/* מיקום שזוהה */}
+          {userCity && (
+            <div className="mt-3 pt-3 border-t border-slate-200">
+
+              <div className="flex flex-col gap-2.5">
+
+                <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
+                  <span>📍</span>
+
+                  <span className="text-sm font-extrabold">
+                    המיקום שלי: {userCity}
+                  </span>
+                </div>
+
+
+                {/* הצגת מודעות באזור */}
+                <button
+                  type="button"
+                  onClick={() => setNearbyOnly(!nearbyOnly)}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
+                    nearbyOnly
+                      ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+                  }`}
+                >
+                  {nearbyOnly
+                    ? '📍 הצג מודעות באזור שלי'
+                    : 'הצג מודעות באזור שלי'}
+                </button>
+
+              </div>
+
+            </div>
+          )}
+
+
+          {/* מיון */}
+          <div className="mt-4 pt-4 border-t border-slate-200">
+
+            <div className="text-sm font-bold text-slate-600 mb-2">
+              מיון מודעות
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+
+              {/* החדשות ביותר */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSortByDistance(false)
+                  setListingSort('newest')
+                }}
+                className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  !sortByDistance && listingSort === 'newest'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                🕐 החדשות ביותר
+              </button>
+
+
+              {/* הישנות ביותר */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSortByDistance(false)
+                  setListingSort('oldest')
+                }}
+                className={`px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  !sortByDistance && listingSort === 'oldest'
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                🕰️ הישנות ביותר
+              </button>
+
+
+              {/* הקרובות ביותר */}
+              {userLocation && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortByDistance(true)
+                  }}
+                  className={`col-span-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    sortByDistance
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
+                  }`}
+                >
+                  📍 הקרובות ביותר
+                </button>
+              )}
+
+            </div>
+
+
+            {/* רדיוס */}
+            {nearbyOnly && userLocation && (
+              <div className="mt-4">
+
+                <div className="text-sm font-bold text-slate-600 mb-2">
+                  רדיוס
+                </div>
+
+                <div className="grid grid-cols-4 gap-1.5">
+
+                  {[1, 5, 10, 20].map((radius) => (
+                    <button
+                      key={radius}
+                      type="button"
+                      onClick={() => setLocationRadius(radius)}
+                      className={`px-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                        locationRadius === radius
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+                      }`}
+                    >
+                      {radius} ק"מ
+                    </button>
+                  ))}
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+
+          {/* שגיאת מיקום */}
+          {locationError && (
+            <div className="flex justify-center mt-4">
+
+              <div className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium text-center">
+                <span>⚠️</span>
+                <span>{locationError}</span>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    {/* =====================================================
+        מחשב - אזור קומפקטי פתוח
+    ===================================================== */}
+    <div className="hidden md:block">
+
+      <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4">
+
+        <div className="flex items-center justify-between gap-5">
+
+          {/* צד מיקום */}
+          <div className="flex items-center gap-3 min-w-0">
+
+            <span className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-cyan-100 text-cyan-700">
+              📍
+            </span>
+
+            <div className="min-w-0">
+
+              <div className="text-sm font-extrabold text-slate-900">
+                מיקום
+              </div>
+
+              <div className="text-xs text-slate-500">
+                {userCity
+                  ? `המיקום שלי: ${userCity}`
+                  : 'מצאו מודעות בסביבה שלכם'}
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              onClick={requestUserLocation}
+              disabled={locationLoading}
+              className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm hover:bg-emerald-50 hover:border-emerald-300 transition disabled:opacity-60"
+            >
+              📍
+              {locationLoading
+                ? 'מזהה...'
+                : userCity
+                  ? 'עדכן מיקום'
+                  : 'מצא את המיקום שלי'}
+            </button>
+
+          </div>
+
+
+          {/* קו מפריד */}
+          <div className="h-10 w-px bg-slate-200 shrink-0" />
+
+
+          {/* הצגת מודעות באזור */}
+          {userCity && (
+            <button
+              type="button"
+              onClick={() => setNearbyOnly(!nearbyOnly)}
+              className={`shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                nearbyOnly
+                  ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+              }`}
+            >
+              {nearbyOnly
+                ? '📍 הצג מודעות באזור שלי'
+                : 'הצג מודעות באזור שלי'}
+            </button>
+          )}
+
+
+          {/* מיון */}
+          <div className="flex items-center gap-2">
 
             <span className="text-sm font-bold text-slate-600">
               מיון:
             </span>
+
 
             {/* החדשות ביותר */}
             <button
@@ -3578,7 +4500,7 @@ const advertiserPageCreatedAt =
                 setSortByDistance(false)
                 setListingSort('newest')
               }}
-              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+              className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
                 !sortByDistance && listingSort === 'newest'
                   ? 'bg-slate-800 text-white shadow-sm'
                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -3587,6 +4509,7 @@ const advertiserPageCreatedAt =
               🕐 החדשות ביותר
             </button>
 
+
             {/* הישנות ביותר */}
             <button
               type="button"
@@ -3594,7 +4517,7 @@ const advertiserPageCreatedAt =
                 setSortByDistance(false)
                 setListingSort('oldest')
               }}
-              className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+              className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
                 !sortByDistance && listingSort === 'oldest'
                   ? 'bg-slate-800 text-white shadow-sm'
                   : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -3603,6 +4526,7 @@ const advertiserPageCreatedAt =
               🕰️ הישנות ביותר
             </button>
 
+
             {/* הקרובות ביותר */}
             {userLocation && (
               <button
@@ -3610,7 +4534,7 @@ const advertiserPageCreatedAt =
                 onClick={() => {
                   setSortByDistance(true)
                 }}
-                className={`px-3.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
                   sortByDistance
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
@@ -3621,6 +4545,7 @@ const advertiserPageCreatedAt =
             )}
 
           </div>
+
 
           {/* רדיוס */}
           {nearbyOnly && userLocation && (
@@ -3637,7 +4562,7 @@ const advertiserPageCreatedAt =
                     key={radius}
                     type="button"
                     onClick={() => setLocationRadius(radius)}
-                    className={`min-w-[48px] px-2.5 py-2 rounded-xl text-sm font-bold transition-all ${
+                    className={`min-w-[44px] px-2 py-2 rounded-xl text-xs font-bold transition-all ${
                       locationRadius === radius
                         ? 'bg-emerald-600 text-white shadow-sm'
                         : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
@@ -3654,13 +4579,12 @@ const advertiserPageCreatedAt =
 
         </div>
 
-          
 
-        {/* שגיאת מיקום */}
+        {/* שגיאה */}
         {locationError && (
-          <div className="flex justify-center mt-4">
+          <div className="flex justify-center mt-3">
 
-            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
               <span>⚠️</span>
               <span>{locationError}</span>
             </div>
@@ -3669,6 +4593,7 @@ const advertiserPageCreatedAt =
         )}
 
       </div>
+
     </div>
 
   </div>
