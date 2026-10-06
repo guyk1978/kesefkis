@@ -1359,16 +1359,91 @@ useEffect(() => {
   setFormData((prev) => ({ ...prev, [name]: value }))
 }
 
-  // פונקציית עזר להעלאת קובץ ל-Supabase Storage
+    // פונקציית עזר להעלאת קובץ ל-Supabase Storage
   const uploadFileToStorage = async (file, bucketName) => {
     if (!file) return null
-    const fileExt = file.name.split('.').pop()
+
+    let fileToUpload = file
+    let fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+
+    // תמונות של מודעות עוברות נרמול ל-JPEG סטנדרטי
+    if (bucketName === 'listings-images') {
+      try {
+        const imageUrl = URL.createObjectURL(file)
+
+        const normalizedFile = await new Promise((resolve, reject) => {
+          const img = new Image()
+
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas')
+              canvas.width = img.naturalWidth
+              canvas.height = img.naturalHeight
+
+              const ctx = canvas.getContext('2d')
+
+              if (!ctx) {
+                reject(new Error('לא ניתן ליצור Canvas לתמונה'))
+                return
+              }
+
+              ctx.drawImage(img, 0, 0)
+
+              canvas.toBlob(
+                (blob) => {
+                  if (!blob) {
+                    reject(new Error('לא ניתן להמיר את התמונה'))
+                    return
+                  }
+
+                  resolve(
+                    new File(
+                      [blob],
+                      `${Date.now()}.jpg`,
+                      {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                      }
+                    )
+                  )
+                },
+                'image/jpeg',
+                0.9
+              )
+            } catch (error) {
+              reject(error)
+            }
+          }
+
+          img.onerror = () => {
+            reject(new Error('לא ניתן לקרוא את קובץ התמונה'))
+          }
+
+          img.src = imageUrl
+        })
+
+        URL.revokeObjectURL(imageUrl)
+
+        fileToUpload = normalizedFile
+        fileExt = 'jpg'
+      } catch (error) {
+        console.warn(
+          '⚠️ נרמול התמונה נכשל, מעלים את הקובץ המקורי:',
+          error
+        )
+
+        fileToUpload = file
+      }
+    }
+
     const fileName = `${Math.random()}.${fileExt}`
     const filePath = `${fileName}`
 
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
-      .upload(filePath, file)
+      .upload(filePath, fileToUpload, {
+        contentType: fileToUpload.type || file.type
+      })
 
     if (uploadError) {
       throw uploadError
