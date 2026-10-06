@@ -4783,7 +4783,11 @@ const advertiserPageCreatedAt =
       role="button"
       tabIndex={0}
       aria-label={`פתח את המודעה ${item.title}`}
-      className={`group relative min-w-0 h-[200px] sm:h-[215px] overflow-hidden rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+      className={`group relative min-w-0 ${
+  currentView === 'my-listings'
+    ? 'h-[245px] sm:h-[260px]'
+    : 'h-[200px] sm:h-[215px]'
+} overflow-hidden rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
         item.is_featured &&
         item.featured_until &&
         new Date(item.featured_until) > new Date()
@@ -4967,7 +4971,33 @@ const advertiserPageCreatedAt =
             </div>
           )}
 
-        </div>
+          {currentView === 'my-listings' && (
+            <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOpenEditModal(item)
+                }}
+                className="flex-1 h-8 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 text-[11px] font-bold transition"
+              >
+                ✏️ עריכה
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleDeleteListing(item.id)
+                }}
+                className="flex-1 h-8 rounded-lg bg-slate-50 hover:bg-red-50 text-slate-600 hover:text-red-700 border border-slate-200 hover:border-red-200 text-[11px] font-bold transition"
+              >
+                🗑️ מחיקה
+              </button>
+
+            </div>
+          )}        </div>
 
       </div>
     </div>
