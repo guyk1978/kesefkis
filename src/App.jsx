@@ -1366,19 +1366,43 @@ useEffect(() => {
     let fileToUpload = file
     let fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
 
-    // תמונות של מודעות עוברות נרמול ל-JPEG סטנדרטי
+    // תמונות של מודעות עוברות נרמול ל-JPEG בגודל בטוח
     if (bucketName === 'listings-images') {
-      try {
-        const imageUrl = URL.createObjectURL(file)
+      const imageUrl = URL.createObjectURL(file)
 
+      try {
         const normalizedFile = await new Promise((resolve, reject) => {
           const img = new Image()
 
           img.onload = () => {
             try {
+              const maxSize = 1920
+              const originalWidth = img.naturalWidth
+              const originalHeight = img.naturalHeight
+
+              if (!originalWidth || !originalHeight) {
+                reject(new Error('לתמונה אין מידות תקינות'))
+                return
+              }
+
+              const scale = Math.min(
+                1,
+                maxSize / Math.max(originalWidth, originalHeight)
+              )
+
+              const width = Math.max(
+                1,
+                Math.round(originalWidth * scale)
+              )
+
+              const height = Math.max(
+                1,
+                Math.round(originalHeight * scale)
+              )
+
               const canvas = document.createElement('canvas')
-              canvas.width = img.naturalWidth
-              canvas.height = img.naturalHeight
+              canvas.width = width
+              canvas.height = height
 
               const ctx = canvas.getContext('2d')
 
@@ -1387,12 +1411,22 @@ useEffect(() => {
                 return
               }
 
-              ctx.drawImage(img, 0, 0)
+              ctx.drawImage(
+                img,
+                0,
+                0,
+                originalWidth,
+                originalHeight,
+                0,
+                0,
+                width,
+                height
+              )
 
               canvas.toBlob(
                 (blob) => {
-                  if (!blob) {
-                    reject(new Error('לא ניתן להמיר את התמונה'))
+                  if (!blob || blob.size === 0) {
+                    reject(new Error('לא ניתן ליצור קובץ JPEG מהתמונה'))
                     return
                   }
 
@@ -1408,7 +1442,7 @@ useEffect(() => {
                   )
                 },
                 'image/jpeg',
-                0.9
+                0.88
               )
             } catch (error) {
               reject(error)
@@ -1416,23 +1450,31 @@ useEffect(() => {
           }
 
           img.onerror = () => {
-            reject(new Error('לא ניתן לקרוא את קובץ התמונה'))
+            reject(
+              new Error(
+                `הדפדפן לא הצליח לקרוא את התמונה. סוג הקובץ: ${file.type || 'לא ידוע'}`
+              )
+            )
           }
 
           img.src = imageUrl
         })
 
-        URL.revokeObjectURL(imageUrl)
-
         fileToUpload = normalizedFile
         fileExt = 'jpg'
       } catch (error) {
-        console.warn(
-          '⚠️ נרמול התמונה נכשל, מעלים את הקובץ המקורי:',
+        console.error('נרמול תמונת מודעה נכשל:', {
+          name: file.name,
+          type: file.type,
+          size: file.size,
           error
-        )
+        })
 
-        fileToUpload = file
+        throw new Error(
+          `לא ניתן לעבד את התמונה. נסה לבחור את התמונה שוב או להשתמש בתמונה אחרת. (${error?.message || 'שגיאה לא ידועה'})`
+        )
+      } finally {
+        URL.revokeObjectURL(imageUrl)
       }
     }
 
@@ -1455,8 +1497,6 @@ useEffect(() => {
 
     return data.publicUrl
   }
-
-  // טיפול בהתחברות / הרשמה
   const handleAuth = async (e) => {
     e.preventDefault()
     setAuthError('')
