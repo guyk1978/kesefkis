@@ -95,6 +95,8 @@ function App() {
 
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [shareListing, setShareListing] = useState(null)
+const [showWelcomePopup, setShowWelcomePopup] = useState(false)
+const [pendingPublishAfterAuth, setPendingPublishAfterAuth] = useState(false)
   const [scrollToListings, setScrollToListings] = useState(false)
 
   useEffect(() => {
@@ -572,6 +574,70 @@ if (currentUser) {
 
   return () => subscription.unsubscribe()
 }, [])
+
+
+
+
+// Popup קבלת פנים למבקר חדש
+useEffect(() => {
+  const welcomeSeen = localStorage.getItem('kesefkis-welcome-popup-seen')
+
+  if (welcomeSeen === '1') {
+    return
+  }
+
+  const timer = setTimeout(async () => {
+    try {
+      const {
+        data: { session }
+      } = await supabase.auth.getSession()
+
+      // לא מציגים למשתמש שכבר מחובר
+      if (session?.user) {
+        return
+      }
+
+      localStorage.setItem('kesefkis-welcome-popup-seen', '1')
+      setShowWelcomePopup(true)
+    } catch (error) {
+      console.error('בדיקת משתמש ל-Popup נכשלה:', error)
+    }
+  }, 2500)
+
+  return () => clearTimeout(timer)
+}, [])
+
+
+
+
+// המשך אוטומטי ליצירת מודעה אחרי התחברות
+useEffect(() => {
+  if (!user || !pendingPublishAfterAuth) {
+    return
+  }
+
+  const timer = setTimeout(() => {
+    setFormData({
+      title: '',
+      description: '',
+      price: '',
+      payment_type: 'cash',
+      listing_type: 'offer',
+      category: 'עבודות מזדמנות',
+      location: '',
+      contact_name: '',
+      phone: ''
+    })
+
+    setImageFile(null)
+    setIsModalOpen(true)
+    setPendingPublishAfterAuth(false)
+  }, 150)
+
+  return () => clearTimeout(timer)
+}, [user, pendingPublishAfterAuth])
+
+
 
 
   // טעינת ההודעות של המשתמש
@@ -7552,6 +7618,109 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     </div>
   </div>
 )}
+
+
+
+
+
+{showWelcomePopup && (
+  <div
+    className="fixed inset-0 z-[110] bg-slate-950/65 backdrop-blur-sm flex items-center justify-center p-4"
+    onClick={() => setShowWelcomePopup(false)}
+  >
+    <div
+      className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-emerald-100"
+      onClick={(e) => e.stopPropagation()}
+      dir="rtl"
+    >
+      {/* פס צבע עליון */}
+      <div className="h-2 bg-gradient-to-l from-emerald-500 via-teal-500 to-cyan-500" />
+
+      {/* סגירה */}
+      <button
+        type="button"
+        onClick={() => setShowWelcomePopup(false)}
+        aria-label="סגירה"
+        className="absolute left-4 top-5 z-10 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700 flex items-center justify-center text-xl transition"
+      >
+        ×
+      </button>
+
+      <div className="px-6 py-7 sm:px-8 sm:py-8 text-center">
+        <div className="mx-auto mb-5 w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center text-4xl shadow-sm">
+          📢
+        </div>
+
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
+          יש לך משהו להציע?
+        </h2>
+
+        <p className="mt-2 text-lg font-bold text-emerald-600">
+          פרסם עכשיו בחינם!
+        </p>
+
+        <p className="mt-4 text-sm sm:text-base leading-7 text-slate-600">
+          יש לך עבודה קטנה, שירות, חפץ למכירה,
+          למסירה או להחלפה?
+          <br />
+          פרסם את המודעה שלך ב<strong>כסף כיס</strong> ותן לאנשים
+          בסביבה למצוא אותך.
+        </p>
+
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-bold text-slate-600">
+          <div className="rounded-xl bg-emerald-50 px-3 py-2.5">
+            🟢 פרסום בחינם
+          </div>
+
+          <div className="rounded-xl bg-teal-50 px-3 py-2.5">
+            📍 מקומי
+          </div>
+
+          <div className="rounded-xl bg-cyan-50 px-3 py-2.5">
+            ⚡ פשוט ומהיר
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+  setShowWelcomePopup(false)
+
+  if (!user) {
+    setPendingPublishAfterAuth(true)
+  }
+
+  handleOpenPublishModal()
+}}
+          className="mt-6 w-full h-13 min-h-[52px] rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-lg shadow-[0_6px_20px_rgba(5,150,105,0.30)] transition-all"
+        >
+          📢 צור מודעה בחינם
+        </button>
+
+        {!user && (
+          <p className="mt-4 text-xs text-slate-500">
+            כבר יש לך חשבון?{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setShowWelcomePopup(false)
+                setAuthMode('login')
+                setIsAuthModalOpen(true)
+              }}
+              className="font-bold text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+            >
+              התחבר
+            </button>
+          </p>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
 
       {/* =========================================================
     מודאל התחברות / הרשמה
