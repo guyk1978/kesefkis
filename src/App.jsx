@@ -176,7 +176,7 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-const handleShareListing = async (listing) => {
+const handleShareListing = (listing) => {
   if (!listing) return
 
   const shareUrl =
@@ -190,25 +190,6 @@ const handleShareListing = async (listing) => {
     url: shareUrl
   }
 
-  // במובייל — להשתמש בחלון השיתוף הטבעי של המכשיר
-  const isMobile =
-    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-
-  if (isMobile && typeof navigator.share === 'function') {
-    try {
-      await navigator.share(shareData)
-      return
-    } catch (error) {
-      // המשתמש סגר את חלון השיתוף
-      if (error?.name === 'AbortError') {
-        return
-      }
-
-      // אם השיתוף הטבעי נכשל — נפתח את חלון השיתוף שלנו
-    }
-  }
-
-  // במחשב — חלון שיתוף מותאם אישית
   setShareListing({
     listing,
     shareUrl,
