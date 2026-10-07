@@ -317,7 +317,7 @@ const [showMobileSearchPanel, setShowMobileSearchPanel] = useState(false)
 
 const requestUserLocation = () => {
   if (!navigator.geolocation) {
-    setLocationError('הדפדפן שלך לא תומך בזיהוי מיקום')
+    setLocationError('הדפדפן אינו תומך בזיהוי מיקום')
     return
   }
 
@@ -2069,8 +2069,8 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
 const getListingDistance = (item) => {
   if (
     !userLocation ||
-    !item.latitude ||
-    !item.longitude
+    item?.latitude == null ||
+    item?.longitude == null
   ) {
     return null
   }
@@ -5099,7 +5099,7 @@ const advertiserPageCreatedAt =
               </span>
 
               {getListingDistance(item) !== null && (
-                <span className="hidden sm:inline text-[9px] text-emerald-600 font-bold whitespace-nowrap">
+                <span className="inline text-[9px] sm:text-[10px] text-emerald-600 font-bold whitespace-nowrap">
                   {getListingDistance(item) < 1
                     ? `${Math.round(getListingDistance(item) * 1000)} מ'`
                     : `${getListingDistance(item).toFixed(1)} ק"מ`}
