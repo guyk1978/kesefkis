@@ -501,6 +501,7 @@ const [isSendingConversationMessage, setIsSendingConversationMessage] = useState
   price: '',
   listing_type: 'offer',
   category: 'עבודות מזדמנות',
+  categories: ['עבודות מזדמנות'],
   location: '',
   contact_name: '',
   phone: ''
@@ -624,6 +625,7 @@ useEffect(() => {
       payment_type: 'cash',
       listing_type: 'offer',
       category: 'עבודות מזדמנות',
+      categories: ['עבודות מזדמנות'],
       location: '',
       contact_name: '',
       phone: ''
@@ -1400,27 +1402,37 @@ useEffect(() => {
   const handleChange = (e) => {
   const { name, value } = e.target
 
-  if (name === 'category') {
-  setFormData((prev) => ({
-    ...prev,
-    category: value,
+    if (name === 'category') {
+    setFormData((prev) => ({
+      ...prev,
+      category: value,
 
-    listing_type:
-      value === 'חפצים'
-        ? (prev.listing_type === 'item_request' ? 'item_request' : 'item_offer')
-        : (prev.listing_type === 'item_request' || prev.listing_type === 'item_offer'
-            ? 'offer'
-            : prev.listing_type),
+      listing_type:
+        value === 'חפצים'
+          ? (prev.listing_type === 'item_request' ? 'item_request' : 'item_offer')
+          : (prev.listing_type === 'item_request' || prev.listing_type === 'item_offer'
+              ? 'offer'
+              : prev.listing_type),
 
-    ...(value !== 'חפצים' && prev.payment_type === 'free'
-      ? {
-          payment_type: 'cash',
-          price: ''
-        }
-      : {})
-  }))
-  return
-}
+      ...(value !== 'חפצים' && prev.payment_type === 'free'
+        ? {
+            payment_type: 'cash',
+            price: ''
+          }
+        : {})
+    }))
+    return
+  }
+
+  if (name === 'categories') {
+    setFormData((prev) => ({
+      ...prev,
+      categories: Array.isArray(value)
+        ? value.slice(0, 3)
+        : prev.categories
+    }))
+    return
+  }
 
   setFormData((prev) => ({ ...prev, [name]: value }))
 }
@@ -1677,6 +1689,7 @@ const handleOpenPublishModal = () => {
   payment_type: 'cash',
   listing_type: 'offer',
   category: 'עבודות מזדמנות',
+  categories: ['עבודות מזדמנות'],
   location: '',
   contact_name: '',
   phone: ''
@@ -1756,9 +1769,13 @@ const handleSubmit = async (e) => {
       payment_type: formData.payment_type,
       listing_type: formData.listing_type,
       category: formData.category,
-      location: formData.location,
-      latitude,
-      longitude,
+categories:
+  Array.isArray(formData.categories) && formData.categories.length > 0
+    ? formData.categories.slice(0, 3)
+    : [formData.category],
+location: formData.location,
+latitude,
+longitude,
       contact_name: formData.contact_name,
       phone: formData.phone,
       image_url: imageUrl,
@@ -1796,7 +1813,11 @@ const handleOpenEditModal = (item) => {
     payment_type: item.payment_type || 'cash',
     listing_type: item.listing_type || 'offer',
     category: item.category || 'עבודות מזדמנות',
-    location: item.location || '',
+categories:
+  Array.isArray(item.categories) && item.categories.length > 0
+    ? item.categories.slice(0, 3)
+    : [item.category || 'עבודות מזדמנות'],
+location: item.location || '',
     contact_name: item.contact_name || '',
     phone: item.phone || ''
   })
@@ -1884,9 +1905,13 @@ const handleUpdateListing = async (e) => {
     ? parseFloat(formData.price)
     : null,
   payment_type: formData.payment_type || 'cash',
-  listing_type: formData.listing_type,
-  category: formData.category,
-  location: formData.location,
+listing_type: formData.listing_type,
+category: formData.category,
+categories:
+  Array.isArray(formData.categories) && formData.categories.length > 0
+    ? formData.categories.slice(0, 3)
+    : [formData.category],
+location: formData.location,
   contact_name: formData.contact_name,
   phone: formData.phone,
   image_url: imageUrl,
@@ -2064,20 +2089,27 @@ const displayedListings = baseListings
   .filter((item) => {
     const search = searchTerm.trim().toLowerCase()
 
-    const matchesSearch =
-      !search ||
-      (item.title || '').toLowerCase().includes(search) ||
-      (item.description || '').toLowerCase().includes(search) ||
-      (item.category || '').toLowerCase().includes(search) ||
-      (item.location || '').toLowerCase().includes(search)
+const itemCategories =
+  Array.isArray(item.categories) && item.categories.length > 0
+    ? item.categories
+    : [item.category]
 
-    const matchesType =
-      listingTypeFilter === 'all' ||
-      item.listing_type === listingTypeFilter
+const matchesSearch =
+  !search ||
+  (item.title || '').toLowerCase().includes(search) ||
+  (item.description || '').toLowerCase().includes(search) ||
+  itemCategories.some((category) =>
+    (category || '').toLowerCase().includes(search)
+  ) ||
+  (item.location || '').toLowerCase().includes(search)
 
-    const matchesCategory =
-      categoryFilter === 'all' ||
-      item.category === categoryFilter
+const matchesType =
+  listingTypeFilter === 'all' ||
+  item.listing_type === listingTypeFilter
+
+const matchesCategory =
+  categoryFilter === 'all' ||
+  itemCategories.includes(categoryFilter)
 
     const matchesLocation =
       locationFilter === 'all' ||
@@ -8102,55 +8134,229 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
 
               {/* קטגוריה */}
-              <div>
+<div>
 
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                  קטגוריה
-                </label>
+  <label className="block text-sm font-bold text-slate-700 mb-2">
+    קטגוריה
+  </label>
 
-                <div className="relative">
-  <select
-    name="category"
-    value={formData.category}
-    onChange={handleChange}
-    className={`w-full px-4 py-3.5 pr-11 border rounded-2xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
-      formData.category === 'חפצים'
-        ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
-        : 'border-slate-200 bg-white text-slate-700 focus:ring-emerald-200 focus:border-emerald-400'
-    }`}
-  >
-    {categories.map((category) => (
-      <option key={category} value={category}>
-        {category === 'חפצים' ? '📦  חפצים' : category}
-      </option>
-    ))}
-  </select>
-
-  {/* חץ */}
-  <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
-    <svg
-      className="w-4 h-4"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      aria-hidden="true"
+  <div className="relative">
+    <select
+      name="category"
+      value={formData.category}
+      onChange={handleChange}
+      className={`w-full px-4 py-3.5 pr-11 border rounded-2xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
+        formData.category === 'חפצים'
+          ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
+          : 'border-slate-200 bg-white text-slate-700 focus:ring-emerald-200 focus:border-emerald-400'
+      }`}
     >
-      <path
-        fillRule="evenodd"
-        d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 111.08 1.04l-4.25-4.51a.75.75 0 01.02-1.06z"
-        clipRule="evenodd"
-      />
-    </svg>
+      {categories.map((category) => (
+        <option key={category} value={category}>
+          {category === 'חפצים' ? '📦  חפצים' : category}
+        </option>
+      ))}
+    </select>
+
+    {/* חץ */}
+    <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+      <svg
+        className="w-4 h-4"
+        viewBox="0 0 20 20"
+        fill="currentColor"
+        aria-hidden="true"
+      >
+        <path
+          fillRule="evenodd"
+          d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 111.08 1.04l-4.25-4.51a.75.75 0 01.02-1.06z"
+          clipRule="evenodd"
+        />
+      </svg>
+    </div>
+
+    {/* סימון כשחפצים נבחר */}
+    {formData.category === 'חפצים' && (
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
+        📦
+      </div>
+    )}
   </div>
 
-  {/* סימון כאשר חפצים נבחר */}
-  {formData.category === 'חפצים' && (
-    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sm pointer-events-none">
-      📦
+  {/* קטגוריות נוספות */}
+  <div className="mt-3">
+
+    <div className="flex items-center justify-between mb-2">
+      <span className="text-xs font-bold text-slate-500">
+        קטגוריות נוספות
+      </span>
+
+      <span className="text-[11px] text-slate-400">
+        עד 2 נוספות
+      </span>
     </div>
-  )}
+
+    {/* קטגוריות שנבחרו */}
+    {Array.isArray(formData.categories) &&
+      formData.categories.filter((cat) => cat !== formData.category).length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {formData.categories
+            .filter((cat) => cat !== formData.category)
+            .map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    categories: prev.categories.filter(
+                      (item) => item !== cat
+                    )
+                  }))
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition"
+              >
+                <span>{cat}</span>
+                <span className="text-emerald-500 text-sm leading-none">
+                  ×
+                </span>
+              </button>
+            ))}
+        </div>
+      )}
+
+    {/* בחירת קטגוריה נוספת */}
+    {(!Array.isArray(formData.categories) ||
+      formData.categories.length < 3) && (
+      <select
+        value=""
+        onChange={(e) => {
+          const value = e.target.value
+
+          if (!value) return
+
+          setFormData((prev) => {
+            const current = Array.isArray(prev.categories)
+              ? prev.categories
+              : [prev.category]
+
+            if (current.includes(value) || current.length >= 3) {
+              return prev
+            }
+
+            return {
+              ...prev,
+              categories: [...current, value]
+            }
+          })
+        }}
+        className="w-full px-4 py-3 border border-dashed border-slate-300 rounded-xl bg-white text-sm text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition"
+      >
+        <option value="">+ הוסף קטגוריה נוספת</option>
+
+        {categories
+          .filter(
+            (cat) =>
+              !formData.categories?.includes(cat) &&
+              cat !== 'חפצים'
+          )
+          .map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+      </select>
+    )}
+
+  </div>
+
 </div>
 
-              </div>
+{/* קטגוריות נוספות */}
+<div className="mt-3">
+
+  <div className="flex items-center justify-between mb-2">
+    <span className="text-xs font-bold text-slate-500">
+      קטגוריות נוספות
+    </span>
+
+    <span className="text-[11px] text-slate-400">
+      עד 2 נוספות
+    </span>
+  </div>
+
+  {/* קטגוריות שנבחרו */}
+  {Array.isArray(formData.categories) &&
+    formData.categories.filter((cat) => cat !== formData.category).length > 0 && (
+      <div className="flex flex-wrap gap-2 mb-2">
+        {formData.categories
+          .filter((cat) => cat !== formData.category)
+          .map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({
+                  ...prev,
+                  categories: prev.categories.filter(
+                    (item) => item !== cat
+                  )
+                }))
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition"
+            >
+              <span>{cat}</span>
+              <span className="text-emerald-500 text-sm leading-none">
+                ×
+              </span>
+            </button>
+          ))}
+      </div>
+    )}
+
+  {/* הוספת קטגוריה */}
+  {(!Array.isArray(formData.categories) ||
+    formData.categories.length < 3) && (
+    <select
+      value=""
+      onChange={(e) => {
+        const value = e.target.value
+
+        if (!value) return
+
+        setFormData((prev) => {
+          const current = Array.isArray(prev.categories)
+            ? prev.categories
+            : [prev.category]
+
+          if (current.includes(value) || current.length >= 3) {
+            return prev
+          }
+
+          return {
+            ...prev,
+            categories: [...current, value]
+          }
+        })
+      }}
+      className="w-full px-4 py-3 border border-dashed border-slate-300 rounded-xl bg-white text-sm text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition"
+    >
+      <option value="">+ הוסף קטגוריה נוספת</option>
+
+      {categories
+        .filter(
+          (cat) =>
+            !formData.categories?.includes(cat) &&
+            cat !== 'חפצים'
+        )
+        .map((category) => (
+          <option key={category} value={category}>
+            {category}
+          </option>
+        ))}
+    </select>
+  )}
+
+</div>
 
             </div>
 
@@ -9021,6 +9227,93 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     </div>
   )}
 </div>
+
+
+            {/* קטגוריות נוספות */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-700">
+                    קטגוריות נוספות
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    עד 2 נוספות
+                  </span>
+                </div>
+              </div>
+
+              {/* קטגוריות שנבחרו */}
+              {Array.isArray(formData.categories) &&
+                formData.categories.filter((cat) => cat !== formData.category).length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {formData.categories
+                      .filter((cat) => cat !== formData.category)
+                      .map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              categories: prev.categories.filter(
+                                (item) => item !== cat
+                              )
+                            }))
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition"
+                        >
+                          <span>{cat}</span>
+                          <span className="text-emerald-500 text-sm leading-none">
+                            ×
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+                )}
+
+              {/* בחירת קטגוריה נוספת */}
+              {(!Array.isArray(formData.categories) ||
+                formData.categories.length < 3) && (
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const value = e.target.value
+
+                    if (!value) return
+
+                    setFormData((prev) => {
+                      const current = Array.isArray(prev.categories)
+                        ? prev.categories
+                        : [prev.category]
+
+                      if (current.includes(value) || current.length >= 3) {
+                        return prev
+                      }
+
+                      return {
+                        ...prev,
+                        categories: [...current, value]
+                      }
+                    })
+                  }}
+                  className="w-full px-4 py-3 border border-dashed border-slate-300 rounded-xl bg-white text-sm text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition"
+                >
+                  <option value="">+ הוסף קטגוריה נוספת</option>
+
+                  {categories
+                    .filter(
+                      (cat) =>
+                        !formData.categories?.includes(cat) &&
+                        cat !== 'חפצים'
+                    )
+                    .map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </div>
 
             </div>
 
