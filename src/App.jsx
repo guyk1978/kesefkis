@@ -5023,31 +5023,30 @@ const advertiserPageCreatedAt =
   <div id="listings-section" className="scroll-mt-6" />
 
 {/* תוכן SEO לדפי קטגוריה ומיקום */}
-{categoryFilter !== 'all' && (
+{(categoryFilter !== 'all' || locationFilter !== 'all') && (
   <section className="mb-6 rounded-2xl bg-white border border-slate-100 shadow-sm p-5 sm:p-6">
     <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 mb-2">
-      {categoryFilter === 'חפצים'
-        ? 'חפצים למכירה, למסירה ולהחלפה'
-        : `עבודות ושירותים בקטגוריית ${categoryFilter}`}
+      {categoryFilter !== 'all' && locationFilter !== 'all'
+        ? categoryFilter === 'חפצים'
+          ? `חפצים למכירה, למסירה ולהחלפה ב${locationFilter}`
+          : `עבודות ושירותים בקטגוריית ${categoryFilter} ב${locationFilter}`
+        : categoryFilter !== 'all'
+          ? categoryFilter === 'חפצים'
+            ? 'חפצים למכירה, למסירה ולהחלפה'
+            : `עבודות ושירותים בקטגוריית ${categoryFilter}`
+          : `עבודות, שירותים ופריטים ב${locationFilter}`}
     </h1>
 
     <p className="text-sm sm:text-base leading-7 text-slate-600">
-      {categoryFilter === 'חפצים'
-        ? 'מצאו חפצים במחירים קטנים, למסירה או להחלפה בסביבה שלכם. אפשר לפרסם כאן דברים שכבר לא צריכים ולהציע אותם לאנשים באזור.'
-        : `כאן תוכלו למצוא ולהציע עבודות ושירותים בתחום ${categoryFilter}. חפשו מודעות בסביבה שלכם או פרסמו שירות שאתם מציעים לאנשים באזור.`}
-    </p>
-  </section>
-)}
-
-{locationFilter !== 'all' && (
-  <section className="mb-6 rounded-2xl bg-white border border-slate-100 shadow-sm p-5 sm:p-6">
-    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 mb-2">
-      עבודות, שירותים ופריטים ב{locationFilter}
-    </h1>
-
-    <p className="text-sm sm:text-base leading-7 text-slate-600">
-      מצאו עבודות קטנות, שירותים ופריטים שמוצעים באזור {locationFilter}.
-      אפשר לחפש מודעות מקומיות, להציע שירות או לפרסם משהו שיש לכם להציע לאנשים בסביבה.
+      {categoryFilter !== 'all' && locationFilter !== 'all'
+        ? categoryFilter === 'חפצים'
+          ? `מצאו חפצים במחירים קטנים, למסירה או להחלפה באזור ${locationFilter}. אפשר לפרסם כאן דברים שכבר לא צריכים ולהציע אותם לאנשים בסביבה.`
+          : `מצאו והציעו עבודות ושירותים בתחום ${categoryFilter} באזור ${locationFilter}. חפשו מודעות מקומיות או פרסמו שירות שאתם מציעים לאנשים בסביבה.`
+        : categoryFilter !== 'all'
+          ? categoryFilter === 'חפצים'
+            ? 'מצאו חפצים במחירים קטנים, למסירה או להחלפה בסביבה שלכם. אפשר לפרסם כאן דברים שכבר לא צריכים ולהציע אותם לאנשים באזור.'
+            : `כאן תוכלו למצוא ולהציע עבודות ושירותים בתחום ${categoryFilter}. חפשו מודעות בסביבה שלכם או פרסמו שירות שאתם מציעים לאנשים באזור.`
+          : `מצאו עבודות קטנות, שירותים ופריטים שמוצעים באזור ${locationFilter}. אפשר לחפש מודעות מקומיות, להציע שירות או לפרסם משהו שיש לכם להציע לאנשים בסביבה.`}
     </p>
   </section>
 )}
