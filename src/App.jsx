@@ -5146,8 +5146,8 @@ const advertiserPageCreatedAt =
       aria-label={`פתח את המודעה ${item.title}`}
       className={`group relative min-w-0 ${
   currentView === 'my-listings'
-    ? 'h-[270px] sm:h-[260px]'
-    : 'h-[200px] sm:h-[215px]'
+    ? 'h-[280px] sm:h-[260px]'
+    : 'h-[220px] sm:h-[215px]'
 } overflow-hidden rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
         item.is_featured &&
         item.featured_until &&
@@ -12095,5 +12095,6 @@ export default function AppRouter() {
     </BrowserRouter>
   )
 }
+
 
 
