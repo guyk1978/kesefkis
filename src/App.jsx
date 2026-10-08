@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 
 function loadGoogleAnalytics() {
   if (window.__kesefkisGA) return
@@ -1439,6 +1439,25 @@ useEffect(() => {
 
     tag.setAttribute('content', content)
   })
+
+  const jsonLdData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'כסף כיס',
+    url: 'https://kesefkis.co.il/',
+    description
+  }
+
+  let jsonLd = document.querySelector('script[data-seo="jsonld"]')
+
+  if (!jsonLd) {
+    jsonLd = document.createElement('script')
+    jsonLd.setAttribute('type', 'application/ld+json')
+    jsonLd.setAttribute('data-seo', 'jsonld')
+    document.head.appendChild(jsonLd)
+  }
+
+  jsonLd.textContent = JSON.stringify(jsonLdData)
 }, [
   selectedListing,
   searchTerm,
