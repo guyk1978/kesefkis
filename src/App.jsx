@@ -297,6 +297,24 @@ const [locationFilter, setLocationFilter] = useState(() => {
 })
 
 
+useEffect(() => {
+  const pathParts = decodeURIComponent(location.pathname)
+    .split('/')
+    .filter(Boolean)
+
+  if (
+    pathParts.length === 2 &&
+    pathParts[0] === 'מיקום'
+  ) {
+    const locationSlug = pathParts[1]
+    const locationName = locationSlug
+      .replace(/-/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    setLocationFilter(locationName)
+  }
+}, [location.pathname])
 
 
 // =========================================
@@ -442,7 +460,8 @@ useEffect(() => {
   // ניהול תצוגה: 'home' ללוח הראשי, 'my-listings' למודעות שלי
   const [currentView, setCurrentView] = useState('home')
   const [showAllCategories, setShowAllCategories] = useState(false)
-  const [showMobileCategories, setShowMobileCategories] = useState(false)
+const [showAllLocations, setShowAllLocations] = useState(false)
+const [showMobileCategories, setShowMobileCategories] = useState(false)
 
 
   const [selectedListing, setSelectedListing] = useState(null)
@@ -2112,8 +2131,8 @@ const matchesCategory =
   itemCategories.includes(categoryFilter)
 
     const matchesLocation =
-      locationFilter === 'all' ||
-      item.location === locationFilter
+  locationFilter === 'all' ||
+  normalizeLocation(item.location) === normalizeLocation(locationFilter)
 
     const matchesNearby =
       !nearbyOnly ||
@@ -3700,7 +3719,11 @@ const advertiserPageCreatedAt =
                 }}
                 placeholder="חפש עיר או יישוב..."
                 autoComplete="off"
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400"
+                className={`w-full px-3 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition text-sm font-medium ${
+  locationFilter !== 'all' && locationFilter.trim()
+    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 focus:ring-emerald-200'
+    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+}`}
               />
 
 
@@ -4331,7 +4354,11 @@ const advertiserPageCreatedAt =
               }}
               placeholder="חפש עיר או יישוב..."
               autoComplete="off"
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 placeholder:text-slate-400"
+              className={`w-full px-3 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition text-sm font-medium ${
+  locationFilter !== 'all' && locationFilter.trim()
+    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 focus:ring-emerald-200'
+    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+}`}
             />
 
 
@@ -4600,6 +4627,123 @@ const advertiserPageCreatedAt =
 
 
 
+
+
+{/* מיקומים נפוצים - קישורי SEO */}
+{currentView === 'home' && (
+  <section className="mb-6 hidden md:block">
+
+    <div className="bg-white rounded-2xl border border-slate-200 px-5 py-5">
+
+      <div className="mb-4 flex items-start justify-between gap-4">
+
+  <div>
+    <h2 className="text-xl font-extrabold text-slate-900">
+      מיקומים נפוצים
+    </h2>
+
+    <p className="text-sm text-slate-500 mt-1">
+      מצאו עבודות, שירותים ופריטים באזור שלכם
+    </p>
+  </div>
+
+  {locationFilter !== 'all' && locationFilter.trim() && (
+    <button
+      type="button"
+      onClick={() => {
+        setLocationFilter('all')
+        setShowAllLocations(false)
+        navigate('/')
+      }}
+      className="self-start inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+    >
+      ↻ הצג את כל המיקומים
+    </button>
+  )}
+
+</div>
+
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-2.5">
+
+        {[
+  'תל אביב - יפו',
+  'אשקלון',
+  'ראשון לציון',
+  'חולון',
+  'בת ים',
+  'רמת גן',
+  'גבעתיים',
+  'פתח תקווה',
+  'ירושלים',
+  'חיפה',
+  'באר שבע',
+  'נתניה',
+  'הרצליה',
+  'רעננה',
+  'כפר סבא',
+  'רמת השרון',
+  'רחובות',
+  'נס ציונה',
+  'יבנה',
+  'אשדוד',
+  'מודיעין-מכבים-רעות',
+  'קריית אונו',
+  'נהריה',
+  'קריית שמונה'
+].slice(0, showAllLocations ? 24 : 12).map((city) => {
+
+                    const slug = city
+            .trim()
+            .replace(/\s+/g, '-')
+
+          const isActive =
+            normalizeLocation(locationFilter) === normalizeLocation(city)
+
+          return (
+            <Link
+              key={city}
+              to={`/מיקום/${encodeURIComponent(slug)}`}
+              className={`group min-h-[44px] px-3 py-2.5 rounded-xl border text-sm font-bold transition-all duration-200 flex items-center justify-between gap-2 ${
+                isActive
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+              }`}
+            >
+              <span className="truncate">
+                {city}
+              </span>
+
+              <span className="shrink-0 text-slate-300 group-hover:text-emerald-400 transition">
+                →
+              </span>
+            </Link>
+          )
+
+                })}
+
+      </div>
+
+      {/* הצגת כל המיקומים */}
+<div className="flex justify-center mt-5">
+
+  <button
+    type="button"
+    onClick={() =>
+      setShowAllLocations((prev) => !prev)
+    }
+    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
+  >
+    {showAllLocations
+      ? '▲ הצג פחות מיקומים'
+      : '▼ הצג את כל המיקומים (24)'}
+  </button>
+
+</div>
+
+    </div>
+
+  </section>
+)}
 
 {/* =========================================================
     מיקום + מיון
