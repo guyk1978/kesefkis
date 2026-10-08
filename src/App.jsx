@@ -1407,6 +1407,38 @@ useEffect(() => {
   }
 
   meta.setAttribute('content', description)
+
+    const canonicalUrl = `https://kesefkis.co.il${location.pathname}`
+  let canonical = document.querySelector('link[rel="canonical"]')
+
+  if (!canonical) {
+    canonical = document.createElement('link')
+    canonical.setAttribute('rel', 'canonical')
+    document.head.appendChild(canonical)
+  }
+
+  canonical.setAttribute('href', canonicalUrl)
+
+  const ogTags = {
+    'og:title': document.title,
+    'og:description': description,
+    'og:url': canonicalUrl,
+    'og:type': selectedListing ? 'article' : 'website',
+    'og:image': 'https://kesefkis.co.il/icon.png',
+    'og:site_name': 'כסף כיס'
+  }
+
+  Object.entries(ogTags).forEach(([property, content]) => {
+    let tag = document.querySelector(`meta[property="${property}"]`)
+
+    if (!tag) {
+      tag = document.createElement('meta')
+      tag.setAttribute('property', property)
+      document.head.appendChild(tag)
+    }
+
+    tag.setAttribute('content', content)
+  })
 }, [
   selectedListing,
   searchTerm,
