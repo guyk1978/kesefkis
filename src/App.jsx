@@ -5022,6 +5022,35 @@ const advertiserPageCreatedAt =
 
   <div id="listings-section" className="scroll-mt-6" />
 
+{/* תוכן SEO לדפי קטגוריה ומיקום */}
+{categoryFilter !== 'all' && (
+  <section className="mb-6 rounded-2xl bg-white border border-slate-100 shadow-sm p-5 sm:p-6">
+    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 mb-2">
+      {categoryFilter === 'חפצים'
+        ? 'חפצים למכירה, למסירה ולהחלפה'
+        : `עבודות ושירותים בקטגוריית ${categoryFilter}`}
+    </h1>
+
+    <p className="text-sm sm:text-base leading-7 text-slate-600">
+      {categoryFilter === 'חפצים'
+        ? 'מצאו חפצים במחירים קטנים, למסירה או להחלפה בסביבה שלכם. אפשר לפרסם כאן דברים שכבר לא צריכים ולהציע אותם לאנשים באזור.'
+        : `כאן תוכלו למצוא ולהציע עבודות ושירותים בתחום ${categoryFilter}. חפשו מודעות בסביבה שלכם או פרסמו שירות שאתם מציעים לאנשים באזור.`}
+    </p>
+  </section>
+)}
+
+{locationFilter !== 'all' && (
+  <section className="mb-6 rounded-2xl bg-white border border-slate-100 shadow-sm p-5 sm:p-6">
+    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-800 mb-2">
+      עבודות, שירותים ופריטים ב{locationFilter}
+    </h1>
+
+    <p className="text-sm sm:text-base leading-7 text-slate-600">
+      מצאו עבודות קטנות, שירותים ופריטים שמוצעים באזור {locationFilter}.
+      אפשר לחפש מודעות מקומיות, להציע שירות או לפרסם משהו שיש לכם להציע לאנשים בסביבה.
+    </p>
+  </section>
+)}
 {/* רשימת המודעות */}
 {loading ? (
   <div className="flex flex-col items-center justify-center py-16 text-slate-500">
