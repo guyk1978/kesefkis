@@ -2342,10 +2342,10 @@ const advertiserPageCreatedAt =
   advertiserPageProfile?.advertiser_created_at || null
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 dir-rtl flex flex-col">
+    <div className="min-h-screen bg-[#F5F5F0] text-slate-800 dir-rtl flex flex-col">
       {/* סרגל עליון Header */}
       <header
-  className="sticky top-0 z-50 bg-teal-500 sm:bg-white/95 backdrop-blur-md border-b border-teal-600 sm:border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
+  className="sticky top-0 z-50 bg-[#D97706] sm:bg-white/95 backdrop-blur-md border-b border-[#B45309] sm:border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
 >
   <div className="max-w-6xl mx-auto px-2.5 sm:px-4">
 
@@ -2638,9 +2638,9 @@ const advertiserPageCreatedAt =
 
     handleOpenPublishModal()
   }}
-  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-emerald-700 hover:bg-emerald-50 transition"
+  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-[#B45309] hover:bg-[#FFF8ED] transition"
 >
-  <span className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-lg">
+  <span className="w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center text-lg">
     +
   </span>
 
@@ -2648,7 +2648,7 @@ const advertiserPageCreatedAt =
     פרסם מודעה
   </span>
 
-  <span className="text-emerald-200">
+  <span className="text-[#D97706]">
     ‹
   </span>
 </button>
@@ -2711,7 +2711,7 @@ const advertiserPageCreatedAt =
                 }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition"
               >
-                <span className="relative w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-sm">
+                <span className="relative w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center text-sm">
                   💬
 
                   {unreadMessagesCount > 0 && (
@@ -2835,7 +2835,7 @@ const advertiserPageCreatedAt =
                   className="hidden"
                 />
 
-                <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">
+                <span className="w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center text-sm">
                   📷
                 </span>
 
@@ -2952,7 +2952,7 @@ const advertiserPageCreatedAt =
         type="button"
         onClick={() => setMessagesModalOpen(true)}
         title="הודעות"
-        className="hidden sm:flex relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
+        className="hidden sm:flex relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-[#B45309] hover:bg-[#FFF3E0] transition"
       >
         <span className="text-base sm:text-lg leading-none">
           💬
@@ -3010,7 +3010,7 @@ const advertiserPageCreatedAt =
         type="button"
         onClick={handleInstallApp}
         title="התקנת כסף כיס"
-        className="hidden md:flex h-9 px-3 rounded-xl items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition"
+        className="hidden md:flex h-9 px-3 rounded-xl items-center gap-1.5 text-xs font-bold text-[#173B3A] bg-[#FFF8ED] hover:bg-white border border-[#E7DCCB] transition"
       >
         <span>
           📱
@@ -3027,7 +3027,7 @@ const advertiserPageCreatedAt =
 <button
   type="button"
   onClick={handleOpenPublishModal}
-  className="hidden sm:flex relative h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(5,150,105,0.35)] hover:shadow-[0_5px_18px_rgba(5,150,105,0.45)] border border-emerald-700 transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+  className="hidden sm:flex relative h-10 sm:h-11 px-4 sm:px-6 rounded-xl bg-[#D97706] hover:bg-[#B45309] active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(217,119,6,0.25)] hover:shadow-[0_5px_18px_rgba(217,119,6,0.35)] border border-[#B45309] transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
 >
   <span className="relative text-2xl sm:text-3xl leading-none font-normal">
     +
@@ -3089,27 +3089,23 @@ const advertiserPageCreatedAt =
     </div>
 
     {/* תוכן מתחת לתמונה */}
-    <div className="bg-white px-5 py-5 text-right">
+    <div className="bg-[#FFF8ED] px-5 py-5 text-right">
 
-      <div className="inline-flex items-center gap-2 mb-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
-        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+      <div className="inline-flex items-center gap-2 mb-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold">
+        <span className="w-2 h-2 rounded-full bg-amber-500" />
         לוח עבודות, שירותים ופריטים מקומיים
       </div>
 
-      <h1 className="text-3xl font-extrabold text-slate-900 leading-tight mb-2">
-        כסף כיס
-      </h1>
+      <h1 className="text-3xl font-extrabold text-[#173B3A] leading-tight mb-2">סוגרים פינה בשכונה.</h1>
 
-      <p className="text-sm text-slate-700 leading-relaxed font-medium">
-        מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך לתת
-      </p>
+      <p className="text-sm text-slate-700 leading-relaxed font-medium">עבודות קטנות, שירותים ופריטים — קרוב לבית.</p>
 
       <div className="mt-4 flex gap-2">
 
         <button
           type="button"
           onClick={handleOpenPublishModal}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm shadow-[0_4px_14px_rgba(5,150,105,0.30)] transition-all duration-200"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#D97706] hover:bg-[#B45309] active:scale-[0.98] text-white font-bold text-sm shadow-[0_4px_14px_rgba(217,119,6,0.25)] transition-all duration-200"
         >
           <span className="text-xl leading-none font-normal">
             +
@@ -3128,7 +3124,7 @@ const advertiserPageCreatedAt =
               block: 'start'
             })
           }}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-sm transition-all duration-200"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 hover:border-amber-300 text-slate-700 hover:text-amber-700 font-bold text-sm transition-all duration-200"
         >
           <span>
             מצא עבודות
@@ -3175,25 +3171,21 @@ const advertiserPageCreatedAt =
 
       <div className="w-full lg:w-[56%] px-5 py-6 sm:px-8 sm:py-7 lg:px-12 lg:py-8 text-right">
 
-        <div className="inline-flex items-center gap-2 mb-2.5 px-3 py-1.5 rounded-full bg-white/85 border border-emerald-200 text-emerald-700 text-xs sm:text-sm font-bold backdrop-blur-sm shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+        <div className="inline-flex items-center gap-2 mb-2.5 px-3 py-1.5 rounded-full bg-white/85 border border-amber-200 text-amber-700 text-xs sm:text-sm font-bold backdrop-blur-sm shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
           לוח עבודות, שירותים ופריטים מקומיים
         </div>
 
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 leading-tight mb-2">
-          כסף כיס
-        </h1>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#173B3A] leading-tight mb-2">סוגרים פינה בשכונה.</h1>
 
-        <p className="text-sm sm:text-base lg:text-lg text-slate-700 leading-relaxed font-medium max-w-xl">
-          מצא עבודות קטנות, שירותים ופריטים בסביבה שלך — או הצע את מה שיש לך לתת
-        </p>
+        <p className="text-sm sm:text-base lg:text-lg text-slate-700 leading-relaxed font-medium max-w-xl">עבודות קטנות, שירותים ופריטים — קרוב לבית.</p>
 
         <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-2.5">
 
           <button
             type="button"
             onClick={handleOpenPublishModal}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(5,150,105,0.30)] transition-all duration-200"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#D97706] hover:bg-[#B45309] active:scale-[0.98] text-white font-bold text-sm sm:text-base shadow-[0_4px_14px_rgba(217,119,6,0.25)] transition-all duration-200"
           >
             <span className="text-xl leading-none font-normal">
               +
@@ -3212,7 +3204,7 @@ const advertiserPageCreatedAt =
                 block: 'start'
               })
             }}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/90 hover:bg-white border border-slate-300 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 font-bold text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/90 hover:bg-white border border-slate-300 hover:border-amber-300 text-slate-700 hover:text-amber-700 font-bold text-sm sm:text-base shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
           >
             <span>
               מצא עבודות ושירותים
@@ -3308,7 +3300,7 @@ const advertiserPageCreatedAt =
   setScrollToListings(true)
   navigate('/')
 }}
-        className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+        className="self-center md:self-auto shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-[#D97706] hover:text-[#B45309] hover:bg-[#FFF3E0] transition-colors"
       >
         <span className="text-lg">
           ←
@@ -3386,7 +3378,7 @@ const advertiserPageCreatedAt =
         <button
           type="button"
           onClick={() => setCurrentView('home')}
-          className="mt-5 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/95 border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition-colors backdrop-blur-sm"
+          className="mt-5 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/95 border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-[#D97706] hover:text-[#B45309] hover:bg-[#FFF3E0] transition-colors backdrop-blur-sm"
         >
           <span className="text-lg">
             ←
@@ -3455,7 +3447,7 @@ const advertiserPageCreatedAt =
           <button
             type="button"
             onClick={() => setListingTypeFilter('all')}
-            className="shrink-0 text-xs sm:text-sm font-bold text-slate-500 hover:text-emerald-700 transition-colors"
+            className="shrink-0 text-xs sm:text-sm font-bold text-slate-500 hover:text-[#B45309] transition-colors"
           >
             הצג הכל
           </button>
@@ -3472,7 +3464,7 @@ const advertiserPageCreatedAt =
           onClick={() => setListingTypeFilter('all')}
           className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
             listingTypeFilter === 'all'
-              ? 'bg-slate-800 border-slate-800 text-white shadow-sm'
+              ? 'bg-[#173B3A] border-[#173B3A] text-white shadow-sm'
               : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50'
           }`}
         >
@@ -3486,8 +3478,8 @@ const advertiserPageCreatedAt =
           onClick={() => setListingTypeFilter('offer')}
           className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
             listingTypeFilter === 'offer'
-              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-              : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+              ? 'bg-[#D97706] border-[#D97706] text-white shadow-sm'
+              : 'bg-white border-slate-200 text-slate-700 hover:border-[#D97706] hover:bg-[#FFF3E0]'
           }`}
         >
           מציע שירות
@@ -3571,7 +3563,7 @@ const advertiserPageCreatedAt =
         onClick={() =>
           setShowMobileSearchFilters((prev) => !prev)
         }
-        className="w-full min-h-[58px] flex items-center justify-between gap-3 px-4 border-b border-slate-100 bg-white hover:bg-emerald-50/30 transition text-right"
+        className="w-full min-h-[58px] flex items-center justify-between gap-3 px-4 border-b border-slate-100 bg-white hover:bg-[#FFF3E0] transition text-right"
       >
 
         <div className="flex items-center gap-2.5 min-w-0">
@@ -3653,7 +3645,7 @@ const advertiserPageCreatedAt =
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
-              className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-slate-800 placeholder:text-slate-400"
+              className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D97706] focus:border-[#D97706] transition text-slate-800 placeholder:text-slate-400"
             />
 
             {searchTerm && (
@@ -3696,7 +3688,7 @@ const advertiserPageCreatedAt =
               <button
                 type="button"
                 onClick={() => setListingTypeFilter('all')}
-                className="shrink-0 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors"
+                className="shrink-0 text-xs font-bold text-slate-500 hover:text-[#B45309] transition-colors"
               >
                 הצג הכל
               </button>
@@ -3713,7 +3705,7 @@ const advertiserPageCreatedAt =
               onClick={() => setListingTypeFilter('all')}
               className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
                 listingTypeFilter === 'all'
-                  ? 'bg-slate-800 border-slate-800 text-white shadow-sm'
+                  ? 'bg-[#173B3A] border-[#173B3A] text-white shadow-sm'
                   : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50'
               }`}
             >
@@ -3727,8 +3719,8 @@ const advertiserPageCreatedAt =
               onClick={() => setListingTypeFilter('offer')}
               className={`min-h-[52px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
                 listingTypeFilter === 'offer'
-                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
-                  : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50'
+                  ? 'bg-[#D97706] border-[#D97706] text-white shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-[#D97706] hover:bg-[#FFF3E0]'
               }`}
             >
               מציע שירות
@@ -3803,7 +3795,7 @@ const advertiserPageCreatedAt =
                 className={`w-full px-3 py-2.5 pr-10 border rounded-xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
                   categoryFilter === 'חפצים'
                     ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
-                    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+                    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-[#D97706]'
                 }`}
               >
 
@@ -3877,8 +3869,8 @@ const advertiserPageCreatedAt =
                 autoComplete="off"
                 className={`w-full px-3 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition text-sm font-medium ${
   locationFilter !== 'all' && locationFilter.trim()
-    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 focus:ring-emerald-200'
-    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+    ? 'border-[#D97706] bg-[#FFF3E0] text-[#B45309] focus:ring-[#D97706]'
+    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-[#D97706]'
 }`}
               />
 
@@ -3905,7 +3897,7 @@ const advertiserPageCreatedAt =
                           onClick={() =>
                             setLocationFilter(location)
                           }
-                          className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                          className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] transition border-b border-slate-100 last:border-b-0"
                         >
                           📍 {location}
                         </button>
@@ -4008,7 +4000,7 @@ const advertiserPageCreatedAt =
         onClick={() =>
           setShowMobileCategories((prev) => !prev)
         }
-        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-emerald-50/30 transition"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 bg-white border-b border-slate-100 hover:bg-[#FFF3E0] transition"
       >
 
         <div className="flex items-center gap-2.5">
@@ -4068,7 +4060,7 @@ const advertiserPageCreatedAt =
                 setCategoryFilter('all')
                 navigate('/')
               }}
-              className="w-full mb-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+              className="w-full mb-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition"
             >
               ↻ הצג את כל הקטגוריות
             </button>
@@ -4095,8 +4087,8 @@ const advertiserPageCreatedAt =
                   }}
                   className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
                     isActive
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+  ? 'bg-[#D97706] border-[#D97706] text-white shadow-sm'
+  : 'bg-white border-slate-200 text-slate-700 hover:border-[#D97706] hover:bg-[#FFF3E0] hover:text-[#B45309]'
                   }`}
                 >
 
@@ -4203,7 +4195,7 @@ const advertiserPageCreatedAt =
               type="button"
               onClick={requestUserLocation}
               disabled={locationLoading}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm shadow-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm shadow-sm hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition-all duration-200 disabled:opacity-60"
             >
               <span className="text-lg">
                 📍
@@ -4240,8 +4232,8 @@ const advertiserPageCreatedAt =
                   onClick={() => setNearbyOnly(!nearbyOnly)}
                   className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 ${
                     nearbyOnly
-                      ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+  ? 'bg-[#D97706] text-white shadow-sm hover:bg-[#B45309]'
+  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706] hover:text-[#B45309]'
                   }`}
                 >
                   {nearbyOnly
@@ -4307,8 +4299,8 @@ const advertiserPageCreatedAt =
                   }}
                   className={`col-span-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
                     sortByDistance
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
+  ? 'bg-[#D97706] text-white shadow-sm'
+  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706]'
                   }`}
                 >
                   📍 הקרובות ביותר
@@ -4335,8 +4327,8 @@ const advertiserPageCreatedAt =
                       onClick={() => setLocationRadius(radius)}
                       className={`px-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
                         locationRadius === radius
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+  ? 'bg-[#D97706] text-white shadow-sm'
+  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706] hover:text-[#B45309]'
                       }`}
                     >
                       {radius} ק"מ
@@ -4398,7 +4390,7 @@ const advertiserPageCreatedAt =
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="חפש עבודה, שירות, קטגוריה או אזור..."
-            className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition text-slate-800 placeholder:text-slate-400"
+            className="w-full px-4 py-3.5 border border-slate-300 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D97706] focus:border-[#D97706] transition text-slate-800 placeholder:text-slate-400"
           />
 
           {searchTerm && (
@@ -4438,7 +4430,7 @@ const advertiserPageCreatedAt =
               className={`w-full px-3 py-2.5 pr-10 border rounded-xl appearance-none focus:outline-none focus:ring-2 transition text-sm font-medium ${
                 categoryFilter === 'חפצים'
                   ? 'border-orange-300 bg-orange-50 text-orange-800 focus:ring-orange-200'
-                  : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+                  : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-[#D97706]'
               }`}
             >
 
@@ -4512,8 +4504,8 @@ const advertiserPageCreatedAt =
               autoComplete="off"
               className={`w-full px-3 py-2.5 border rounded-xl focus:outline-none focus:ring-2 transition text-sm font-medium ${
   locationFilter !== 'all' && locationFilter.trim()
-    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 focus:ring-emerald-200'
-    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-emerald-500'
+    ? 'border-[#D97706] bg-[#FFF3E0] text-[#B45309] focus:ring-[#D97706]'
+    : 'border-slate-300 bg-slate-50 text-slate-700 focus:bg-white focus:ring-[#D97706]'
 }`}
             />
 
@@ -4540,7 +4532,7 @@ const advertiserPageCreatedAt =
                         onClick={() =>
                           setLocationFilter(location)
                         }
-                        className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                        className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] transition border-b border-slate-100 last:border-b-0"
                       >
                         📍 {location}
                       </button>
@@ -4685,7 +4677,7 @@ const advertiserPageCreatedAt =
                   setCategoryFilter('all')
                   navigate('/')
                 }}
-                className="self-start sm:self-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+                className="self-start sm:self-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition"
               >
                 ↻ הצג את כל הקטגוריות
               </button>
@@ -4718,8 +4710,8 @@ const advertiserPageCreatedAt =
                   }}
                   className={`group min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold text-right transition-all duration-200 ${
                     isActive
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-                      : 'bg-white/90 border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 hover:-translate-y-0.5 hover:shadow-sm'
+  ? 'bg-[#D97706] border-[#D97706] text-white shadow-sm'
+  : 'bg-white/90 border-slate-200 text-slate-700 hover:border-[#D97706] hover:bg-[#FFF3E0] hover:text-[#B45309] hover:-translate-y-0.5 hover:shadow-sm'
                   }`}
                 >
 
@@ -4757,7 +4749,7 @@ const advertiserPageCreatedAt =
                 onClick={() =>
                   setShowAllCategories((prev) => !prev)
                 }
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-[#D97706] hover:text-[#B45309] hover:bg-[#FFF3E0] transition"
               >
                 {showAllCategories
                   ? '▲ הצג פחות קטגוריות'
@@ -4811,7 +4803,7 @@ const advertiserPageCreatedAt =
         setShowAllLocations(false)
         navigate('/')
       }}
-      className="self-start inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-sm font-bold text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition"
+      className="self-start inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition"
     >
       ↻ הצג את כל המיקומים
     </button>
@@ -4862,7 +4854,7 @@ const advertiserPageCreatedAt =
               className={`group min-h-[44px] px-3 py-2.5 rounded-xl border text-sm font-bold transition-all duration-200 flex items-center justify-between gap-2 ${
                 isActive
                   ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm shadow-emerald-500/20'
-                  : 'bg-white border-slate-200 text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+                  : 'bg-white border-slate-200 text-slate-700 hover:border-[#D97706] hover:bg-[#FFF3E0] hover:text-[#B45309]'
               }`}
             >
               <span className="truncate">
@@ -4887,7 +4879,7 @@ const advertiserPageCreatedAt =
     onClick={() =>
       setShowAllLocations((prev) => !prev)
     }
-    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 transition"
+    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 hover:border-[#D97706] hover:text-[#B45309] hover:bg-[#FFF3E0] transition"
   >
     {showAllLocations
       ? '▲ הצג פחות מיקומים'
@@ -4947,7 +4939,7 @@ const advertiserPageCreatedAt =
               type="button"
               onClick={requestUserLocation}
               disabled={locationLoading}
-              className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm hover:bg-emerald-50 hover:border-emerald-300 transition disabled:opacity-60"
+              className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition disabled:opacity-60"
             >
               📍
               {locationLoading
@@ -4971,8 +4963,8 @@ const advertiserPageCreatedAt =
               onClick={() => setNearbyOnly(!nearbyOnly)}
               className={`shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
                 nearbyOnly
-                  ? 'bg-emerald-600 text-white shadow-sm hover:bg-emerald-700'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+  ? 'bg-[#D97706] text-white shadow-sm hover:bg-[#B45309]'
+  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706] hover:text-[#B45309]'
               }`}
             >
               {nearbyOnly
@@ -5033,8 +5025,8 @@ const advertiserPageCreatedAt =
                 }}
                 className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
                   sortByDistance
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300'
+  ? 'bg-[#D97706] text-white shadow-sm'
+  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706]'
                 }`}
               >
                 📍 הקרובות ביותר
@@ -5061,8 +5053,8 @@ const advertiserPageCreatedAt =
                     onClick={() => setLocationRadius(radius)}
                     className={`min-w-[44px] px-2 py-2 rounded-xl text-xs font-bold transition-all ${
                       locationRadius === radius
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700'
+  ? 'bg-[#D97706] text-white shadow-sm'
+  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706] hover:text-[#B45309]'
                     }`}
                   >
                     {radius} ק"מ
@@ -5117,7 +5109,7 @@ const advertiserPageCreatedAt =
             behavior: 'smooth'
           })
         }}
-        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50 hover:-translate-y-0.5 transition-all duration-200"
+        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 shadow-sm hover:border-[#D97706] hover:text-[#B45309] hover:bg-[#FFF3E0] hover:-translate-y-0.5 transition-all duration-200"
       >
         <span className="text-lg">←</span>
         חזרה לכל המודעות
@@ -5194,14 +5186,14 @@ const advertiserPageCreatedAt =
       {currentView === 'my-listings' ? (
         <button
           onClick={handleOpenPublishModal}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm shadow-sm hover:bg-emerald-700 hover:-translate-y-0.5 transition-all"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#D97706] text-white font-bold text-sm shadow-sm hover:bg-[#B45309] hover:-translate-y-0.5 transition-all"
         >
           ➕ פרסם את המודעה הראשונה שלך
         </button>
       ) : listings.length === 0 ? (
         <button
           onClick={handleOpenPublishModal}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold text-sm shadow-sm hover:bg-emerald-700 hover:-translate-y-0.5 transition-all"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#D97706] text-white font-bold text-sm shadow-sm hover:bg-[#B45309] hover:-translate-y-0.5 transition-all"
         >
           ➕ היה הראשון לפרסם מודעה
         </button>
@@ -5213,7 +5205,7 @@ const advertiserPageCreatedAt =
             setCategoryFilter('all')
             setLocationFilter('all')
           }}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-emerald-200 text-emerald-700 font-bold text-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition-all"
         >
           ↻ נקה את החיפוש והסינון
         </button>
@@ -5270,7 +5262,7 @@ const advertiserPageCreatedAt =
               ? 'border-orange-200'
               : item.listing_type === 'request'
                 ? 'border-blue-200'
-                : 'border-emerald-200'
+                : 'border-[#D5DFD8]'
       }`}
     >
 
@@ -5283,7 +5275,7 @@ const advertiserPageCreatedAt =
               ? 'bg-orange-500'
               : item.listing_type === 'request'
                 ? 'bg-blue-500'
-                : 'bg-emerald-500'
+                : 'bg-[#7C9A88]'
         }`}
       />
 
@@ -5452,7 +5444,7 @@ const advertiserPageCreatedAt =
                   e.stopPropagation()
                   handleOpenEditModal(item)
                 }}
-                className="flex-1 h-8 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 text-[11px] font-bold transition"
+                className="flex-1 h-8 rounded-lg bg-slate-50 hover:bg-[#FFF3E0] text-slate-600 hover:text-[#B45309] border border-slate-200 hover:border-[#D97706] text-[11px] font-bold transition"
               >
                 ✏️ עריכה
               </button>
@@ -5955,7 +5947,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     })
   }, 50)
 }}
-      className="mt-4 w-full flex items-center justify-center gap-2 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-200 text-emerald-700 font-bold py-3 rounded-xl transition"
+      className="mt-4 w-full flex items-center justify-center gap-2 bg-white hover:bg-[#FFF3E0] border border-slate-200 hover:border-[#D97706] text-[#B45309] font-bold py-3 rounded-xl transition"
     >
       הצג את כל המודעות של {selectedListing.advertiser_name || 'המפרסם'}
       <span>←</span>
@@ -5972,7 +5964,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             {selectedListing.phone && (
               <button
                 onClick={() => setContactListing(selectedListing)}
-                className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all"
+                className="flex items-center justify-center gap-2 w-full bg-[#D97706] hover:bg-[#B45309] text-white font-bold py-3.5 rounded-xl shadow-sm hover:shadow-md transition-all"
               >
                 💬 צור קשר עם המפרסם
               </button>
@@ -8274,7 +8266,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
   handleOpenPublishModal()
 }}
-          className="mt-6 w-full h-13 min-h-[52px] rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-lg shadow-[0_6px_20px_rgba(5,150,105,0.30)] transition-all"
+          className="mt-6 w-full h-13 min-h-[52px] rounded-2xl bg-[#D97706] hover:bg-[#B45309] active:scale-[0.98] text-white font-black text-lg shadow-[0_6px_20px_rgba(217,119,6,0.25)] transition-all"
         >
           📢 צור מודעה בחינם
         </button>
@@ -8929,7 +8921,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                                 location
                               }))
                             }
-                            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition border-b border-slate-100 last:border-b-0"
+                            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] transition border-b border-slate-100 last:border-b-0"
                           >
                             📍 {location}
                           </button>
@@ -8997,8 +8989,8 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                 }
                 className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
                   formData.payment_type === 'cash'
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+                    ? 'border-[#D97706] bg-[#FFF3E0] text-[#B45309] shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-[#D97706] hover:bg-[#FFF3E0]'
                 }`}
               >
                 <span className="text-xl">
@@ -9912,8 +9904,8 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
       }
       className={`px-2 py-3.5 rounded-2xl border-2 text-sm font-bold transition-all ${
         formData.payment_type === 'cash'
-          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
-          : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/40'
+          ? 'border-[#D97706] bg-[#FFF3E0] text-[#B45309] shadow-sm'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-[#D97706] hover:bg-[#FFF3E0]'
       }`}
     >
       <span className="text-xl">
@@ -11035,7 +11027,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
             <Link
               to="/privacy"
-              className="px-5 py-2.5 rounded-xl text-center text-emerald-700 font-bold text-sm hover:bg-emerald-50 transition"
+              className="px-5 py-2.5 rounded-xl text-center text-[#B45309] font-bold text-sm hover:bg-[#FFF3E0] transition"
             >
               מדיניות פרטיות
             </Link>
@@ -11180,7 +11172,7 @@ function ContactPage() {
                     })
                   }
                   placeholder="השם שלך"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-orange-100"
                   required
                 />
               </div>
@@ -11201,7 +11193,7 @@ function ContactPage() {
                   }
                   placeholder="name@example.com"
                   dir="ltr"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-orange-100"
                   required
                 />
               </div>
@@ -11223,7 +11215,7 @@ function ContactPage() {
                   })
                 }
                 placeholder="במה אפשר לעזור?"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-orange-100"
                 required
               />
             </div>
@@ -11243,7 +11235,7 @@ function ContactPage() {
                 }
                 placeholder="כתוב כאן את הפנייה שלך..."
                 rows={7}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 resize-y"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#D97706] focus:ring-2 focus:ring-orange-100 resize-y"
                 required
               />
             </div>
