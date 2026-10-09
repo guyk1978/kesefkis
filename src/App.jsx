@@ -5219,7 +5219,7 @@ const advertiserPageCreatedAt =
   className="w-full"
 >
 
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
 
   {displayedListings.map((item) => {
 
@@ -5249,9 +5249,9 @@ const advertiserPageCreatedAt =
       aria-label={`פתח את המודעה ${item.title}`}
       className={`group relative min-w-0 ${
   currentView === 'my-listings'
-    ? 'h-[280px] sm:h-[285px]'
-    : 'h-[220px] sm:h-[240px]'
-} overflow-hidden rounded-2xl border bg-white cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+  ? 'min-h-[250px]'
+  : 'min-h-[190px]'
+} overflow-hidden rounded-none border bg-white cursor-pointer transition-all duration-200 hover:shadow-md ${
         item.is_featured &&
         item.featured_until &&
         new Date(item.featured_until) > new Date()
@@ -5279,37 +5279,36 @@ const advertiserPageCreatedAt =
         }`}
       />
 
-      <div className="h-full p-3 sm:p-4 flex flex-col">
+      <div className="h-full min-w-0 p-3 sm:p-4 flex flex-row-reverse gap-3">
 
         {/* =====================================================
             שורה עליונה — משתמש + מועדפים
             ===================================================== */}
-        <div className="flex items-center justify-between gap-2 mb-3">
+                {/* תמונה בצד ימין */}
+        <div className="w-24 sm:w-32 self-start aspect-[3/4] shrink-0 bg-slate-100 flex items-center justify-center overflow-hidden">
+          {(() => {
+            const listingImage = item.image_url || (
+              Array.isArray(item.image_urls) ? item.image_urls[0] : null
+            )
 
-          {/* משתמש */}
-          <div className="flex items-center gap-2 min-w-0">
+            return listingImage ? (
+              <img
+                src={listingImage}
+                alt={item.title || ''}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-1 text-slate-400">
+                <span className="text-2xl">🖼️</span>
+                <span className="text-xs">אין תמונה</span>
+              </div>
+            )
+          })()}
+        </div>
 
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
-
-              {item.profiles?.avatar_url ? (
-                <img
-                  src={item.profiles.avatar_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-sm sm:text-base font-extrabold text-slate-500">
-                  {(item.advertiser_name || item.contact_name || 'מ').charAt(0)}
-                </span>
-              )}
-
-            </div>
-
-            <span className="text-xs sm:text-sm font-bold text-slate-700 truncate">
-              {item.advertiser_name || item.contact_name || 'משתמש'}
-            </span>
-
-          </div>
+        {/* כל פרטי המודעה בצד שמאל */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex items-start justify-between gap-2 mb-2">
 
           {/* לב */}
           <button
@@ -5360,21 +5359,38 @@ const advertiserPageCreatedAt =
         {/* =====================================================
             כותרת
             ===================================================== */}
-        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-5 min-h-[40px]">
+        
+<h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-5">
   {item.title}
 </h3>
+
+{item.location && (
+  <div className="flex items-center gap-1 mt-1 min-w-0">
+    <span className="text-xs shrink-0">📍</span>
+    <span className="text-xs font-semibold text-slate-600 truncate">
+      {item.location}
+    </span>
+    {getListingDistance(item) !== null && (
+      <span className="text-[10px] text-emerald-700 font-bold whitespace-nowrap">
+        {getListingDistance(item) < 1
+          ? `${Math.round(getListingDistance(item) * 1000)} מ׳`
+          : `${getListingDistance(item).toFixed(1)} ק"מ`}
+      </span>
+    )}
+  </div>
+)}
 
         {/* =====================================================
             תיאור קצר
             ===================================================== */}
-        <p className="mt-1 text-[11px] sm:text-xs text-slate-500 leading-4 line-clamp-2">
+        <p className="mt-1 text-sm sm:text-base text-slate-700 leading-5 line-clamp-2">
   {item.description || 'ללא תיאור נוסף'}
 </p>
 
         {/* =====================================================
             תחתית — מחיר + מיקום + זמן
             ===================================================== */}
-        <div className="mt-auto pt-3 border-t border-slate-100">
+        <div className="mt-3 pt-2 border-t border-slate-100">
 
           <div className="flex items-center justify-between gap-2">
 
@@ -5412,28 +5428,7 @@ const advertiserPageCreatedAt =
 
           </div>
 
-          {/* מיקום */}
-          {item.location && (
-            <div className="flex items-center gap-1 mt-2 min-w-0">
-
-              <span className="text-xs shrink-0">
-                📍
-              </span>
-
-              <span className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">
-                {item.location}
-              </span>
-
-              {getListingDistance(item) !== null && (
-                <span className="inline text-[9px] sm:text-[10px] text-emerald-600 font-bold whitespace-nowrap">
-                  {getListingDistance(item) < 1
-                    ? `${Math.round(getListingDistance(item) * 1000)} מ'`
-                    : `${getListingDistance(item).toFixed(1)} ק"מ`}
-                </span>
-              )}
-
-            </div>
-          )}
+          
 
           {currentView === 'my-listings' && (
             <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
@@ -5461,7 +5456,9 @@ const advertiserPageCreatedAt =
               </button>
 
             </div>
-          )}        </div>
+                    )}
+          </div>
+        </div>
 
       </div>
     </div>
