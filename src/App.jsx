@@ -3061,7 +3061,7 @@ const advertiserPageCreatedAt =
   currentView === 'my-listings' ||
   currentView === 'favorites' ||
   isAdvertiserPage) && (
-  <section className="relative mb-8 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+  <section className="relative -mx-4 mb-0 overflow-hidden rounded-none border-0 bg-white shadow-none sm:mx-auto sm:mb-8 sm:rounded-3xl sm:border sm:shadow-sm">
 
     {/* פס צבע עליון */}
     <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400 z-20" />
@@ -3080,7 +3080,7 @@ const advertiserPageCreatedAt =
   <div className="sm:hidden">
 
     {/* תמונה */}
-    <div className="relative h-[185px] overflow-hidden">
+    <div className="relative h-[240px] overflow-hidden">
       <img
         src="/hero-kesefkis.png"
         alt="כסף כיס - עבודות, שירותים ופריטים מקומיים"
@@ -3548,7 +3548,7 @@ const advertiserPageCreatedAt =
   id="search-filters-section"
   className="bg-transparent md:bg-white p-0 md:p-5 mb-0 md:mb-8 scroll-mt-20"
 >
-    <div className="md:hidden rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div className="md:hidden -mx-4 rounded-none border-0 bg-white shadow-none overflow-hidden">
 
       <div className="px-4 py-4 border-b border-slate-100 bg-slate-50/70">
   <div className="text-lg font-extrabold text-slate-900">
@@ -5216,10 +5216,10 @@ const advertiserPageCreatedAt =
 ) : (
   <div
   id="listings-section"
-  className="w-full"
+  className="w-[calc(100%+1rem)] -mx-2"
 >
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-1 sm:gap-4">
 
   {displayedListings.map((item) => {
 
