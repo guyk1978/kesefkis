@@ -3052,7 +3052,7 @@ const advertiserPageCreatedAt =
 
 
       {/* אזור מרכזי */}
-<main className="w-full min-w-0 max-w-6xl mx-auto px-4 pt-6 sm:pt-8">
+<main className="w-full min-w-0 max-w-6xl mx-auto px-4 pt-0 sm:pt-8">
 
   {/* =========================================================
     HERO - כסף כיס
@@ -3064,7 +3064,7 @@ const advertiserPageCreatedAt =
   <section className="relative -mx-4 mb-0 overflow-hidden rounded-none border-0 bg-white shadow-none sm:mx-auto sm:mb-8 sm:rounded-3xl sm:border sm:shadow-sm">
 
     {/* פס צבע עליון */}
-    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-l from-emerald-500 via-emerald-400 to-cyan-400 z-20" />
+
 
     {/* דף הבית */}
     {currentView === 'home' ? (
@@ -3421,7 +3421,7 @@ const advertiserPageCreatedAt =
     בחירת סוג מודעה
 ========================================================= */}
 {currentView === 'home' && (
-  <div className="mb-5">
+  <div className="mb-0 md:mb-5">
 
 
 
