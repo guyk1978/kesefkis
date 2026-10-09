@@ -2345,7 +2345,7 @@ const advertiserPageCreatedAt =
     <div className="min-h-screen bg-[#F5F5F0] text-slate-800 dir-rtl flex flex-col">
       {/* סרגל עליון Header */}
       <header
-  className="sticky top-0 z-50 bg-[#D97706] sm:bg-white/95 backdrop-blur-md border-b border-[#B45309] sm:border-slate-200 shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
+  className="sticky top-0 z-50 bg-[#D97706] backdrop-blur-md border-b border-[#B45309] shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
 >
   <div className="max-w-6xl mx-auto px-2.5 sm:px-4">
 
@@ -2366,11 +2366,11 @@ const advertiserPageCreatedAt =
 
 
   <div className="block text-right leading-tight">
-    <div className="text-2xl sm:text-2xl font-black text-white sm:text-slate-900 tracking-tight whitespace-nowrap">
+    <div className="text-2xl sm:text-2xl font-black text-white tracking-tight whitespace-nowrap">
       כסף כיס
     </div>
 
-    <div className="hidden sm:block text-[11px] font-medium text-slate-500 mt-0.5">
+    <div className="hidden sm:block text-[11px] font-medium text-white/90 mt-0.5">
       עבודות • שירותים • אנשים
     </div>
   </div>
@@ -2573,7 +2573,7 @@ const advertiserPageCreatedAt =
 
     setIsHowItWorksOpen(true)
   }}
-  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition"
+  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-white hover:bg-white/10 hover:text-white transition"
 >
   <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">
     ❓
@@ -2709,7 +2709,7 @@ const advertiserPageCreatedAt =
 
                   setMessagesModalOpen(true)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-white hover:bg-white/10 hover:text-white transition"
               >
                 <span className="relative w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center text-sm">
                   💬
@@ -2901,7 +2901,7 @@ const advertiserPageCreatedAt =
       type="button"
       onClick={() => setIsHowItWorksOpen(true)}
       title="איך זה עובד?"
-      className="hidden sm:flex h-9 px-2.5 sm:px-3.5 rounded-xl items-center justify-center gap-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
+      className="hidden sm:flex h-9 px-2.5 sm:px-3.5 rounded-xl items-center justify-center gap-1.5 text-white/90 hover:text-white hover:bg-white/15 transition"
     >
       <span className="text-base">
         ❓
@@ -2928,7 +2928,7 @@ const advertiserPageCreatedAt =
         className={`hidden sm:flex relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition ${
           currentView === 'favorites'
             ? 'bg-red-500/15 text-red-300'
-            : 'text-slate-500 hover:text-red-500 hover:bg-red-50'
+            : 'text-white/90 hover:text-white hover:bg-white/15'
         }`}
       >
         <span className="text-base sm:text-lg leading-none">
@@ -2988,7 +2988,7 @@ const advertiserPageCreatedAt =
         className={`hidden sm:flex h-10 px-3 rounded-xl items-center gap-1.5 text-xs font-bold transition ${
           currentView === 'my-listings'
             ? 'bg-emerald-400/15 text-emerald-300'
-            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            : 'text-white/90 hover:text-white hover:bg-white/15'
         }`}
       >
         <span className="text-sm">
@@ -3061,7 +3061,7 @@ const advertiserPageCreatedAt =
   currentView === 'my-listings' ||
   currentView === 'favorites' ||
   isAdvertiserPage) && (
-  <section className="relative -mx-4 mb-0 overflow-hidden rounded-none border-0 bg-white shadow-none sm:mx-auto sm:mb-8 sm:rounded-3xl sm:border sm:shadow-sm">
+  <section className="relative -mx-4 mb-0 overflow-hidden rounded-none border-0 bg-white shadow-none sm:mx-0 sm:mb-8 sm:rounded-none sm:border-0 sm:shadow-none  sm:-mt-8">
 
     {/* פס צבע עליון */}
 
@@ -3145,7 +3145,7 @@ const advertiserPageCreatedAt =
   {/* =====================================================
       מחשב / טאבלט - Hero רחב
   ===================================================== */}
-  <div className="hidden sm:block relative min-h-[250px] lg:min-h-[300px]">
+  <div className="hidden sm:block relative min-h-[300px] lg:min-h-[360px]">
 
     <img
       src="/hero-kesefkis.png"
@@ -3167,7 +3167,7 @@ const advertiserPageCreatedAt =
 
 
     {/* תוכן */}
-    <div className="relative z-10 min-h-[250px] lg:min-h-[300px] flex items-center">
+    <div className="relative z-10 min-h-[300px] lg:min-h-[360px] flex items-center">
 
       <div className="w-full lg:w-[56%] px-5 py-6 sm:px-8 sm:py-7 lg:px-12 lg:py-8 text-right">
 
@@ -3421,7 +3421,7 @@ const advertiserPageCreatedAt =
     בחירת סוג מודעה
 ========================================================= */}
 {currentView === 'home' && (
-  <div className="mb-0 md:mb-5">
+  <div className="mb-0 md:mb-4 md:rounded-none md:border md:border-slate-200 md:bg-white md:p-5 md:shadow-sm">
 
 
 
@@ -3546,7 +3546,7 @@ const advertiserPageCreatedAt =
 {currentView === 'home' && (
   <div
   id="search-filters-section"
-  className="bg-transparent md:bg-white p-0 md:p-5 mb-0 md:mb-8 scroll-mt-20"
+  className="bg-transparent md:rounded-none md:border md:border-slate-200 md:bg-white p-0 md:p-5 mb-0 md:mb-6 md:shadow-sm scroll-mt-20"
 >
     <div className="md:hidden -mx-4 rounded-none border-0 bg-white shadow-none overflow-hidden">
 
@@ -4781,7 +4781,7 @@ const advertiserPageCreatedAt =
 {currentView === 'home' && (
   <section className="mb-6 hidden md:block">
 
-    <div className="bg-white rounded-2xl border border-slate-200 px-5 py-5">
+    <div className="bg-white rounded-none border border-slate-200 px-5 py-5">
 
       <div className="mb-4 flex items-start justify-between gap-4">
 
@@ -4910,7 +4910,7 @@ const advertiserPageCreatedAt =
     ===================================================== */}
     <div className="hidden md:block">
 
-      <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4">
+      <div className="bg-white rounded-none border border-slate-200 px-5 py-4">
 
         <div className="flex items-center justify-between gap-5">
 
@@ -10764,7 +10764,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     FOOTER
 ========================================================= */}
 
-<footer className="mt-12 bg-slate-950 text-white">
+<footer className="mt-12 bg-[#173B3A] text-white">
   <div className="max-w-5xl mx-auto px-4 py-10 sm:py-12">
 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 items-start">
