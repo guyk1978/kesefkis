@@ -475,6 +475,8 @@ const [reports, setReports] = useState([])
 const [isAdmin, setIsAdmin] = useState(false)
 const [showReportsAdmin, setShowReportsAdmin] = useState(false)
 const [showFeaturedAdmin, setShowFeaturedAdmin] = useState(false)
+const [showAllListingsAdmin, setShowAllListingsAdmin] = useState(false)
+const [allListingsSearch, setAllListingsSearch] = useState('')
 const [featuredAdminLoading, setFeaturedAdminLoading] = useState(null)
 const [reportsLoading, setReportsLoading] = useState(false)
 
@@ -1122,7 +1124,48 @@ const handleUnfeatureListing = async (listingId) => {
   }
 }
 
-  
+
+
+
+
+
+
+const handleToggleListingPause = async (listing) => {
+  if (!isAdmin || !listing?.id) return
+
+  const nextPausedState = listing.is_paused !== true
+  const actionText = nextPausedState ? 'להשהות' : 'להפעיל מחדש'
+
+  if (!window.confirm(`האם אתה בטוח שברצונך ${actionText} את המודעה "${listing.title || 'ללא כותרת'}"?`)) {
+    return
+  }
+
+  setFeaturedAdminLoading(listing.id)
+
+  try {
+    const { data, error } = await supabase
+      .from('listings')
+      .update({ is_paused: nextPausedState })
+      .eq('id', listing.id)
+      .select('id, title, is_paused')
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      throw new Error('העדכון לא בוצע. יש לבדוק את הרשאות המנהל ב-Supabase.')
+    }
+
+    await fetchListings()
+
+    alert(nextPausedState ? 'המודעה הושהתה ולא תוצג לציבור.' : 'המודעה הופעלה מחדש.')
+  } catch (error) {
+    console.error('שגיאה בשינוי סטטוס המודעה:', error)
+    alert('לא ניתן לשנות את סטטוס המודעה.\n\n' + (error?.message || 'שגיאה לא ידועה'))
+  } finally {
+    setFeaturedAdminLoading(null)
+  }
+}
+
 
 
 
@@ -1192,8 +1235,6 @@ const listingsWithAdvertiser = (data || []).map((listing) => ({
 
 
 useEffect(() => {
-  if (!listings.length) return
-
   const pathParts = decodeURIComponent(location.pathname)
     .split('/')
     .filter(Boolean)
@@ -1205,14 +1246,21 @@ useEffect(() => {
     return
   }
 
+  if (!listings.length) {
+    setSelectedListing(null)
+    return
+  }
+
   const listingId = pathParts[1]
 
   const listing = listings.find(
     (item) => String(item.id) === String(listingId)
   )
 
-  if (listing) {
+  if (listing && listing.is_paused !== true) {
     setSelectedListing(listing)
+  } else {
+    setSelectedListing(null)
   }
 }, [listings, location.pathname])
 
@@ -2155,7 +2203,35 @@ const getListingDistance = (item) => {
 
 
 
+
+const filteredAdminListings = listings.filter((listing) => {
+  const search = allListingsSearch.trim().toLowerCase()
+
+  if (!search) return true
+
+  const categories = Array.isArray(listing.categories)
+    ? listing.categories
+    : []
+
+  return [
+    listing.title,
+    listing.advertiser_name,
+    listing.contact_name,
+    listing.location,
+    listing.category,
+    ...categories
+  ].some((value) =>
+    String(value || '').toLowerCase().includes(search)
+  )
+})
+
+
+
+
 const displayedListings = baseListings
+  .filter((item) =>
+    currentView === 'my-listings' || item.is_paused !== true
+  )
   .filter((item) => {
     const search = searchTerm.trim().toLowerCase()
 
@@ -2287,7 +2363,7 @@ const advertiserPageCreatedAt =
   onClick={() => setCurrentView('home')}
   className="group flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0 shrink-0"
 >
-  
+
 
   <div className="block text-right leading-tight">
     <div className="text-2xl sm:text-2xl font-black text-white sm:text-slate-900 tracking-tight whitespace-nowrap">
@@ -2714,6 +2790,35 @@ const advertiserPageCreatedAt =
     </span>
   </button>
 )}
+
+
+
+
+{isAdmin && (
+  <button
+    type="button"
+    onClick={async (e) => {
+      e.currentTarget.closest('details')?.removeAttribute('open')
+      await fetchListings()
+      setShowAllListingsAdmin(true)
+    }}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-cyan-700 hover:bg-cyan-50 transition"
+  >
+    <span className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center text-sm">
+      📋
+    </span>
+
+    <span className="flex-1">
+      ניהול כל המודעות
+    </span>
+
+    <span className="text-cyan-200">
+      ›
+    </span>
+  </button>
+)}
+
+
 
 
 
@@ -3326,7 +3431,7 @@ const advertiserPageCreatedAt =
 {currentView === 'home' && (
   <div className="mb-5">
 
-    
+
 
 
     {/* =====================================================
@@ -3450,7 +3555,7 @@ const advertiserPageCreatedAt =
   <div
   id="search-filters-section"
   className="bg-transparent md:bg-white p-0 md:p-5 mb-0 md:mb-8 scroll-mt-20"
->    
+>
     <div className="md:hidden rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
 
       <div className="px-4 py-4 border-b border-slate-100 bg-slate-50/70">
@@ -4271,7 +4376,7 @@ const advertiserPageCreatedAt =
         מובייל - אקורדיון משולב:
         חיפוש + סוג מודעה + סינון
         ================================================= */}
-    
+
 
 
     {/* =================================================
@@ -4539,7 +4644,7 @@ const advertiserPageCreatedAt =
     {/* =====================================================
         מובייל - אקורדיון קטגוריות
     ===================================================== */}
-    
+
 
 
     {/* =====================================================
@@ -4805,7 +4910,7 @@ const advertiserPageCreatedAt =
     {/* =====================================================
         מובייל - אקורדיון
     ===================================================== */}
-    
+
 
 
     {/* =====================================================
@@ -4997,7 +5102,7 @@ const advertiserPageCreatedAt =
 
 
 
-  
+
 
     {/* חזרה לכל המודעות - בעמוד מפרסם בלבד */}
   {isAdvertiserPage && (
@@ -5131,12 +5236,18 @@ const advertiserPageCreatedAt =
       key={item.id}
       onClick={(e) => {
   e.stopPropagation()
+
+  if (item.is_paused === true) return
+
   setSelectedListing(item)
   navigate(`/מודעה/${item.id}`)
 }}
       onKeyDown={(e) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault()
+
+    if (item.is_paused === true) return
+
     setSelectedListing(item)
     navigate(`/מודעה/${item.id}`)
   }
@@ -6597,6 +6708,222 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
 
 
+
+
+{showAllListingsAdmin && isAdmin && (
+  <div
+    className="fixed inset-0 z-[50] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+    onClick={() => setShowAllListingsAdmin(false)}
+  >
+    <div
+      dir="rtl"
+      className="w-full max-w-5xl max-h-[92vh] overflow-hidden bg-white rounded-3xl shadow-2xl flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 bg-gradient-to-l from-cyan-50 to-white">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">
+            📋 ניהול כל המודעות
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
+            עריכה, מחיקה והשהיה של מודעות באתר
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowAllListingsAdmin(false)}
+          className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl font-bold"
+          aria-label="סגירת ניהול מודעות"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex flex-wrap items-center gap-3">
+        <span className="text-sm font-bold text-slate-700">
+          סך הכול: {listings.length} מודעות
+        </span>
+
+        <span className="text-sm text-emerald-700 font-bold">
+          פעילות: {listings.filter((item) => item.is_paused !== true).length}
+        </span>
+
+        <span className="text-sm text-amber-700 font-bold">
+          מושהות: {listings.filter((item) => item.is_paused === true).length}
+        </span>
+      </div>
+
+
+
+      <div className="flex flex-col flex-1 min-h-0">
+  <div className="p-4 sm:px-5 border-b border-slate-100 bg-white">
+    <div className="relative">
+      <input
+        type="text"
+        value={allListingsSearch}
+        onChange={(e) => setAllListingsSearch(e.target.value)}
+        placeholder="חיפוש לפי כותרת, מפרסם, מיקום או קטגוריה..."
+        aria-label="חיפוש בכל המודעות"
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-11 pl-20 text-sm outline-none transition focus:border-cyan-500 focus:bg-white focus:ring-2 focus:ring-cyan-100"
+      />
+
+      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+        🔎
+      </span>
+
+      {allListingsSearch && (
+        <button
+          type="button"
+          onClick={() => setAllListingsSearch('')}
+          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm font-bold text-slate-500 hover:bg-slate-200"
+        >
+          נקה
+        </button>
+      )}
+    </div>
+
+    <p className="mt-2 text-xs text-slate-500">
+      נמצאו {filteredAdminListings.length} מתוך {listings.length} מודעות
+    </p>
+  </div>
+
+  <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-5 space-y-3">
+        {filteredAdminListings.length === 0 ? (
+          <div className="py-12 text-center text-slate-500">
+  <div className="text-4xl mb-3">🔎</div>
+  <p className="font-bold">
+    {allListingsSearch.trim()
+      ? 'לא נמצאו מודעות התואמות לחיפוש'
+      : 'לא נמצאו מודעות'}
+  </p>
+  {allListingsSearch.trim() && (
+    <button
+      type="button"
+      onClick={() => setAllListingsSearch('')}
+      className="mt-3 text-sm font-bold text-cyan-700 hover:text-cyan-900"
+    >
+      נקה את החיפוש
+    </button>
+  )}
+</div>
+        ) : (
+          filteredAdminListings.map((listing) => {
+            const isPaused = listing.is_paused === true
+            const isBusy = featuredAdminLoading === listing.id
+
+            return (
+              <div
+                key={listing.id}
+                className={`rounded-2xl border p-4 ${
+                  isPaused
+                    ? 'border-amber-300 bg-amber-50/60'
+                    : 'border-slate-200 bg-white'
+                }`}
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-extrabold text-slate-900 break-words">
+                        {listing.title || 'ללא כותרת'}
+                      </h3>
+
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
+                          isPaused
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        {isPaused ? '⏸ מושהית' : '● פעילה'}
+                      </span>
+
+                      {listing.is_featured === true && (
+                        <span className="rounded-full bg-amber-100 text-amber-800 px-2.5 py-1 text-xs font-bold">
+                          ⭐ מודגשת
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-sm text-slate-600 mt-2">
+                      מפרסם: {listing.advertiser_name || listing.contact_name || 'משתמש רשום'}
+                    </p>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-slate-500">
+                      {listing.location && (
+                        <span>📍 {listing.location}</span>
+                      )}
+                      {listing.category && (
+                        <span>קטגוריה: {listing.category}</span>
+                      )}
+                      {listing.created_at && (
+                        <span>
+                          נוצרה: {new Date(listing.created_at).toLocaleDateString('he-IL')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(listing)}
+                      className="px-3 py-2 rounded-xl border border-cyan-200 bg-white text-cyan-800 hover:bg-cyan-50 text-sm font-bold"
+                    >
+                      ✏️ עריכה
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() => handleToggleListingPause(listing)}
+                      className={`px-3 py-2 rounded-xl text-sm font-bold disabled:opacity-50 ${
+                        isPaused
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
+                    >
+                      {isBusy
+                        ? 'מטפל...'
+                        : isPaused
+                          ? '▶ הפעל'
+                          : '⏸ השהה'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteListing(listing.id)}
+                      className="px-3 py-2 rounded-xl border border-red-200 bg-white text-red-700 hover:bg-red-50 text-sm font-bold"
+                    >
+                      🗑️ מחיקה
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      </div>
+
+      <div className="border-t border-slate-200 p-4 bg-slate-50 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowAllListingsAdmin(false)}
+          className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold"
+        >
+          סגור
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+
 {showFeaturedAdmin && (
   <div className="fixed inset-0 z-[90] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
 
@@ -6638,7 +6965,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
       {/* תוכן */}
       <div className="overflow-y-auto max-h-[calc(90vh-90px)] p-4 sm:p-6">
 
-        {listings.length === 0 ? (
+        {filteredAdminListings.length === 0 ? (
 
           <div className="py-12 text-center">
 
@@ -8197,7 +8524,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
   </div>
 )}
 
-      
+
 {/* =========================================================
     מודאל פרסום מודעה חדשה
 ========================================================= */}
@@ -8763,7 +9090,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
             </div>
 
-        
+
 
 
             {formData.payment_type === 'barter' && (
@@ -9491,7 +9818,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                   מחיר (₪)
                 </label>
 
-                
+
                   <input
   type="number"
   name="price"
@@ -10443,7 +10770,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
 
 
-    
+
 {/* =========================================================
     FOOTER
 ========================================================= */}
