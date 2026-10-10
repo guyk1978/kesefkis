@@ -327,8 +327,10 @@ const [locationError, setLocationError] = useState('')
 const [nearbyOnly, setNearbyOnly] = useState(false)
 const [showMobileLocationSort, setShowMobileLocationSort] = useState(false)
 const [locationRadius, setLocationRadius] = useState(5)
+const [allCountry, setAllCountry] = useState(false)
 const [sortByDistance, setSortByDistance] = useState(false)
 const [listingSort, setListingSort] = useState('newest')
+const [imageFilter, setImageFilter] = useState('all')
 const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 const [showMobileSearchFilters, setShowMobileSearchFilters] = useState(false)
 const [showMobileSearchPanel, setShowMobileSearchPanel] = useState(false)
@@ -514,6 +516,7 @@ const [isSendingConversationMessage, setIsSendingConversationMessage] = useState
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false)
 
   // שדות הטופס ליצירת/עריכת מודעה (כולל קובץ תמונה)
   const [formData, setFormData] = useState({
@@ -2342,18 +2345,32 @@ const matchesCategory =
 
     const matchesNearby =
       !nearbyOnly ||
+      allCountry ||
       (
         listingDistance != null &&
         listingDistance <= locationRadius
       )
 
+      const hasImage =
+  Boolean(item.image_url) ||
+  (
+    Array.isArray(item.image_urls) &&
+    item.image_urls.some((url) => Boolean(url))
+  )
+
+const matchesImage =
+  imageFilter === 'all' ||
+  (imageFilter === 'with' && hasImage) ||
+  (imageFilter === 'without' && !hasImage)
+
     return (
-      matchesSearch &&
-      matchesType &&
-      matchesCategory &&
-      matchesLocation &&
-      matchesNearby
-    )
+  matchesSearch &&
+  matchesType &&
+  matchesCategory &&
+  matchesLocation &&
+  matchesNearby &&
+  matchesImage
+)
   })
   .sort((a, b) => {
   const now = new Date()
@@ -3493,116 +3510,72 @@ const advertiserPageCreatedAt =
     בחירת סוג מודעה
 ========================================================= */}
 {currentView === 'home' && (
-  <div className="mb-0 md:mb-4 md:rounded-none md:border md:border-slate-200 md:bg-white md:p-5 md:shadow-sm">
-
-
-
-
-    {/* =====================================================
-        מחשב - קוביות פתוחות
-    ===================================================== */}
-    <div className="hidden md:block">
-
-      <div className="flex items-center justify-between gap-3 mb-2.5">
-
-        <div>
-          <h3 className="text-base sm:text-lg font-bold text-slate-800">
-            מה אתה מחפש?
-          </h3>
-
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            בחר סוג מודעה
-          </p>
-        </div>
-
-        {listingTypeFilter !== 'all' && (
-          <button
-            type="button"
-            onClick={() => setListingTypeFilter('all')}
-            className="shrink-0 text-xs sm:text-sm font-bold text-slate-500 hover:text-[#B45309] transition-colors"
-          >
-            הצג הכל
-          </button>
-        )}
-
-      </div>
-
-
-      <div className="grid grid-cols-5 gap-2.5">
-
-        {/* כל המודעות */}
-        <button
-          type="button"
-          onClick={() => setListingTypeFilter('all')}
-          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
-            listingTypeFilter === 'all'
-              ? 'bg-[#173B3A] border-[#173B3A] text-white shadow-sm'
-              : 'bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50'
-          }`}
-        >
-          כל המודעות
-        </button>
-
-
-        {/* מציע שירות */}
-        <button
-          type="button"
-          onClick={() => setListingTypeFilter('offer')}
-          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
-            listingTypeFilter === 'offer'
-              ? 'bg-[#D97706] border-[#D97706] text-white shadow-sm'
-              : 'bg-white border-slate-200 text-slate-700 hover:border-[#D97706] hover:bg-[#FFF3E0]'
-          }`}
-        >
-          מציע שירות
-        </button>
-
-
-        {/* מחפש שירות */}
-        <button
-          type="button"
-          onClick={() => setListingTypeFilter('request')}
-          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
-            listingTypeFilter === 'request'
-              ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-              : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300 hover:bg-blue-50'
-          }`}
-        >
-          מחפש שירות
-        </button>
-
-
-        {/* מציע פריט */}
-        <button
-          type="button"
-          onClick={() => setListingTypeFilter('item_offer')}
-          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
-            listingTypeFilter === 'item_offer'
-              ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
-              : 'bg-white border-slate-200 text-slate-700 hover:border-orange-300 hover:bg-orange-50'
-          }`}
-        >
-          מציע פריט
-        </button>
-
-
-        {/* מחפש פריט */}
-        <button
-          type="button"
-          onClick={() => setListingTypeFilter('item_request')}
-          className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${
-            listingTypeFilter === 'item_request'
-              ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
-              : 'bg-white border-slate-200 text-slate-700 hover:border-purple-300 hover:bg-purple-50'
-          }`}
-        >
-          מחפש פריט
-        </button>
-
-      </div>
-
+  <div className="hidden md:block mb-4 border border-slate-200 bg-white p-5 shadow-sm rounded-none">
+    <div className="text-sm font-extrabold text-slate-700 mb-3">
+      סינון לפי סוג מודעה
     </div>
 
+    <div className="grid grid-cols-5 gap-2.5">
+      <button
+        type="button"
+        onClick={() => setListingTypeFilter('all')}
+        className={`min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+          listingTypeFilter === 'all'
+            ? 'bg-[#173B3A] border-[#173B3A] text-white shadow-sm'
+            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+        }`}
+      >
+        כל המודעות
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setListingTypeFilter('offer')}
+        className={`min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+          listingTypeFilter === 'offer'
+            ? 'bg-[#D97706] border-[#D97706] text-white shadow-sm'
+            : 'bg-white border-slate-200 text-slate-700 hover:bg-[#FFF3E0]'
+        }`}
+      >
+        מציע שירות
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setListingTypeFilter('request')}
+        className={`min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+          listingTypeFilter === 'request'
+            ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+            : 'bg-white border-slate-200 text-slate-700 hover:bg-blue-50'
+        }`}
+      >
+        מחפש שירות
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setListingTypeFilter('item_offer')}
+        className={`min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+          listingTypeFilter === 'item_offer'
+            ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
+            : 'bg-white border-slate-200 text-slate-700 hover:bg-orange-50'
+        }`}
+      >
+        מציע פריט
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setListingTypeFilter('item_request')}
+        className={`min-h-[48px] px-3 py-3 rounded-xl border text-sm font-bold transition-all ${
+          listingTypeFilter === 'item_request'
+            ? 'bg-purple-600 border-purple-600 text-white shadow-sm'
+            : 'bg-white border-slate-200 text-slate-700 hover:bg-purple-50'
+        }`}
+      >
+        מחפש פריט
+      </button>
+    </div>
   </div>
 )}
 
@@ -4392,20 +4365,43 @@ const advertiserPageCreatedAt =
 
                 <div className="grid grid-cols-4 gap-1.5">
 
-                  {[1, 5, 10, 20].map((radius) => (
-                    <button
-                      key={radius}
-                      type="button"
-                      onClick={() => setLocationRadius(radius)}
-                      className={`px-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                        locationRadius === radius
-  ? 'bg-[#D97706] text-white shadow-sm'
-  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706] hover:text-[#B45309]'
-                      }`}
-                    >
-                      {radius} ק"מ
-                    </button>
-                  ))}
+                  <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-slate-600">רדיוס חיפוש</span>
+                    <span className="text-base font-extrabold text-[#B45309]">
+                      {allCountry ? 'כל הארץ' : `${locationRadius} ק"מ`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    step="1"
+                    value={locationRadius}
+                    disabled={allCountry}
+                    onChange={(e) => {
+                      setLocationRadius(Number(e.target.value))
+                      setAllCountry(false)
+                    }}
+                    className="w-full accent-[#D97706] disabled:opacity-40"
+                    aria-label="רדיוס חיפוש בקילומטרים"
+                  />
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>1</span><span>10</span><span>20</span>
+                    <span>30</span><span>40</span><span>50 ק"מ</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAllCountry(!allCountry)}
+                    className={`w-full rounded-xl px-3 py-2 text-sm font-bold transition ${
+                      allCountry
+                        ? 'bg-[#D97706] text-white'
+                        : 'border border-slate-200 bg-white text-slate-700'
+                    }`}
+                  >
+                    כל הארץ
+                  </button>
+                </div>
 
                 </div>
 
@@ -4980,182 +4976,196 @@ const advertiserPageCreatedAt =
     {/* =====================================================
         מחשב - אזור קומפקטי פתוח
     ===================================================== */}
-    <div className="hidden md:block">
+    <div className="hidden md:block space-y-4 border border-slate-200 bg-white p-5 shadow-sm rounded-none">
 
-      <div className="bg-white rounded-none border border-slate-200 px-5 py-4">
+  {/* סרגל מיקום */}
+  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+    <div className="flex items-center justify-between gap-6 flex-wrap">
 
-        <div className="flex items-center justify-between gap-5">
+      <div className="flex items-center gap-3">
+        <span className="flex items-center justify-center w-11 h-11 rounded-xl bg-cyan-50 text-cyan-700 text-xl">
+          📍
+        </span>
 
-          {/* צד מיקום */}
-          <div className="flex items-center gap-3 min-w-0">
-
-            <span className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl bg-cyan-100 text-cyan-700">
-              📍
-            </span>
-
-            <div className="min-w-0">
-
-              <div className="text-sm font-extrabold text-slate-900">
-                מיקום
-              </div>
-
-              <div className="text-xs text-slate-500">
-                {userCity
-                  ? `המיקום שלי: ${userCity}`
-                  : 'מצאו מודעות בסביבה שלכם'}
-              </div>
-
-            </div>
-
-            <button
-              type="button"
-              onClick={requestUserLocation}
-              disabled={locationLoading}
-              className="shrink-0 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition disabled:opacity-60"
-            >
-              📍
-              {locationLoading
-                ? 'מזהה...'
-                : userCity
-                  ? 'עדכן מיקום'
-                  : 'מצא את המיקום שלי'}
-            </button>
-
+        <div>
+          <div className="text-base font-extrabold text-slate-900">
+            מיקום
           </div>
-
-
-          {/* קו מפריד */}
-          <div className="h-10 w-px bg-slate-200 shrink-0" />
-
-
-          {/* הצגת מודעות באזור */}
-          {userCity && (
-            <button
-              type="button"
-              onClick={() => setNearbyOnly(!nearbyOnly)}
-              className={`shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
-                nearbyOnly
-  ? 'bg-[#D97706] text-white shadow-sm hover:bg-[#B45309]'
-  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706] hover:text-[#B45309]'
-              }`}
-            >
-              {nearbyOnly
-                ? '📍 הצג מודעות באזור שלי'
-                : 'הצג מודעות באזור שלי'}
-            </button>
-          )}
-
-
-          {/* מיון */}
-          <div className="flex items-center gap-2">
-
-            <span className="text-sm font-bold text-slate-600">
-              מיון:
-            </span>
-
-
-            {/* החדשות ביותר */}
-            <button
-              type="button"
-              onClick={() => {
-                setSortByDistance(false)
-                setListingSort('newest')
-              }}
-              className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
-                !sortByDistance && listingSort === 'newest'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              🕐 החדשות ביותר
-            </button>
-
-
-            {/* הישנות ביותר */}
-            <button
-              type="button"
-              onClick={() => {
-                setSortByDistance(false)
-                setListingSort('oldest')
-              }}
-              className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
-                !sortByDistance && listingSort === 'oldest'
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              🕰️ הישנות ביותר
-            </button>
-
-
-            {/* הקרובות ביותר */}
-            {userLocation && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSortByDistance(true)
-                }}
-                className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${
-                  sortByDistance
-  ? 'bg-[#D97706] text-white shadow-sm'
-  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706]'
-                }`}
-              >
-                📍 הקרובות ביותר
-              </button>
-            )}
-
+          <div className="text-sm text-slate-500 mt-1">
+            {userCity
+              ? `המיקום שלי: ${userCity}`
+              : 'מצאו מודעות בסביבה שלכם'}
           </div>
-
-
-          {/* רדיוס */}
-          {nearbyOnly && userLocation && (
-            <div className="flex items-center gap-2">
-
-              <span className="text-sm font-bold text-slate-600">
-                רדיוס:
-              </span>
-
-              <div className="flex items-center gap-1.5">
-
-                {[1, 5, 10, 20].map((radius) => (
-                  <button
-                    key={radius}
-                    type="button"
-                    onClick={() => setLocationRadius(radius)}
-                    className={`min-w-[44px] px-2 py-2 rounded-xl text-xs font-bold transition-all ${
-                      locationRadius === radius
-  ? 'bg-[#D97706] text-white shadow-sm'
-  : 'bg-white border border-slate-200 text-slate-700 hover:bg-[#FFF3E0] hover:border-[#D97706] hover:text-[#B45309]'
-                    }`}
-                  >
-                    {radius} ק"מ
-                  </button>
-                ))}
-
-              </div>
-
-            </div>
-          )}
-
         </div>
+      </div>
 
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={requestUserLocation}
+          disabled={locationLoading}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-sm hover:bg-cyan-50 hover:border-cyan-200 transition disabled:opacity-60"
+        >
+          📍
+          {locationLoading
+            ? 'מזהה...'
+            : userCity
+              ? 'עדכן מיקום'
+              : 'מצא את המיקום שלי'}
+        </button>
 
-        {/* שגיאה */}
-        {locationError && (
-          <div className="flex justify-center mt-3">
-
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
-              <span>⚠️</span>
-              <span>{locationError}</span>
-            </div>
-
-          </div>
+        {userCity && (
+          <button
+            type="button"
+            onClick={() => setNearbyOnly(!nearbyOnly)}
+            className={`px-4 py-2.5 rounded-xl font-bold text-sm transition ${
+              nearbyOnly
+                ? 'bg-cyan-700 text-white'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-cyan-50'
+            }`}
+          >
+            {nearbyOnly ? '✓ מציג מודעות באזור שלי' : 'הצג מודעות באזור שלי'}
+          </button>
         )}
+      </div>
+    </div>
 
+    {nearbyOnly && userLocation && (
+      <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-3 flex-wrap">
+        <span className="text-sm font-bold text-slate-600">
+          רדיוס חיפוש
+        </span>
+
+        <div className="w-full space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-bold text-slate-600">רדיוס חיפוש</span>
+            <span className="text-base font-extrabold text-cyan-700">
+              {allCountry ? 'כל הארץ' : `${locationRadius} ק"מ`}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="50"
+            step="1"
+            value={locationRadius}
+            disabled={allCountry}
+            onChange={(e) => {
+              setLocationRadius(Number(e.target.value))
+              setAllCountry(false)
+            }}
+            className="w-full accent-cyan-700 disabled:opacity-40"
+            aria-label="רדיוס חיפוש בקילומטרים"
+          />
+          <div className="flex justify-between text-xs text-slate-500">
+            <span>1</span><span>10</span><span>20</span>
+            <span>30</span><span>40</span><span>50 ק"מ</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAllCountry(!allCountry)}
+            className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
+              allCountry
+                ? 'bg-cyan-700 text-white'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-cyan-50'
+            }`}
+          >
+            כל הארץ
+          </button>
+        </div>
+      </div>
+    )}
+
+    {locationError && (
+      <div className="mt-3 px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+        {locationError}
+      </div>
+    )}
+  </div>
+
+  {/* סרגל מיון וסינון */}
+  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+    <div className="flex items-center justify-between gap-6 flex-wrap">
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm font-extrabold text-slate-700">
+          מיון מודעות
+        </span>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSortByDistance(false)
+            setListingSort('newest')
+          }}
+          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition ${
+            !sortByDistance && listingSort === 'newest'
+              ? 'bg-slate-800 text-white'
+              : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          🕒 החדשות ביותר
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSortByDistance(false)
+            setListingSort('oldest')
+          }}
+          className={`px-4 py-2.5 rounded-xl text-sm font-bold transition ${
+            !sortByDistance && listingSort === 'oldest'
+              ? 'bg-slate-800 text-white'
+              : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+          }`}
+        >
+          🕰️ הישנות ביותר
+        </button>
+
+        {userLocation && (
+          <button
+            type="button"
+            onClick={() => setSortByDistance(true)}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition ${
+              sortByDistance
+                ? 'bg-cyan-700 text-white'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-cyan-50'
+            }`}
+          >
+            📍 הקרובות ביותר
+          </button>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm font-extrabold text-slate-700">
+          תמונות
+        </span>
+
+        {[
+          { value: 'all', label: 'הכול' },
+          { value: 'with', label: 'עם תמונה' },
+          { value: 'without', label: 'ללא תמונה' }
+        ].map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setImageFilter(option.value)}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition ${
+              imageFilter === option.value
+                ? 'bg-cyan-700 text-white'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-cyan-50'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
     </div>
+  </div>
+
+</div>
 
   </div>
 )}
@@ -8959,16 +8969,20 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                 <div className="relative">
 
                   <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    placeholder="הקלד עיר או יישוב..."
-                    autoComplete="off"
-                    className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
-                  />
+  type="text"
+  name="location"
+  value={formData.location}
+  onFocus={() => setLocationDropdownOpen(true)}
+  onChange={(e) => {
+    handleChange(e)
+    setLocationDropdownOpen(true)
+  }}
+  placeholder="הקלד עיר או יישוב..."
+  autoComplete="off"
+  className="w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 text-sm text-slate-800 placeholder:text-slate-400 transition"
+/>
 
-                  {formData.location.trim().length > 0 && (
+                  {locationDropdownOpen && formData.location.trim().length > 0 && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
 
                       {israeliLocations
@@ -8980,21 +8994,23 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                             )
                         )
                         .slice(0, 12)
-                        .map((location) => (
-                          <button
-                            key={location}
-                            type="button"
-                            onClick={() =>
-                              setFormData((previous) => ({
-                                ...previous,
-                                location
-                              }))
-                            }
-                            className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] transition border-b border-slate-100 last:border-b-0"
-                          >
-                            📍 {location}
-                          </button>
-                        ))}
+                        
+.map((location) => (
+  <button
+    key={location}
+    type="button"
+    onClick={() => {
+      setFormData((previous) => ({
+        ...previous,
+        location
+      }))
+      setLocationDropdownOpen(false)
+    }}
+    className="w-full text-right px-4 py-3 text-sm text-slate-700 hover:bg-[#FFF3E0] hover:text-[#B45309] transition border-b border-slate-100 last:border-b-0"
+  >
+    📍 {location}
+  </button>
+))}
 
                       {israeliLocations.filter((location) =>
                         location
