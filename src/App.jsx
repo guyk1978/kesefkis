@@ -2204,7 +2204,7 @@ const handleDeleteListing = async (id) => {
 }
 
   const myListings = user
-  ? listings.filter(item => item.user_id === user.id || !item.user_id)
+  ? listings.filter(item => item.user_id === user.id)
   : []
 
 const pathParts = decodeURIComponent(location.pathname)
@@ -2672,7 +2672,7 @@ const advertiserPageCreatedAt =
 
     setIsHowItWorksOpen(true)
   }}
-  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-white hover:bg-white/10 hover:text-white transition"
+  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-slate-800 hover:bg-[#FFF3E0] hover:text-[#B45309] transition"
 >
   <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">
     ❓
@@ -2808,7 +2808,7 @@ const advertiserPageCreatedAt =
 
                   setMessagesModalOpen(true)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-white hover:bg-white/10 hover:text-white transition"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-slate-800 hover:bg-[#FFF3E0] hover:text-[#B45309] transition"
               >
                 <span className="relative w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center text-sm">
                   💬
