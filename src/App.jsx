@@ -2538,11 +2538,13 @@ const baseListings =
     ? myListings
     : currentView === 'favorites'
       ? listings.filter(item => favoriteListings.includes(item.id))
-      : advertiserFilter
-        ? listings.filter(
-            item => String(item.user_id) === String(advertiserFilter)
-          )
-        : listings
+      : currentView === 'liked'
+        ? listings.filter(item => likedListingIds.includes(item.id))
+        : advertiserFilter
+          ? listings.filter(
+              item => String(item.user_id) === String(advertiserFilter)
+            )
+          : listings
 
 
 const normalizeLocation = (value) => {
@@ -3004,38 +3006,54 @@ const advertiserPageCreatedAt =
 
 
               {/* המודעות שלי */}
+                            {/* מודעות שאהבתי */}
               <button
                 type="button"
                 onClick={(e) => {
-                  e.currentTarget
-                    .closest('details')
-                    ?.removeAttribute('open')
-
-                  setCurrentView(
-                    currentView === 'my-listings'
-                      ? 'home'
-                      : 'my-listings'
-                  )
+                  e.currentTarget.closest('details')?.removeAttribute('open')
+                  setCurrentView(currentView === 'liked' ? 'home' : 'liked')
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right transition ${
-                  currentView === 'my-listings'
-                    ? 'bg-emerald-50 text-emerald-700'
+                  currentView === 'liked'
+                    ? 'bg-red-50 text-red-600'
                     : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">
-                  📋
+                <span className="relative w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-sm">
+                  ❤️
+                  {likedListingIds.length > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[8px] font-extrabold flex items-center justify-center">
+                      {likedListingIds.length > 99 ? '99+' : likedListingIds.length}
+                    </span>
+                  )}
                 </span>
+                <span className="flex-1">מודעות שאהבתי</span>
+                <span className="text-slate-300">‹</span>
+              </button>
 
-                <span className="flex-1">
-                  {currentView === 'my-listings'
-                    ? 'חזרה ללוח'
-                    : 'המודעות שלי'}
+              {/* מועדפים אישיים */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.currentTarget.closest('details')?.removeAttribute('open')
+                  setCurrentView(currentView === 'favorites' ? 'home' : 'favorites')
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right transition ${
+                  currentView === 'favorites'
+                    ? 'bg-amber-50 text-amber-700'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="relative w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-sm">
+                  ⭐
+                  {favoriteListings.length > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-white text-[8px] font-extrabold flex items-center justify-center">
+                      {favoriteListings.length > 99 ? '99+' : favoriteListings.length}
+                    </span>
+                  )}
                 </span>
-
-                <span className="text-slate-300">
-                  ‹
-                </span>
+                <span className="flex-1">מועדפים</span>
+                <span className="text-slate-300">‹</span>
               </button>
 
 
@@ -3071,45 +3089,7 @@ const advertiserPageCreatedAt =
 
 
               {/* מועדפים */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.currentTarget
-                    .closest('details')
-                    ?.removeAttribute('open')
-
-                  setCurrentView(
-                    currentView === 'favorites'
-                      ? 'home'
-                      : 'favorites'
-                  )
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right transition ${
-                  currentView === 'favorites'
-                    ? 'bg-red-50 text-red-600'
-                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <span className="relative w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-sm">
-                  ❤️
-
-                  {favoriteListings.length > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[8px] font-extrabold flex items-center justify-center">
-                      {favoriteListings.length > 99
-                        ? '99+'
-                        : favoriteListings.length}
-                    </span>
-                  )}
-                </span>
-
-                <span className="flex-1">
-                  שאהבתי
-                </span>
-
-                <span className="text-slate-300">
-                  ‹
-                </span>
-              </button>
+              
 
 
               {/* הודעות */}
@@ -3529,6 +3509,7 @@ const advertiserPageCreatedAt =
 {(currentView === 'home' ||
   currentView === 'my-listings' ||
   currentView === 'favorites' ||
+  currentView === 'liked' ||
   isAdvertiserPage) && (
   <section className="relative -mx-4 mb-0 overflow-hidden rounded-none border-0 bg-white shadow-none sm:mx-0 sm:mb-8 sm:rounded-none sm:border-0 sm:shadow-none  sm:-mt-8">
 
@@ -3826,19 +3807,21 @@ const advertiserPageCreatedAt =
 
       {/* כותרת */}
       <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">
-
         {currentView === 'my-listings'
           ? 'המודעות שפרסמתי'
-          : 'המודעות שאהבתי'}
-
-      </h2>
+          : currentView === 'favorites'
+            ? 'המועדפים שלי (' + baseListings.length + ')'
+            : 'המודעות שאהבתי (' + baseListings.length + ')'}
+</h2>
 
       {/* תיאור */}
       <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl mr-0 ml-auto">
 
         {currentView === 'my-listings'
           ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
-          : 'כל המודעות ששמרת כמועדפות במקום אחד'}
+          : currentView === 'favorites'
+            ? 'כל המודעות ששמרת כמועדפות במקום אחד'
+            : 'כל המודעות שסימנת בלייק'}
 
       </p>
 
