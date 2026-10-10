@@ -94,6 +94,14 @@ function App() {
   }
 
   const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [isAppInstalled, setIsAppInstalled] = useState(() =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    navigator.standalone === true
+  )
+  const [installBannerDismissed, setInstallBannerDismissed] = useState(false)
+  const [showInstallHelp, setShowInstallHelp] = useState(false)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const [shareListing, setShareListing] = useState(null)
 const [showWelcomePopup, setShowWelcomePopup] = useState(false)
 const [pendingPublishAfterAuth, setPendingPublishAfterAuth] = useState(false)
@@ -107,6 +115,8 @@ const [pendingPublishAfterAuth, setPendingPublishAfterAuth] = useState(false)
 
     const handleAppInstalled = () => {
       setDeferredPrompt(null)
+      setIsAppInstalled(true)
+      setShowInstallHelp(false)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -2434,7 +2444,7 @@ const advertiserPageCreatedAt =
     <div className="min-h-screen bg-[#F5F5F0] text-slate-800 dir-rtl flex flex-col">
       {/* סרגל עליון Header */}
       <header
-  className="sticky top-0 z-50 bg-[#D97706] backdrop-blur-md border-b border-[#B45309] shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
+  className="sticky top-0 z-50 bg-[#D97706] border-b border-[#B45309] shadow-[0_2px_14px_rgba(15,23,42,0.08)]"
 >
   <div className="max-w-6xl mx-auto px-2.5 sm:px-4">
 
@@ -3094,21 +3104,76 @@ const advertiserPageCreatedAt =
 
 
     {/* התקנת האפליקציה */}
-    {deferredPrompt && (
-      <button
-        type="button"
-        onClick={handleInstallApp}
-        title="התקנת כסף כיס"
-        className="hidden md:flex h-9 px-3 rounded-xl items-center gap-1.5 text-xs font-bold text-[#173B3A] bg-[#FFF8ED] hover:bg-white border border-[#E7DCCB] transition"
-      >
-        <span>
-          📱
-        </span>
+    {!isAppInstalled && !installBannerDismissed && (
+      <div className="fixed bottom-5 right-4 z-[100] flex flex-col items-end gap-2 pb-[env(safe-area-inset-bottom)]">
+        {showInstallHelp && (
+          <div dir="rtl" className="w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-orange-200 bg-white p-4 text-right shadow-2xl">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <strong className="text-base text-slate-900">התקנת כסף כיס</strong>
+              <button
+                type="button"
+                onClick={() => setShowInstallHelp(false)}
+                aria-label="סגירת הוראות ההתקנה"
+                className="rounded-full p-1 text-slate-500 hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
+            {deferredPrompt ? (
+              <p className="text-sm leading-6 text-slate-700">
+                לחצו על כפתור ההתקנה כדי להוסיף את כסף כיס למסך הבית.
+              </p>
+            ) : isIOS ? (
+              <p className="text-sm leading-6 text-slate-700">
+                ב-Safari לחצו על כפתור השיתוף, בחרו ״הוספה למסך הבית״ ואז ״הוספה״.
+              </p>
+            ) : (
+              <p className="text-sm leading-6 text-slate-700">
+                פתחו את תפריט הדפדפן וחפשו ״התקנת האפליקציה״ או ״הוספה למסך הבית״. אם האפשרות לא מופיעה, נסו שוב לאחר שהאתר נטען במלואו.
+              </p>
+            )}
+            {deferredPrompt && (
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="mt-3 w-full rounded-xl bg-[#D97706] px-4 py-2.5 font-bold text-white hover:bg-[#B45309]"
+              >
+                התקנה עכשיו
+              </button>
+            )}
+          </div>
+        )}
 
-        <span>
-          התקנת האפליקציה
-        </span>
-      </button>
+        <div className="flex items-center gap-1 rounded-full bg-[#D97706] text-white shadow-lg shadow-orange-900/25 ring-1 ring-orange-700/30">
+          <button
+            type="button"
+            onClick={async () => {
+              if (deferredPrompt) {
+                await handleInstallApp()
+              } else {
+                setShowInstallHelp((value) => !value)
+              }
+            }}
+            className="flex min-h-12 items-center gap-2 rounded-full py-3 pl-3 pr-4 text-sm font-extrabold hover:bg-[#B45309]"
+            aria-label="התקנת אפליקציית כסף כיס"
+          >
+            <span aria-hidden="true">↓</span>
+            <span>התקנת האפליקציה</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setInstallBannerDismissed(true)
+              setShowInstallHelp(false)
+            }}
+            className="mr-1 rounded-full p-2 text-white/90 hover:bg-white/15"
+            aria-label="הסתרת כפתור ההתקנה"
+            title="אפשר להציג שוב בביקור הבא"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
     )}
 
 
@@ -4363,7 +4428,7 @@ const advertiserPageCreatedAt =
                   רדיוס
                 </div>
 
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="w-full min-w-0">
 
                   <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
