@@ -480,6 +480,10 @@ const [showMobileCategories, setShowMobileCategories] = useState(false)
   const [expandedListings, setExpandedListings] = useState({})
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
+  const [isWhyKesefKisOpen, setIsWhyKesefKisOpen] = useState(false)
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false)
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
 const [reportReason, setReportReason] = useState('')
 const [reportDetails, setReportDetails] = useState('')
 
@@ -10672,315 +10676,179 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
 {isHowItWorksOpen && (
   <div
-    className="fixed inset-0 z-[100] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+    className="fixed inset-0 z-[100] bg-slate-950/60 flex items-center justify-center p-0 sm:p-4"
     onClick={() => setIsHowItWorksOpen(false)}
   >
     <div
-      className="w-full max-w-2xl max-h-[92vh] overflow-hidden bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col"
+      className="w-full max-w-3xl h-full sm:h-auto sm:max-h-[92vh] overflow-hidden bg-white shadow-2xl flex flex-col"
       onClick={(e) => e.stopPropagation()}
       dir="rtl"
     >
-
-      {/* פס עליון */}
-      <div className="h-1.5 shrink-0 bg-gradient-to-l from-emerald-500 via-cyan-500 to-emerald-600" />
-
-      {/* כותרת */}
-      <div className="flex items-start justify-between gap-4 px-5 sm:px-6 py-5 border-b border-slate-100 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl">
-            💰
-          </div>
-
-          <div className="min-w-0">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-              איך כסף כיס עובד?
-            </h2>
-
-            <p className="text-sm text-slate-500 mt-1 leading-5">
-              מחברים בין אנשים שמציעים עבודה ושירותים לבין מי שצריך אותם.
-            </p>
-          </div>
+      <div className="flex items-start justify-between gap-4 px-5 sm:px-8 py-5 border-b border-slate-200 shrink-0">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            איך כסף כיס עובד?
+          </h2>
+          <p className="text-base sm:text-lg text-slate-600 mt-2 leading-7">
+            לוח מקומי שמחבר בין אנשים שמציעים עבודות, שירותים ופריטים לבין מי שמחפש אותם בסביבה שלו.
+          </p>
         </div>
 
         <button
           type="button"
           onClick={() => setIsHowItWorksOpen(false)}
-          className="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition flex items-center justify-center"
+          className="w-10 h-10 shrink-0 text-slate-600 hover:text-slate-950 text-3xl leading-none transition"
           aria-label="סגור"
         >
           ×
         </button>
       </div>
 
-      {/* תוכן */}
       <div className="overflow-y-auto flex-1">
-        <div className="p-5 sm:p-6 space-y-5">
+        <div className="px-5 sm:px-8 py-3">
 
-          {/* מציע */}
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-emerald-100 flex items-center justify-center text-xl">
-                🟢
-              </div>
-
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">📍</span>
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  מציע עבודה / שירות
-                </h3>
-
-                <p className="text-sm text-slate-700 mt-2 leading-6">
-                  יש לך שירות, עבודה או משימה שאתה מוכן לבצע?
-                  פרסם מודעה עם פרטים, מחיר ואזור — ואנשים שמחפשים
-                  שירות יוכלו למצוא אותך וליצור איתך קשר.
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">מוצאים דברים קרוב לבית</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  בחרו את המיקום שמעניין אתכם כדי למצוא מודעות באזור המתאים. אפשר להשתמש באפשרות זיהוי המיקום, לבחור עיר באופן ידני ולצמצם את החיפוש לפי מרחק. כך תוכלו להתמקד בהזדמנויות ובאנשים שנמצאים בקרבתכם, במקום לחפש בכל הארץ.
                 </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* מחפש */}
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-xl">
-                🔵
-              </div>
-
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">🔧</span>
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  מחפש שירות / עזרה
-                </h3>
-
-                <p className="text-sm text-slate-700 mt-2 leading-6">
-                  צריך שמישהו יבצע עבורך עבודה, משימה או שירות?
-                  חפש בלוח לפי תחום, אזור וסוג מודעה,
-                  פתח את המודעה שמעניינת אותך ושלח למפרסם הודעה.
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">עבודות קטנות ושירותים</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  צריכים עזרה או מחפשים עבודה קטנה? תוכלו לחפש שירות שמישהו מציע, או לפרסם שירות משלכם. למשל, תיקונים בבית, ניקיון, שיעורים פרטיים, שמירה על ילדים או טיול עם כלב. אפשר גם לפרסם שאתם מחפשים אדם שיבצע עבודה מסוימת. כתבו מה נדרש, הוסיפו פרטים ברורים וציינו את האזור הרלוונטי.
                 </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ברטר */}
-          <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-amber-100 flex items-center justify-center text-xl shadow-sm">
-                🔄
-              </div>
-
-              <div className="min-w-0">
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  ברטר — אפשר גם להחליף שירות בשירות
-                </h3>
-
-                <p className="text-sm text-slate-700 mt-2 leading-6">
-                  לא חייבים לשלם בכסף. אפשר לבחור במודעה אפשרות של
-                  <strong className="text-slate-900"> ברטר </strong>
-                  ולהציע תמורה אחרת במקום תשלום.
-                </p>
-
-                <div className="mt-4 rounded-2xl bg-white/80 border border-amber-100 p-4">
-                  <div className="text-sm font-extrabold text-slate-800 mb-2">
-                    איך זה עובד?
-                  </div>
-
-                  <div className="space-y-2.5">
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-6 h-6 shrink-0 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
-                        1
-                      </span>
-                      <p className="text-sm text-slate-700 leading-5">
-                        מפרסם מודעה ובוחר שסוג התמורה הוא <strong>ברטר</strong>.
-                      </p>
-                    </div>
-
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-6 h-6 shrink-0 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
-                        2
-                      </span>
-                      <p className="text-sm text-slate-700 leading-5">
-                        מציינים איזו תמורה או שירות אפשר להציע בתמורה.
-                      </p>
-                    </div>
-
-                    <div className="flex items-start gap-2.5">
-                      <span className="w-6 h-6 shrink-0 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
-                        3
-                      </span>
-                      <p className="text-sm text-slate-700 leading-5">
-                        משתמש אחר יכול לבחור במודעה וליצור קשר כדי לבדוק אם ההחלפה מתאימה לשני הצדדים.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-xl bg-amber-100/70 px-3.5 py-3">
-                  <p className="text-xs text-amber-900 leading-5">
-                    💡 <strong>דוגמה:</strong> אתה עוזר למישהו להרכיב רהיט,
-                    ובתמורה הוא מציע לך תיקון קטן בבית או שירות אחר.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* בחירת ברטר קיים */}
-          <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-white border border-cyan-100 flex items-center justify-center text-xl shadow-sm">
-                🤝
-              </div>
-
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">📦</span>
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  בחירת ברטר קיים
-                </h3>
-
-                <p className="text-sm text-slate-700 mt-2 leading-6">
-                  אם קיימות מודעות שמציעות ברטר, אפשר לחפש אותן בלוח
-                  ולבדוק מה מציעים בתמורה. מצאת הצעה שמתאימה לך?
-                  פתח את המודעה ושלח למפרסם הודעה כדי לבדוק את פרטי ההחלפה.
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">קטגוריית חפצים — לקנות, למסור או להחליף</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  בקטגוריית חפצים אפשר לפרסם פריטים במחיר נמוך, להציע דברים למסירה או למצוא פריטים שאפשר להחליף. אולי יש בבית משהו שכבר אינכם צריכים, אבל מישהו אחר ישמח לקבל? פרסמו מודעה עם תיאור ברור ומחיר או תנאי החלפה, אם ישנם. חיפוש לפי מיקום עוזר למצוא פריטים בסביבה ולתאם ישירות עם המפרסם.
                 </p>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-cyan-100 text-xs font-bold text-cyan-800">
-                    🔍 חיפוש
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-cyan-100 text-xs font-bold text-cyan-800">
-                    🔄 ברטר
-                  </span>
-
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-cyan-100 text-xs font-bold text-cyan-800">
-                    💬 פנייה למפרסם
-                  </span>
-                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* פרסום */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl">
-                📢
-              </div>
-
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">🔎</span>
               <div>
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  איך מפרסמים מודעה?
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  כמה צעדים פשוטים ואתם בלוח
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">מחפשים לפי קטגוריה</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  כדי להגיע למודעות המתאימות לכם, בחרו קטגוריה, השתמשו בחיפוש וצרו שילוב של מסננים לפי הצורך. אם אתם מחפשים שירות מסוים, התמקדו בתחום הרלוונטי; אם אתם מחפשים פריט, עברו לקטגוריית חפצים. אפשר לעיין במודעות, לקרוא את הפרטים ולבדוק את מיקום המפרסם לפני שפונים אליו.
                 </p>
               </div>
             </div>
+          </section>
 
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                  1
-                </span>
-                <p className="text-sm text-slate-700 pt-1">
-                  נרשמים או מתחברים באמצעות Google.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                  2
-                </span>
-                <p className="text-sm text-slate-700 pt-1">
-                  לוחצים על <strong>פרסם מודעה</strong>.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                  3
-                </span>
-                <p className="text-sm text-slate-700 pt-1">
-                  בוחרים אם אתם מציעים שירות או מחפשים משימה.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-7 h-7 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">
-                  4
-                </span>
-                <p className="text-sm text-slate-700 pt-1">
-                  מוסיפים כותרת, תיאור, מחיר ואזור ומפרסמים.
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">💰</span>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">תשלום, ברטר או שילוב ביניהם</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  לא כל עסקה חייבת להתבצע באותה צורה. בהתאם לאפשרויות שבמודעה, אפשר להציע תשלום כספי, החלפת שירותים או פריטים (ברטר), או שילוב של תשלום וברטר. חשוב לתאם מראש את התנאים, המחיר ומה כל צד מצפה לקבל, כדי למנוע אי־הבנות.
                 </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* כלים */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-5">
-              <div className="w-10 h-10 rounded-xl bg-white border border-red-100 flex items-center justify-center text-xl mb-3">
-                ❤️
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">✍️</span>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">איך מפרסמים מודעה?</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  בחרו אם אתם מציעים שירות או פריט, או מחפשים שירות או פריט. הוסיפו כותרת ברורה, תיאור שמסביר מה אתם מציעים או צריכים, מיקום ופרטי מחיר או החלפה לפי העניין. כדאי להוסיף מידע שימושי שיעזור לאנשים להבין במה מדובר ולדעת אם המודעה מתאימה להם.
+                </p>
               </div>
-
-              <h3 className="font-extrabold text-slate-900">
-                שמירת מודעות
-              </h3>
-
-              <p className="text-sm text-slate-600 mt-1 leading-6">
-                מצאת מודעה שמעניינת אותך?
-                לחץ על הלב והיא תישמר תחת "שאהבתי".
-              </p>
             </div>
+          </section>
 
-            <div className="rounded-2xl border border-purple-100 bg-purple-50 p-5">
-              <div className="w-10 h-10 rounded-xl bg-white border border-purple-100 flex items-center justify-center text-xl mb-3">
-                💬
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">💬</span>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">יוצרים קשר ישירות</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  מצאתם מודעה מעניינת? פתחו אותה, קראו את הפרטים ופנו למפרסם באמצעות אפשרויות יצירת הקשר הזמינות במודעה. תוכלו לשאול שאלות, לברר פרטים ולתאם את המשך התהליך ישירות ביניכם. לפני שסוגרים, מומלץ לוודא שכל הפרטים והתנאים ברורים לשני הצדדים.
+                </p>
               </div>
-
-              <h3 className="font-extrabold text-slate-900">
-                שליחת הודעות
-              </h3>
-
-              <p className="text-sm text-slate-600 mt-1 leading-6">
-                אפשר ליצור קשר עם מפרסם המודעה
-                באמצעות מערכת ההודעות באתר.
-              </p>
             </div>
+          </section>
 
-          </div>
-
-          {/* סיום */}
-          <div className="rounded-2xl bg-slate-900 text-white p-5 text-center shadow-sm">
-            <div className="text-lg font-extrabold">
-              פשוט מפרסמים, מחפשים ומתחברים.
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">♡</span>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">שומרים מודעות למועדפים</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  רוצים לחזור למודעה מאוחר יותר? שמרו אותה במועדפים כדי למצוא אותה בקלות בהמשך. כך תוכלו לעקוב אחרי מודעות שמעניינות אתכם בלי לחפש אותן מחדש בכל פעם.
+                </p>
+              </div>
             </div>
+          </section>
 
-            <p className="text-sm text-slate-300 mt-1">
-              כסף כיס — לוח עבודות, שירותים ופריטים מקומיים.
-            </p>
-          </div>
+          <section className="py-5">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">🤝</span>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900">מקומי, פשוט וישיר</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  כסף כיס נועד לעזור לאנשים למצוא הזדמנויות, שירותים ופריטים בסביבה שלהם, ולאפשר למי שיש לו משהו להציע להגיע למי שצריך אותו. מפרסמים מודעה, מחפשים לפי הצורך ויוצרים קשר ישירות — כדי להפוך את העזרה ההדדית והעסקאות הקטנות לפשוטות ונגישות יותר.
+                </p>
+              </div>
+            </div>
+          </section>
 
         </div>
       </div>
 
-      {/* תחתית */}
-      <div className="px-5 sm:px-6 py-4 border-t border-slate-100 bg-white shrink-0 flex justify-end">
+      <div className="px-5 sm:px-8 py-4 border-t border-slate-200 shrink-0 flex justify-start">
         <button
           type="button"
           onClick={() => setIsHowItWorksOpen(false)}
-          className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold shadow-sm transition"
+          className="px-5 py-2.5 text-base font-bold text-slate-900 hover:bg-slate-100 transition"
         >
-          הבנתי
+          סגירה
         </button>
       </div>
-
     </div>
   </div>
 )}
 
-
-
-
-
-
+{isContactModalOpen && (
+  <ContactPage
+    isModal
+    onClose={() => setIsContactModalOpen(false)}
+  />
+)}
+{isTermsModalOpen && (
+  <TermsPage
+    isModal
+    onClose={() => setIsTermsModalOpen(false)}
+  />
+)}
+{isPrivacyModalOpen && (
+  <PrivacyPage
+    isModal
+    onClose={() => setIsPrivacyModalOpen(false)}
+  />
+)}
 {/* =========================================================
     FOOTER
 ========================================================= */}
@@ -11134,33 +11002,37 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             לוח המודעות
           </Link>
 
-          <Link
-  to="/why-kesef-kis"
-  className="text-slate-400 hover:text-emerald-400 transition"
+          <button
+  type="button"
+  onClick={() => navigate('/why-kesef-kis', { state: { backgroundLocation: location } })}
+  className="text-slate-400 hover:text-emerald-400 transition text-right"
 >
   למה כסף כיס?
-</Link>
+</button>
 
-          <Link
-            to="/contact"
-            className="text-slate-400 hover:text-emerald-400 transition"
-          >
-            צור קשר
-          </Link>
+          <button
+  type="button"
+  onClick={() => navigate('/contact', { state: { backgroundLocation: location } })}
+  className="text-slate-400 hover:text-emerald-400 transition text-right"
+>
+  צור קשר
+</button>
 
-          <Link
-            to="/terms"
-            className="text-slate-400 hover:text-emerald-400 transition"
-          >
-            תנאי שימוש
-          </Link>
+          <button
+  type="button"
+  onClick={() => navigate('/terms', { state: { backgroundLocation: location } })}
+  className="text-slate-400 hover:text-emerald-400 transition text-right"
+>
+  תנאי שימוש
+</button>
 
-          <Link
-            to="/privacy"
-            className="text-slate-400 hover:text-emerald-400 transition"
-          >
-            מדיניות פרטיות
-          </Link>
+          <button
+  type="button"
+  onClick={() => navigate('/privacy', { state: { backgroundLocation: location } })}
+  className="text-slate-400 hover:text-emerald-400 transition text-right"
+>
+  מדיניות פרטיות
+</button>
         </nav>
       </div>
 
@@ -11264,7 +11136,7 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
   )
 }
 
-function ContactPage() {
+function ContactPage({ isModal = false, onClose }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -11336,41 +11208,39 @@ function ContactPage() {
   }
 
   return (
-    <div
-      dir="rtl"
-      className="min-h-screen bg-slate-50 text-slate-900"
-    >
-      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+    <div dir="rtl" className={isModal ? "fixed inset-0 z-[120] bg-slate-950/60 flex items-center justify-center p-0 sm:p-4" : "min-h-screen bg-slate-50 text-slate-900"} onClick={isModal ? onClose : undefined}>
+      <div className={isModal ? "w-full max-w-3xl h-full sm:h-auto sm:max-h-[92vh] overflow-y-auto bg-white shadow-2xl" : "max-w-4xl mx-auto px-4 py-10 md:py-16"} onClick={isModal ? (e) => e.stopPropagation() : undefined}>
 
-        <div className="mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition"
-          >
-            ← חזרה ללוח המודעות
-          </Link>
-        </div>
+        {!isModal && (<div className="mb-8"><Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition">חזרה ללוח המודעות</Link></div>)}
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className={isModal ? "relative bg-white overflow-hidden" : "bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"}>
 
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white">
+          <div className={isModal ? "relative px-5 sm:px-8 py-5 border-b border-slate-200 bg-white text-slate-900" : "bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white"}>
+{isModal && (
+  <button
+    type="button"
+    onClick={onClose}
+    className="absolute left-4 top-4 z-10 w-10 h-10 text-slate-600 hover:text-slate-950 text-3xl leading-none transition"
+    aria-label="סגור"
+  >
+    ×
+  </button>
+)}
             <div className="text-4xl mb-4">
               💬
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-extrabold mb-3">
+            <h1 className={isModal ? "text-2xl sm:text-3xl font-extrabold mb-3" : "text-3xl md:text-4xl font-extrabold mb-3"}>
               צור קשר
             </h1>
 
-            <p className="text-emerald-50 text-base md:text-lg leading-8">
+            <p className={isModal ? "text-base sm:text-lg text-slate-600 leading-8" : "text-emerald-50 text-base md:text-lg leading-8"}>
               יש לך שאלה, הצעה לשיפור או דיווח על בעיה?
               אפשר לשלוח לנו הודעה ישירות דרך הטופס.
             </p>
           </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="p-6 md:p-10 space-y-6"
+          <form onSubmit={handleSubmit} className={isModal ? "px-5 sm:px-8 py-5 space-y-6" : "p-6 md:p-10 space-y-6"}
           >
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -11503,32 +11373,35 @@ function ContactPage() {
 
 
 
-function TermsPage() {
+function TermsPage({ isModal = false, onClose }) {
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+    <div dir="rtl" className={isModal ? "fixed inset-0 z-[120] bg-slate-950/60 flex items-center justify-center p-0 sm:p-4" : "min-h-screen bg-slate-50 text-slate-900"} onClick={isModal ? onClose : undefined}>
+      <div className={isModal ? "w-full max-w-4xl h-full sm:h-auto sm:max-h-[92vh] overflow-y-auto bg-white shadow-2xl" : "max-w-4xl mx-auto px-4 py-10 md:py-16"} onClick={isModal ? (e) => e.stopPropagation() : undefined}>
 
-        <div className="mb-6">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition"
-          >
-            ← חזרה ללוח המודעות
-          </Link>
-        </div>
+        {!isModal && (<div className="mb-6"><Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition">חזרה ללוח המודעות</Link></div>)}
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className={isModal ? "bg-white overflow-hidden" : "bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"}>
 
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white">
+          <div className={isModal ? "relative px-5 sm:px-8 py-5 border-b border-slate-200 bg-white text-slate-900" : "bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white"}>
+{isModal && (
+  <button
+    type="button"
+    onClick={onClose}
+    className="absolute left-4 top-4 z-10 w-10 h-10 text-slate-600 hover:text-slate-950 text-3xl leading-none transition"
+    aria-label="סגור"
+  >
+    ×
+  </button>
+)}
             <div className="text-4xl mb-4">
               📋
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-extrabold mb-3">
+            <h1 className={isModal ? "text-2xl sm:text-3xl font-extrabold mb-3" : "text-3xl md:text-4xl font-extrabold mb-3"}>
               תנאי שימוש
             </h1>
 
-            <p className="text-emerald-50 text-sm md:text-base">
+            <p className={isModal ? "text-slate-600 text-sm md:text-base" : "text-emerald-50 text-sm md:text-base"}>
               תנאי השימוש באתר כסף כיס
             </p>
           </div>
@@ -11973,32 +11846,35 @@ function TermsPage() {
 
 
 
-function PrivacyPage() {
+function PrivacyPage({ isModal = false, onClose }) {
   return (
-    <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="max-w-4xl mx-auto px-4 py-10 md:py-16">
+    <div dir="rtl" className={isModal ? "fixed inset-0 z-[120] bg-slate-950/60 flex items-center justify-center p-0 sm:p-4" : "min-h-screen bg-slate-50 text-slate-900"} onClick={isModal ? onClose : undefined}>
+      <div className={isModal ? "w-full max-w-4xl h-full sm:h-auto sm:max-h-[92vh] overflow-y-auto bg-white shadow-2xl" : "max-w-4xl mx-auto px-4 py-10 md:py-16"} onClick={isModal ? (e) => e.stopPropagation() : undefined}>
 
-        <div className="mb-6">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition"
-          >
-            ← חזרה ללוח המודעות
-          </Link>
-        </div>
+        {!isModal && (<div className="mb-6"><Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-600 hover:text-emerald-700 transition">חזרה ללוח המודעות</Link></div>)}
 
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className={isModal ? "bg-white overflow-hidden" : "bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"}>
 
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white">
+          <div className={isModal ? "relative px-5 sm:px-8 py-5 border-b border-slate-200 bg-white text-slate-900" : "bg-gradient-to-br from-emerald-600 to-teal-700 px-6 py-10 md:px-10 text-white"}>
+{isModal && (
+  <button
+    type="button"
+    onClick={onClose}
+    className="absolute left-4 top-4 z-10 w-10 h-10 text-slate-600 hover:text-slate-950 text-3xl leading-none transition"
+    aria-label="סגור"
+  >
+    ×
+  </button>
+)}
             <div className="text-4xl mb-4">
               🔒
             </div>
 
-            <h1 className="text-3xl md:text-4xl font-extrabold mb-3">
+            <h1 className={isModal ? "text-2xl sm:text-3xl font-extrabold mb-3" : "text-3xl md:text-4xl font-extrabold mb-3"}>
               מדיניות פרטיות
             </h1>
 
-            <p className="text-emerald-50 text-sm md:text-base">
+            <p className={isModal ? "text-slate-600 text-sm md:text-base" : "text-emerald-50 text-sm md:text-base"}>
               כיצד כסף כיס אוסף, משתמש ושומר מידע אישי
             </p>
           </div>
@@ -12390,6 +12266,150 @@ function PrivacyPage() {
 
 
 
+function WhyKesefKisPageModal({ onClose }) {
+  return (
+
+  <div
+    className="fixed inset-0 z-[110] bg-slate-950/60 flex items-center justify-center p-0 sm:p-4"
+    onClick={onClose}
+  >
+    <div
+      className="w-full max-w-3xl h-full sm:h-auto sm:max-h-[92vh] overflow-hidden bg-white shadow-2xl flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+      dir="rtl"
+    >
+      <div className="px-5 sm:px-8 py-5 border-b border-slate-200 shrink-0 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-950">
+            למה כסף כיס?
+          </h2>
+          <p className="mt-2 text-base sm:text-lg text-slate-600 leading-7">
+            קבוצות הן מקום לדבר. כסף כיס הוא מקום למצוא.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-10 h-10 shrink-0 text-slate-600 hover:text-slate-950 text-3xl leading-none transition"
+          aria-label="סגור"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="px-5 sm:px-8 overflow-y-auto">
+        <section className="py-5 border-b border-slate-200">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">💬</span>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                למה לא פשוט לפרסם בקבוצה?
+              </h3>
+              <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                בקבוצות וואטסאפ ופייסבוק מפרסמים הרבה דברים יחד. מודעה יכולה להיעלם במהירות בין הודעות, דיונים ועדכונים. בכסף כיס המודעות מרוכזות בלוח אחד, כך שקל יותר למצוא את מה שמחפשים.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-5 border-b border-slate-200">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">📍</span>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                מתחילים מהסביבה הקרובה
+              </h3>
+              <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                לפעמים לא צריך לחפש רחוק. אפשר למצוא עבודה קטנה, שירות או פריט באזור שלך, ולגלות הזדמנויות שנמצאות ממש בסביבה.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-5 border-b border-slate-200">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">🛠️</span>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                עבודות קטנות ושירותים
+              </h3>
+              <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                בייביסיטר, תיקונים, ניקיון, טיול עם כלבים, שיעורים פרטיים ועבודות מזדמנות — אפשר לפרסם מה מציעים או למצוא מישהו שצריך את העזרה שלך.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-5 border-b border-slate-200">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">📦</span>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                גם פריטים וברטר
+              </h3>
+              <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                אפשר להציע פריטים למכירה, למסירה או להחלפה, וגם להציע שירות או פריט בתמורה למשהו אחר — עם תשלום, ברטר או שילוב ביניהם.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-5 border-b border-slate-200">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">🔎</span>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                לוח מסודר שקל לחפש בו
+              </h3>
+              <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                אפשר לעיין במודעות, לחפש לפי מילות מפתח וקטגוריות ולבדוק מה מתאים. במקום לגלול שוב ושוב בהודעות, התוכן מאורגן במקום אחד.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-5 border-b border-slate-200">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">🤝</span>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                פשוט, מקומי וללא מתווכים
+              </h3>
+              <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                כסף כיס נועד לעזור לאנשים באזור למצוא זה את זה. מפרסמים מודעה, פונים למפרסם ומתאמים ישירות — בלי צורך במתווך מטעם האתר.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-5">
+          <div className="flex items-start gap-4">
+            <span className="text-2xl shrink-0">🌱</span>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
+                ככל שהקהילה גדלה, יש יותר מה למצוא
+              </h3>
+              <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                ככל שיותר אנשים באזור מפרסמים ומשתמשים בלוח, גדל הסיכוי למצוא בדיוק את השירות, העבודה או הפריט שמחפשים. גם מודעה קטנה יכולה לחבר בין שני אנשים ולתת מענה לצורך אמיתי.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="px-5 sm:px-8 py-4 border-t border-slate-200 shrink-0 flex justify-start">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-5 py-2.5 text-base font-bold text-slate-900 hover:bg-slate-100 transition"
+        >
+          סגירה
+        </button>
+      </div>
+    </div>
+  </div>
+  )
+}
 function WhyKesefKisPage() {
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
@@ -12618,20 +12638,50 @@ function WhyKesefKisPage() {
 
 
 
-export default function AppRouter() {
+function AppRouterContent() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const backgroundLocation = location.state?.backgroundLocation
+
   return (
-    <BrowserRouter>
-      <Routes>
-  <Route path="/" element={<App />} />
-  <Route path="/contact" element={<ContactPage />} />
-  <Route path="/terms" element={<TermsPage />} />
-  <Route path="/privacy" element={<PrivacyPage />} />
-  <Route path="/why-kesef-kis" element={<WhyKesefKisPage />} />
-  <Route path="*" element={<App />} />
-</Routes>
-    </BrowserRouter>
+    <>
+      <Routes location={backgroundLocation || location}>
+        <Route path="/" element={<App />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/why-kesef-kis" element={<WhyKesefKisPage />} />
+        <Route path="*" element={<App />} />
+      </Routes>
+
+      {backgroundLocation && (
+        <Routes>
+          <Route
+            path="/contact"
+            element={<ContactPage isModal onClose={() => navigate(-1)} />}
+          />
+          <Route
+            path="/terms"
+            element={<TermsPage isModal onClose={() => navigate(-1)} />}
+          />
+          <Route
+            path="/privacy"
+            element={<PrivacyPage isModal onClose={() => navigate(-1)} />}
+          />
+          <Route
+            path="/why-kesef-kis"
+            element={<WhyKesefKisPageModal onClose={() => navigate(-1)} />}
+          />
+        </Routes>
+      )}
+    </>
   )
 }
 
-
-
+export default function AppRouter() {
+  return (
+    <BrowserRouter>
+      <AppRouterContent />
+    </BrowserRouter>
+  )
+}
