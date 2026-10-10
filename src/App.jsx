@@ -526,6 +526,9 @@ const [isSendingConversationMessage, setIsSendingConversationMessage] = useState
 
   // ניהול מצב משתמש והתחברות
   const [user, setUser] = useState(null)
+  const [listingLikeCounts, setListingLikeCounts] = useState({})
+const [likedListingIds, setLikedListingIds] = useState([])
+const [updatingLikeListingId, setUpdatingLikeListingId] = useState(null)
   const [authMode, setAuthMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -1445,6 +1448,63 @@ const listingsWithAdvertiser = (data || []).map((listing) => ({
   }, [])
 
 
+  
+useEffect(() => {
+  let cancelled = false
+
+  const fetchListingLikes = async () => {
+    try {
+      // טעינת מספר הלייקים לכל מודעה
+      const { data: countsData, error: countsError } = await supabase
+        .from('listing_like_counts')
+        .select('listing_id, like_count')
+
+      if (countsError) throw countsError
+
+      const counts = {}
+
+      ;(countsData || []).forEach((row) => {
+        counts[row.listing_id] = Number(row.like_count) || 0
+      })
+
+      if (!cancelled) {
+        setListingLikeCounts(counts)
+      }
+
+      // משתמש לא מחובר אינו יכול לתת לייק משותף
+      if (!user) {
+        if (!cancelled) {
+          setLikedListingIds([])
+        }
+        return
+      }
+
+      // טעינת הלייקים של המשתמש המחובר בלבד
+      const { data: likedData, error: likedError } = await supabase
+        .from('listing_likes')
+        .select('listing_id')
+        .eq('user_id', user.id)
+
+      if (likedError) throw likedError
+
+      if (!cancelled) {
+        setLikedListingIds(
+          (likedData || []).map((row) => row.listing_id)
+        )
+      }
+    } catch (error) {
+      console.error('שגיאה בטעינת לייקים:', error)
+    }
+  }
+
+  fetchListingLikes()
+
+  return () => {
+    cancelled = true
+  }
+}, [user])
+
+
 useEffect(() => {
   const pathParts = decodeURIComponent(location.pathname)
     .split('/')
@@ -2356,6 +2416,72 @@ const toggleFavorite = (listingId) => {
 
 
 
+
+
+const toggleListingLike = async (listingId) => {
+  if (!user) {
+    alert('כדי שהלייק ייספר, צריך להתחבר לחשבון.')
+    return
+  }
+
+  if (updatingLikeListingId === listingId) return
+
+  const alreadyLiked = likedListingIds.includes(listingId)
+
+  setUpdatingLikeListingId(listingId)
+
+  try {
+    if (alreadyLiked) {
+      const { error } = await supabase
+        .from('listing_likes')
+        .delete()
+        .eq('listing_id', listingId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setLikedListingIds((previous) =>
+        previous.filter((id) => id !== listingId)
+      )
+
+      setListingLikeCounts((previous) => ({
+        ...previous,
+        [listingId]: Math.max(
+          0,
+          (previous[listingId] || 0) - 1
+        )
+      }))
+    } else {
+      const { error } = await supabase
+        .from('listing_likes')
+        .insert({
+          listing_id: listingId,
+          user_id: user.id
+        })
+
+      if (error) throw error
+
+      setLikedListingIds((previous) =>
+        previous.includes(listingId)
+          ? previous
+          : [...previous, listingId]
+      )
+
+      setListingLikeCounts((previous) => ({
+        ...previous,
+        [listingId]: (previous[listingId] || 0) + 1
+      }))
+    }
+  } catch (error) {
+    console.error('שגיאה בעדכון לייק:', error)
+    alert('לא הצלחנו לעדכן את הלייק. נסה שוב.')
+  } finally {
+    setUpdatingLikeListingId(null)
+  }
+}
+
+
+
 // מחיקת מודעה
 const handleDeleteListing = async (id) => {
   if (!window.confirm('האם אתה בטוח שברצונך למחוק מודעה זו?')) return
@@ -3200,7 +3326,7 @@ const advertiserPageCreatedAt =
     </button>
 
 
-    {/* מועדפים */}
+        {/* מועדפים */}
     {user && (
       <button
         type="button"
@@ -3212,18 +3338,19 @@ const advertiserPageCreatedAt =
           )
         }
         title="המועדפים שלי"
-        className={`hidden sm:flex relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition ${
+        aria-label="המועדפים שלי"
+        className={`hidden sm:flex relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl items-center justify-center transition ${
           currentView === 'favorites'
-            ? 'bg-red-500/15 text-red-300'
+            ? 'bg-amber-500/15 text-amber-300'
             : 'text-white/90 hover:text-white hover:bg-white/15'
         }`}
       >
         <span className="text-base sm:text-lg leading-none">
-          ♡
+          ⭐
         </span>
 
         {favoriteListings.length > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-red-500 text-white text-[8px] font-extrabold flex items-center justify-center border-2 border-slate-900">
+          <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 rounded-full bg-amber-500 text-white text-[8px] font-extrabold flex items-center justify-center border-2 border-slate-900">
             {favoriteListings.length > 99
               ? '99+'
               : favoriteListings.length}
@@ -5645,22 +5772,52 @@ const advertiserPageCreatedAt =
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-start justify-between gap-2 mb-2">
 
-          {/* לב */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              toggleFavorite(item.id)
-            }}
-            aria-label={
-              favoriteListings.includes(item.id)
-                ? 'הסר מהמועדפים'
-                : 'הוסף למועדפים'
-            }
-            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-base hover:bg-slate-100 transition"
-          >
-            {favoriteListings.includes(item.id) ? '❤️' : '🤍'}
-          </button>
+          
+{/* לייקים משותפים ומועדפים אישיים בנפרד */}
+<div className="flex items-center gap-1 shrink-0">
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      toggleListingLike(item.id)
+    }}
+    disabled={!user || updatingLikeListingId === item.id}
+    aria-label={
+      likedListingIds.includes(item.id)
+        ? 'הסר לייק'
+        : 'אהבתי את המודעה'
+    }
+    title={!user ? 'יש להתחבר כדי לתת לייק' : 'לייק למודעה'}
+    className="w-7 h-7 rounded-full flex items-center justify-center text-base hover:bg-slate-100 transition disabled:opacity-60"
+  >
+    {likedListingIds.includes(item.id) ? '❤️' : '🤍'}
+  </button>
+
+  <span
+    className="text-xs text-slate-500 min-w-[10px] text-center"
+    title="מספר הלייקים"
+    aria-label={`${listingLikeCounts[item.id] || 0} לייקים`}
+  >
+    {listingLikeCounts[item.id] || 0}
+  </span>
+
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      toggleFavorite(item.id)
+    }}
+    aria-label={
+      favoriteListings.includes(item.id)
+        ? 'הסר מהמועדפים'
+        : 'הוסף למועדפים'
+    }
+    title="מועדפים אישיים"
+    className="w-7 h-7 rounded-full flex items-center justify-center text-base hover:bg-slate-100 transition"
+  >
+    {favoriteListings.includes(item.id) ? '⭐' : '☆'}
+  </button>
+</div>
 
         </div>
 
@@ -11028,6 +11185,31 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
             </div>
           </section>
 
+          <section className="py-5 border-b border-slate-200">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl shrink-0" aria-hidden="true">❤️</span>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-bold text-[#244D3A]">לייק או מועדפים — מה ההבדל?</h3>
+                <p className="mt-2 text-base sm:text-lg text-slate-700 leading-8">
+                  שתי האפשרויות עוזרות לכם לסמן מודעות, אבל לכל אחת מטרה אחרת.
+                </p>
+
+                <div className="mt-4 rounded-xl bg-[#E7F3E9] border border-[#C6DFCC] p-4">
+                  <h4 className="font-bold text-[#244D3A]">❤️ לייק — מפרגנים למודעה</h4>
+                  <p className="mt-1 text-base text-slate-700 leading-7">
+                    לחצו על הלב כדי לפרגן למודעה. הלייק מתווסף למספר שמופיע ליד הלב ומשותף למשתמשים באתר. כדי לתת לייק צריך להתחבר לחשבון.
+                  </p>
+                </div>
+
+                <div className="mt-3 rounded-xl bg-[#FFF3E0] border border-[#F2D2A8] p-4">
+                  <h4 className="font-bold text-[#9A4D12]">⭐ מועדפים — שומרים להמשך</h4>
+                  <p className="mt-1 text-base text-slate-700 leading-7">
+                    לחצו על הכוכב כדי לשמור מודעה ברשימת המועדפים האישית שלכם, ולמצוא אותה בקלות כשתרצו לחזור אליה. המועדפים נפרדים מהלייקים.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
 
