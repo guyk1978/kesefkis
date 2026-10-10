@@ -524,6 +524,11 @@ const [isSendingConversationMessage, setIsSendingConversationMessage] = useState
   category: 'עבודות מזדמנות',
   categories: ['עבודות מזדמנות'],
   location: '',
+  advertiser_latitude: null,
+  advertiser_longitude: null,
+  latitude: null,
+  longitude: null,
+  service_location_is_precise: false,
   contact_name: '',
   phone: ''
 })
@@ -648,6 +653,11 @@ useEffect(() => {
       category: 'עבודות מזדמנות',
       categories: ['עבודות מזדמנות'],
       location: '',
+      advertiser_latitude: null,
+      advertiser_longitude: null,
+      latitude: null,
+      longitude: null,
+      service_location_is_precise: false,
       contact_name: '',
       phone: ''
     })
@@ -1555,6 +1565,57 @@ useEffect(() => {
   setFormData((prev) => ({ ...prev, [name]: value }))
 }
 
+const handleSetGpsLocation = (locationType) => {
+  if (!navigator.geolocation) {
+    alert('הדפדפן אינו תומך בזיהוי מיקום.')
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords
+
+      setFormData((prev) => {
+        if (locationType === 'advertiser') {
+          return {
+            ...prev,
+            advertiser_latitude: latitude,
+            advertiser_longitude: longitude
+          }
+        }
+
+        return {
+          ...prev,
+          latitude,
+          longitude,
+          service_location_is_precise: true
+        }
+      })
+
+      alert(
+        locationType === 'advertiser'
+          ? 'מיקום המפרסם נשמר בטופס.'
+          : 'מיקום השירות או הפריט נשמר בטופס.'
+      )
+    },
+    (error) => {
+      const message =
+        error.code === 1
+          ? 'לא ניתנה הרשאה למיקום. אפשר לאשר גישה למיקום בהגדרות הדפדפן.'
+          : error.code === 2
+            ? 'לא ניתן לזהות את המיקום כרגע.'
+            : 'זיהוי המיקום ארך זמן רב מדי. נסה שוב.'
+
+      alert(message)
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  )
+}
+
     // פונקציית עזר להעלאת קובץ ל-Supabase Storage
   const uploadFileToStorage = async (file, bucketName) => {
     if (!file) return null
@@ -1809,6 +1870,11 @@ const handleOpenPublishModal = () => {
   category: 'עבודות מזדמנות',
   categories: ['עבודות מזדמנות'],
   location: '',
+  advertiser_latitude: null,
+  advertiser_longitude: null,
+  latitude: null,
+  longitude: null,
+  service_location_is_precise: false,
   contact_name: '',
   phone: ''
 })
@@ -1846,38 +1912,18 @@ const handleSubmit = async (e) => {
     }
 
     // ברירת מחדל - אין קואורדינטות
-    let latitude = null
-    let longitude = null
+    // שימוש בקואורדינטות שנבחרו במפורש בטופס
+    const latitude =
+      formData.service_location_is_precise === true &&
+      formData.latitude != null
+        ? Number(formData.latitude)
+        : null
 
-    // ניסיון לזהות קואורדינטות לפי העיר שהוזנה במודעה
-    if (formData.location?.trim()) {
-      try {
-        const response = await fetch(
-  `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=il&accept-language=he&q=${encodeURIComponent(formData.location.trim())}`
-)
-
-        if (response.ok) {
-          const data = await response.json()
-
-          if (data?.length > 0) {
-            latitude = parseFloat(data[0].lat)
-            longitude = parseFloat(data[0].lon)
-
-            console.log('📍 מיקום המודעה:', {
-              location: formData.location,
-              latitude,
-              longitude
-            })
-          }
-        }
-      } catch (locationError) {
-        console.warn(
-          '⚠️ לא הצלחנו לזהות קואורדינטות למודעה:',
-          locationError
-        )
-      }
-    }
-
+    const longitude =
+      formData.service_location_is_precise === true &&
+      formData.longitude != null
+        ? Number(formData.longitude)
+        : null
     const newListing = {
       title: formData.title,
       description: formData.description,
@@ -1892,8 +1938,11 @@ categories:
     ? formData.categories.slice(0, 3)
     : [formData.category],
 location: formData.location,
-latitude,
-longitude,
+      latitude,
+      longitude,
+      advertiser_latitude: formData.advertiser_latitude,
+      advertiser_longitude: formData.advertiser_longitude,
+      service_location_is_precise: formData.service_location_is_precise === true,
       contact_name: formData.contact_name,
       phone: formData.phone,
       image_url: imageUrl,
@@ -1936,6 +1985,11 @@ categories:
     ? item.categories.slice(0, 3)
     : [item.category || 'עבודות מזדמנות'],
 location: item.location || '',
+    advertiser_latitude: item.advertiser_latitude ?? null,
+    advertiser_longitude: item.advertiser_longitude ?? null,
+    latitude: item.service_location_is_precise === true ? item.latitude ?? null : null,
+    longitude: item.service_location_is_precise === true ? item.longitude ?? null : null,
+    service_location_is_precise: item.service_location_is_precise === true,
     contact_name: item.contact_name || '',
     phone: item.phone || ''
   })
@@ -2030,6 +2084,17 @@ categories:
     ? formData.categories.slice(0, 3)
     : [formData.category],
 location: formData.location,
+  latitude:
+    formData.service_location_is_precise === true
+      ? formData.latitude
+      : null,
+  longitude:
+    formData.service_location_is_precise === true
+      ? formData.longitude
+      : null,
+  advertiser_latitude: formData.advertiser_latitude,
+  advertiser_longitude: formData.advertiser_longitude,
+  service_location_is_precise: formData.service_location_is_precise === true,
   contact_name: formData.contact_name,
   phone: formData.phone,
   image_url: imageUrl,
@@ -2185,19 +2250,31 @@ const calculateDistanceKm = (lat1, lon1, lat2, lon2) => {
 
 
 const getListingDistance = (item) => {
-  if (
-    !userLocation ||
-    item?.latitude == null ||
-    item?.longitude == null
-  ) {
-    return null
-  }
+  if (!userLocation || !item) return null
+
+  const isRequest = ['request', 'item_request'].includes(
+    item.listing_type
+  )
+
+  const latitude = isRequest
+    ? item.advertiser_latitude
+    : item.service_location_is_precise === true
+      ? item.latitude
+      : null
+
+  const longitude = isRequest
+    ? item.advertiser_longitude
+    : item.service_location_is_precise === true
+      ? item.longitude
+      : null
+
+  if (latitude == null || longitude == null) return null
 
   return calculateDistanceKm(
     userLocation.latitude,
     userLocation.longitude,
-    Number(item.latitude),
-    Number(item.longitude)
+    Number(latitude),
+    Number(longitude)
   )
 }
 
@@ -2261,18 +2338,13 @@ const matchesCategory =
   locationFilter === 'all' ||
   normalizeLocation(item.location) === normalizeLocation(locationFilter)
 
+    const listingDistance = getListingDistance(item)
+
     const matchesNearby =
       !nearbyOnly ||
       (
-        userLocation &&
-        item.latitude != null &&
-        item.longitude != null &&
-        calculateDistanceKm(
-          userLocation.latitude,
-          userLocation.longitude,
-          Number(item.latitude),
-          Number(item.longitude)
-        ) <= locationRadius
+        listingDistance != null &&
+        listingDistance <= locationRadius
       )
 
     return (
@@ -8941,6 +9013,40 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
                 </div>
 
+                <div className="mt-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleSetGpsLocation('advertiser')}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50"
+                    >
+                      📍 קביעת מיקום המפרסם
+                    </button>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {formData.advertiser_latitude != null && formData.advertiser_longitude != null
+                        ? '✓ מיקום המפרסם נשמר'
+                        : 'לא הוגדר מיקום מפרסם'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleSetGpsLocation('service')}
+                      className="w-full rounded-xl border border-sky-200 bg-white px-3 py-2.5 text-sm font-bold text-sky-800 transition hover:bg-sky-50"
+                    >
+                      📍 קביעת מיקום השירות / הפריט
+                    </button>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {formData.service_location_is_precise === true &&
+                       formData.latitude != null &&
+                       formData.longitude != null
+                        ? '✓ מיקום השירות / הפריט נשמר'
+                        : 'לא הוגדר מיקום מדויק לשירות / לפריט'}
+                    </p>
+                  </div>
+                </div>
+
               </div>
 
             </div>
@@ -9854,6 +9960,40 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                     </option>
                   ))}
                 </select>
+
+                <div className="mt-3 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleSetGpsLocation('advertiser')}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-50"
+                    >
+                      📍 קביעת מיקום המפרסם
+                    </button>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {formData.advertiser_latitude != null && formData.advertiser_longitude != null
+                        ? '✓ מיקום המפרסם נשמר'
+                        : 'לא הוגדר מיקום מפרסם'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleSetGpsLocation('service')}
+                      className="w-full rounded-xl border border-sky-200 bg-white px-3 py-2.5 text-sm font-bold text-sky-800 transition hover:bg-sky-50"
+                    >
+                      📍 קביעת מיקום השירות / הפריט
+                    </button>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {formData.service_location_is_precise === true &&
+                       formData.latitude != null &&
+                       formData.longitude != null
+                        ? '✓ מיקום השירות / הפריט נשמר'
+                        : 'לא הוגדר מיקום מדויק לשירות / לפריט'}
+                    </p>
+                  </div>
+                </div>
 
               </div>
 
