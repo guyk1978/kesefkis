@@ -691,48 +691,217 @@ useEffect(() => {
 
 
   // טעינת ההודעות של המשתמש
-  const loadMyMessages = async () => {
-    if (!user) return
 
-    setLoadingMessages(true)
+const loadMyMessages = async () => {
+  if (!user) return
 
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          listing_id,
-          sender_id,
-          receiver_id,
-          content,
-          created_at,
-          is_read
-        `)
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order('created_at', { ascending: false })
+  setLoadingMessages(true)
 
-      if (error) {
-        console.error('שגיאה בטעינת הודעות:', error)
-        return
-      }
+  try {
+    const { data: hiddenRows, error: hiddenError } = await supabase
+      .from('message_hidden_for_user')
+      .select('message_id')
+      .eq('user_id', user.id)
 
-      setMyMessages(data || [])
-
-      const unreadCount = (data || []).filter(
-        (message) =>
-          message.receiver_id === user.id &&
-          message.is_read === false
-      ).length
-
-      setUnreadMessagesCount(unreadCount)
-
-    } catch (error) {
-      console.error('שגיאה בטעינת הודעות:', error)
-    } finally {
-      setLoadingMessages(false)
+    if (hiddenError) {
+      console.error('שגיאה בטעינת הודעות מוסתרות:', hiddenError)
+      return
     }
+
+    const hiddenIds = new Set(
+      (hiddenRows || []).map((row) => row.message_id)
+    )
+
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        id,
+        listing_id,
+        sender_id,
+        receiver_id,
+        content,
+        created_at,
+        is_read
+      `)
+      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('שגיאה בטעינת ההודעות:', error)
+      return
+    }
+
+    const visibleMessages = (data || []).filter(
+      (message) => !hiddenIds.has(message.id)
+    )
+
+    setMyMessages(visibleMessages)
+
+    const unreadCount = visibleMessages.filter(
+      (message) =>
+        message.receiver_id === user.id &&
+        message.is_read === false
+    ).length
+
+    setUnreadMessagesCount(unreadCount)
+  } catch (error) {
+    console.error('שגיאה בטעינת ההודעות:', error)
+  } finally {
+    setLoadingMessages(false)
+  }
+}
+
+const hideMessageForMe = async (messageId) => {
+  if (!user || !messageId) return
+
+  if (!window.confirm('להסתיר את ההודעה הזו רק מהתיבה שלך?')) return
+
+  try {
+    const { error } = await supabase
+      .from('message_hidden_for_user')
+      .upsert(
+        {
+          user_id: user.id,
+          message_id: messageId
+        },
+        {
+          onConflict: 'user_id,message_id',
+          ignoreDuplicates: true
+        }
+      )
+
+    if (error) throw error
+
+    setMyMessages((current) =>
+      current.filter((message) => message.id !== messageId)
+    )
+
+    setConversationMessages((current) =>
+      current.filter((message) => message.id !== messageId)
+    )
+
+    await loadMyMessages()
+  } catch (error) {
+    console.error('שגיאה בהסתרת ההודעה:', error)
+    window.alert('לא הצלחנו להסתיר את ההודעה. נסה שוב.')
+  }
+}
+
+const hideConversationForMe = async (conversation) => {
+  if (!user || !conversation) return
+
+  const conversationMessagesToHide = myMessages.filter((message) => {
+    const sameListing =
+      String(message.listing_id) === String(conversation.listingId)
+
+    const sameParticipants =
+      (
+        message.sender_id === user.id &&
+        message.receiver_id === conversation.otherUserId
+      ) ||
+      (
+        message.sender_id === conversation.otherUserId &&
+        message.receiver_id === user.id
+      )
+
+    return sameListing && sameParticipants
+  })
+
+  if (conversationMessagesToHide.length === 0) return
+
+  if (!window.confirm('להסתיר את כל ההודעות בשיחה הזו רק מהתיבה שלך?')) {
+    return
   }
 
+  try {
+    const rows = conversationMessagesToHide.map((message) => ({
+      user_id: user.id,
+      message_id: message.id
+    }))
+
+    const { error } = await supabase
+      .from('message_hidden_for_user')
+      .upsert(rows, {
+        onConflict: 'user_id,message_id',
+        ignoreDuplicates: true
+      })
+
+    if (error) throw error
+
+    const hiddenIds = new Set(
+      conversationMessagesToHide.map((message) => message.id)
+    )
+
+    setMyMessages((current) =>
+      current.filter((message) => !hiddenIds.has(message.id))
+    )
+
+    setConversationMessages((current) =>
+      current.filter((message) => !hiddenIds.has(message.id))
+    )
+
+    if (
+      selectedConversation &&
+      String(selectedConversation.listingId) === String(conversation.listingId) &&
+      selectedConversation.otherUserId === conversation.otherUserId
+    ) {
+      setSelectedConversation(null)
+    }
+
+    await loadMyMessages()
+  } catch (error) {
+    console.error('שגיאה בהסתרת השיחה:', error)
+    window.alert('לא הצלחנו להסתיר את השיחה. נסה שוב.')
+  }
+}
+
+const hideAllMessagesForMe = async () => {
+  if (!user || myMessages.length === 0) return
+
+  if (!window.confirm('להסתיר את כל ההודעות מהתיבה שלך? ההודעות לא יימחקו מהמערכת ולא יוסתרו מהמשתמשים האחרים.')) {
+    return
+  }
+
+  try {
+    const rows = myMessages.map((message) => ({
+      user_id: user.id,
+      message_id: message.id
+    }))
+
+    const { error } = await supabase
+      .from('message_hidden_for_user')
+      .upsert(rows, {
+        onConflict: 'user_id,message_id',
+        ignoreDuplicates: true
+      })
+
+    if (error) throw error
+
+    setMyMessages([])
+    setConversationMessages([])
+    setSelectedConversation(null)
+    setUnreadMessagesCount(0)
+
+    await loadMyMessages()
+  } catch (error) {
+    console.error('שגיאה בניקוי תיבת ההודעות:', error)
+    window.alert('לא הצלחנו לנקות את התיבה. נסה שוב.')
+  }
+}
+
+
+
+
+  
+useEffect(() => {
+  if (!user) {
+    setMyMessages([])
+    setUnreadMessagesCount(0)
+    return
+  }
+
+  loadMyMessages()
+}, [user, messagesModalOpen])
 
 
     // בניית רשימת שיחות מתוך כל ההודעות
@@ -863,12 +1032,27 @@ useEffect(() => {
 
 
 // טעינת שיחה בין המשתמש הנוכחי למשתמש אחר
+
 const loadConversation = async (otherUserId, listingId) => {
   if (!user || !otherUserId) return
 
   setLoadingConversation(true)
 
   try {
+    const { data: hiddenRows, error: hiddenError } = await supabase
+      .from('message_hidden_for_user')
+      .select('message_id')
+      .eq('user_id', user.id)
+
+    if (hiddenError) {
+      console.error('שגיאה בטעינת הודעות מוסתרות:', hiddenError)
+      return
+    }
+
+    const hiddenIds = new Set(
+      (hiddenRows || []).map((row) => row.message_id)
+    )
+
     const { data, error } = await supabase
       .from('messages')
       .select(`
@@ -891,10 +1075,13 @@ const loadConversation = async (otherUserId, listingId) => {
       return
     }
 
-    setConversationMessages(data || [])
+    const visibleMessages = (data || []).filter(
+      (message) => !hiddenIds.has(message.id)
+    )
 
-    // סימון הודעות שהתקבלו כנקראו
-    const unreadMessages = (data || []).filter(
+    setConversationMessages(visibleMessages)
+
+    const unreadMessages = visibleMessages.filter(
       (message) =>
         message.receiver_id === user.id &&
         message.is_read === false
@@ -909,10 +1096,7 @@ const loadConversation = async (otherUserId, listingId) => {
         .in('id', unreadIds)
 
       if (updateError) {
-        console.error(
-          'שגיאה בסימון הודעות כנקראו:',
-          updateError
-        )
+        console.error('שגיאה בסימון הודעות כנקראו:', updateError)
       } else {
         setConversationMessages((currentMessages) =>
           currentMessages.map((message) =>
@@ -935,13 +1119,13 @@ const loadConversation = async (otherUserId, listingId) => {
         )
       }
     }
-
   } catch (error) {
     console.error('שגיאה בטעינת השיחה:', error)
   } finally {
     setLoadingConversation(false)
   }
 }
+
 
 
 
@@ -7684,32 +7868,40 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                       </span>
 
 
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!user) return
+                      <div className="flex flex-col sm:flex-row gap-2">
+  <button
+    type="button"
+    onClick={async () => {
+      if (!user) return
 
-                          setSelectedConversation({
-                            otherUserId:
-                              conversation.otherUserId,
-                            listingId:
-                              conversation.listingId
-                          })
+      setSelectedConversation({
+        otherUserId: conversation.otherUserId,
+        listingId: conversation.listingId
+      })
 
-                          setConversationContent('')
+      setConversationContent('')
 
-                          await loadConversation(
-                            conversation.otherUserId,
-                            conversation.listingId
-                          )
-                        }}
-                        className="self-stretch sm:self-auto inline-flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 hover:border-emerald-200 px-4 py-2.5 rounded-xl transition-all"
-                      >
-                        💬 פתח שיחה
-                        <span className="group-hover:-translate-x-0.5 transition-transform">
-                          ←
-                        </span>
-                      </button>
+      await loadConversation(
+        conversation.otherUserId,
+        conversation.listingId
+      )
+    }}
+    className="self-stretch sm:self-auto inline-flex items-center justify-center gap-2 text-sm font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 hover:border-emerald-200 px-4 py-2.5 rounded-xl transition-all"
+  >
+    פתח שיחה
+    <span className="transition-transform group-hover:-translate-x-0.5">
+      ←
+    </span>
+  </button>
+
+  <button
+    type="button"
+    onClick={() => hideConversationForMe(conversation)}
+    className="self-stretch sm:self-auto inline-flex items-center justify-center gap-2 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-4 py-2.5 rounded-xl transition-all"
+  >
+    הסתר שיחה
+  </button>
+</div>
 
                     </div>
 
@@ -7731,19 +7923,27 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
       {/* =====================================================
           תחתית
       ===================================================== */}
-      <div className="border-t border-slate-100 p-4 bg-slate-50">
+      {/* תחתית חלון ההודעות */}
+<div className="border-t border-slate-100 p-4 bg-slate-50">
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <button
+      type="button"
+      onClick={() => loadMyMessages()}
+      className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-700 font-bold py-3 rounded-xl transition-all"
+    >
+      🔄 רענן שיחות
+    </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            loadMyMessages()
-          }}
-          className="w-full inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-700 font-bold py-3 rounded-xl transition-all"
-        >
-          🔄 רענן שיחות
-        </button>
-
-      </div>
+    <button
+      type="button"
+      onClick={hideAllMessagesForMe}
+      disabled={myMessages.length === 0}
+      className="w-full inline-flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 border border-red-100 text-red-600 font-bold py-3 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      🗑️ נקה את כל התיבה
+    </button>
+  </div>
+</div>
 
     </div>
   </div>
@@ -7910,10 +8110,23 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
                       </span>
 
                       {isMine && (
-                        <span className="text-[10px] text-emerald-100">
-                          ✓
-                        </span>
-                      )}
+  <span className="text-[10px] text-emerald-100">
+    ג“
+  </span>
+)}
+
+<button
+  type="button"
+  onClick={() => hideMessageForMe(message.id)}
+  className={`text-[10px] underline underline-offset-2 ${
+    isMine
+      ? 'text-emerald-100 hover:text-white'
+      : 'text-slate-400 hover:text-red-600'
+  }`}
+  title="הסתר הודעה מהתיבה שלך"
+>
+  הסתר
+</button>
 
                     </div>
 
