@@ -20,7 +20,7 @@ export async function onRequestGet(context) {
     const response = await fetch(
       `${supabaseUrl}/rest/v1/listings?id=eq.${encodeURIComponent(
         id
-      )}&select=title,description,image_url`,
+      )}&select=title,description,image_url,image_urls`,
       {
         headers: {
           apikey: supabaseAnonKey,
@@ -42,14 +42,20 @@ export async function onRequestGet(context) {
       })
     }
 
-    const title = listing.title || 'מודעה בכסף כיס'
+    const title = listing.title || '\u05de\u05d5\u05d3\u05e2\u05d4 \u05d1\u05db\u05e1\u05e3 \u05db\u05d9\u05e1'
 
     const description =
       listing.description ||
-      'לוח עבודות, שירותים ופריטים מקומיים'
+      '\u05dc\u05d5\u05d7 \u05e2\u05d1\u05d5\u05d3\u05d5\u05ea, \u05e9\u05d9\u05e8\u05d5\u05ea\u05d9\u05dd \u05d5\u05e4\u05e8\u05d9\u05d8\u05d9\u05dd \u05de\u05e7\u05d5\u05de\u05d9\u05d9\u05dd'
 
-    const imageUrl = listing.image_url
-      ? new URL(listing.image_url, context.request.url).toString()
+    const imageValue = listing.image_url || (
+      Array.isArray(listing.image_urls)
+        ? listing.image_urls.find((url) => typeof url === 'string' && url.trim())
+        : null
+    )
+
+    const imageUrl = imageValue
+      ? new URL(imageValue, context.request.url).toString()
       : new URL('/icon.png', context.request.url).toString()
 
     const shareUrl = new URL(
@@ -58,7 +64,7 @@ export async function onRequestGet(context) {
     )
 
     const listingUrl = new URL(
-      `/מודעה/${encodeURIComponent(id)}`,
+      `/\u05de\u05d5\u05d3\u05e2\u05d4/${encodeURIComponent(id)}`,
       context.request.url
     )
 
@@ -116,7 +122,7 @@ export async function onRequestGet(context) {
   <meta charset="UTF-8" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="כסף כיס" />
+  <meta property="og:site_name" content="\u05db\u05e1\u05e3 \u05db\u05d9\u05e1" />
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${escapeHtml(imageUrl)}" />
@@ -136,7 +142,7 @@ export async function onRequestGet(context) {
     href="${escapeHtml(listingUrl.toString())}"
   />
 
-  <title>${escapeHtml(title)} - כסף כיס</title>
+  <title>${escapeHtml(title)} - \u05db\u05e1\u05e3 \u05db\u05d9\u05e1</title>
 </head>
 <body>
   <h1>${escapeHtml(title)}</h1>
