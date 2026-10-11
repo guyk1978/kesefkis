@@ -3007,7 +3007,25 @@ const advertiserPageCreatedAt =
 
               {/* המודעות שלי */}
                             {/* מודעות שאהבתי */}
-              <button
+                            <button
+                type="button"
+                onClick={(e) => {
+                  e.currentTarget.closest('details')?.removeAttribute('open')
+                  setCurrentView(currentView === 'my-listings' ? 'home' : 'my-listings')
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right transition ${
+                  currentView === 'my-listings'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-sm">
+                  ▤
+                </span>
+                <span className="flex-1">המודעות שלי</span>
+                <span className="text-slate-300">‹</span>
+              </button>
+<button
                 type="button"
                 onClick={(e) => {
                   e.currentTarget.closest('details')?.removeAttribute('open')
@@ -3817,16 +3835,16 @@ const advertiserPageCreatedAt =
       </div>
 
       {/* כותרת */}
-      <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">
+      <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">
         {currentView === 'my-listings'
-          ? 'המודעות שפרסמתי'
+          ? 'המודעות שפרסמתי (' + baseListings.length + ')'
           : currentView === 'favorites'
             ? 'המועדפים שלי (' + baseListings.length + ')'
             : 'המודעות שאהבתי (' + baseListings.length + ')'}
 </h2>
 
       {/* תיאור */}
-      <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl mr-0 ml-auto">
+      <p className="text-sm sm:text-lg text-slate-600 font-medium leading-relaxed max-w-xl mr-0 ml-auto">
 
         {currentView === 'my-listings'
           ? 'ניהול, עריכה ומחיקת המודעות האישיות שלך'
