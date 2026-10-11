@@ -6341,7 +6341,7 @@ const advertiserPageCreatedAt =
       {/* =========================================================
           כותרת המודאל
       ========================================================= */}
-      <div className="flex items-center justify-between gap-3 px-5 py-4 sm:px-6 border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur-md z-20">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-100 sticky top-0 bg-white/95 backdrop-blur-md z-20">
 
         <div className="flex items-center gap-3 min-w-0">
 
@@ -6361,7 +6361,7 @@ const advertiserPageCreatedAt =
 
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="grid grid-cols-5 items-center gap-1 w-full sm:flex sm:gap-2 sm:w-auto shrink-0">
 
           {/* לב — הצבעת אמון */}
           <button
@@ -6370,7 +6370,7 @@ const advertiserPageCreatedAt =
             disabled={!user || updatingLikeListingId === selectedListing.id}
             aria-label={likedListingIds.includes(selectedListing.id) ? '\u05d4\u05e1\u05e8 \u05dc\u05d9\u05d9\u05e7' : '\u05d0\u05d4\u05d1\u05ea\u05d9 \u05d0\u05ea \u05d4\u05de\u05d5\u05d3\u05e2\u05d4'}
             title={!user ? '\u05d9\u05e9 \u05dc\u05d4\u05ea\u05d7\u05d1\u05e8 \u05db\u05d3\u05d9 \u05dc\u05d4\u05e6\u05d1\u05d9\u05e2' : '\u05d4\u05e6\u05d1\u05e2\u05ea \u05d0\u05de\u05d5\u05df'}
-            className={`h-10 w-10 shrink-0 rounded-xl border flex items-center justify-center text-xl transition disabled:opacity-50 ${likedListingIds.includes(selectedListing.id) ? 'bg-red-50 border-red-200 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-red-50'}`}
+            className={`h-9 w-full sm:w-10 shrink-0 rounded-none sm:rounded-xl border-0 sm:border flex items-center justify-center text-xl transition disabled:opacity-50 bg-transparent sm:bg-slate-50 disabled:opacity-50 ${likedListingIds.includes(selectedListing.id) ? 'bg-red-50 border-red-200 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-red-50'}`}
           >
             {likedListingIds.includes(selectedListing.id) ? '\u2764\uFE0F' : '\u{1F90D}'}
           </button>
@@ -6381,14 +6381,14 @@ const advertiserPageCreatedAt =
             onClick={() => toggleFavorite(selectedListing.id)}
             aria-label={favoriteListings.includes(selectedListing.id) ? '\u05d4\u05e1\u05e8 \u05de\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd' : '\u05d4\u05d5\u05e1\u05e3 \u05dc\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd'}
             title={favoriteListings.includes(selectedListing.id) ? '\u05d4\u05e1\u05e8 \u05de\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd' : '\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd \u05d0\u05d9\u05e9\u05d9\u05d9\u05dd'}
-            className={`h-10 w-10 shrink-0 rounded-xl border flex items-center justify-center text-2xl transition ${favoriteListings.includes(selectedListing.id) ? 'bg-amber-50 border-amber-200 text-amber-500' : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-amber-50'}`}
+            className={`h-9 w-full sm:w-10 shrink-0 rounded-none sm:rounded-xl border-0 sm:border flex items-center justify-center text-xl sm:text-2xl transition bg-transparent sm:bg-slate-50 ${favoriteListings.includes(selectedListing.id) ? 'bg-amber-50 border-amber-200 text-amber-500' : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-amber-50'}`}
           >
             {favoriteListings.includes(selectedListing.id) ? '\u2605' : '\u2606'}
           </button>
           {/* שיתוף */}
           <button
             onClick={() => handleShareListing(selectedListing)}
-            className="h-10 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-sm transition flex items-center gap-2"
+            className="h-9 sm:h-10 px-1 sm:px-3 rounded-none sm:rounded-xl bg-transparent sm:bg-emerald-50 hover:bg-emerald-50 sm:hover:bg-emerald-100 text-emerald-700 font-bold text-sm transition flex items-center justify-center gap-1 sm:gap-2"
             aria-label="שיתוף המודעה"
           >
             <span>🔗</span>
@@ -6405,7 +6405,7 @@ const advertiserPageCreatedAt =
               setReportDetails('')
               setIsReportModalOpen(true)
             }}
-            className="h-10 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-sm font-bold transition flex items-center gap-2"
+            className="h-9 sm:h-10 px-1 sm:px-3 rounded-none sm:rounded-xl bg-transparent sm:bg-red-50 hover:bg-red-50 sm:hover:bg-red-100 text-red-700 border-0 sm:border sm:border-red-200 text-sm font-bold transition flex items-center justify-center gap-1 sm:gap-2"
           >
             ⚠️
             <span className="hidden sm:inline">
@@ -6419,7 +6419,7 @@ const advertiserPageCreatedAt =
               setSelectedListing(null)
               navigate('/')
             }}
-            className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xl transition"
+            className="h-9 w-full sm:w-10 sm:h-10 rounded-none sm:rounded-xl bg-transparent sm:bg-slate-100 hover:bg-slate-100 sm:hover:bg-slate-200 text-slate-700 text-xl transition shrink-0 flex items-center justify-center"
             aria-label="סגירת חלון"
           >
             ×
