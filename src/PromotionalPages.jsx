@@ -375,10 +375,11 @@ export function PromotionalPage({ isModal = false, onClose }) {
           {(page.category || page.location) &&
             <p className="text-sm text-gray-600">{[page.category, page.location].filter(Boolean).join(' · ')}</p>}
           <p className="whitespace-pre-wrap leading-8">{page.description}</p>
-          <button className="rounded-xl bg-teal-700 px-5 py-3 text-white"
-            onClick={() => page.target_url?.startsWith('/')
-              ? navigate(page.target_url)
-              : window.location.assign(page.target_url || '/')}>
+          <button
+            type="button"
+            className="rounded-xl bg-teal-700 px-5 py-3 text-white"
+            onClick={() => navigate('/', { state: { openPublishForm: true } })}
+          >
             לפרסום מודעה באתר
           </button>
           <button className="mr-2 rounded-xl border px-5 py-3" onClick={share}>שיתוף הפרסום</button>

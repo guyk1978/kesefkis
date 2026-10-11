@@ -2175,6 +2175,17 @@ const handleOpenPublishModal = () => {
 }
 
 // שליחת מודעה חדשה (כולל תמונה ומיקום גיאוגרפי)
+useEffect(() => {
+  if (location.state?.openPublishForm !== true) return
+
+  navigate(location.pathname, { replace: true, state: null })
+
+  if (!user) {
+    setPendingPublishAfterAuth(true)
+  }
+
+  handleOpenPublishModal()
+}, [location.key])
 const handleSubmit = async (e) => {
   e.preventDefault()
   if (!user) return
@@ -6249,6 +6260,13 @@ const advertiserPageCreatedAt =
               onClick={() => {
                 const target = selectedPromotionalPage.target_url
                 setSelectedPromotionalPage(null)
+                if (target === '/') {
+                  if (!user) {
+                    setPendingPublishAfterAuth(true)
+                  }
+                  handleOpenPublishModal()
+                  return
+                }
                 if (target.startsWith('/')) {
                   navigate(target)
                 } else {
@@ -11881,7 +11899,8 @@ function ContactPage({ isModal = false, onClose }) {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
 
-  const handleSubmit = async (e) => {
+
+const handleSubmit = async (e) => {
     e.preventDefault()
 
     setSuccess('')
