@@ -6287,7 +6287,7 @@ const advertiserPageCreatedAt =
                 decodeURIComponent('%D7%A4%D7%A8%D7%A1%D7%95%D7%9D') +
                 '/' +
                 selectedPromotionalPage.slug
-              const shareUrl = window.location.origin + sharePath
+              const shareUrl = window.location.origin + sharePath + '?v=2'
 
               try {
                 if (navigator.share) {
