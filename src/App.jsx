@@ -3785,7 +3785,7 @@ const advertiserPageCreatedAt =
       /* =====================================================
          מצב רגיל: המודעות שלי / המודעות שאהבתי
          ===================================================== */
-      <div className="relative overflow-hidden min-h-[240px] sm:min-h-[300px] lg:min-h-[360px]">
+      <div className="relative overflow-hidden sm:min-h-[300px] lg:min-h-[360px]">
 
   {/* תמונת Hero */}
   <img
@@ -3803,12 +3803,29 @@ const advertiserPageCreatedAt =
     }}
     alt=""
     aria-hidden="true"
-    className="absolute inset-0 w-full h-full object-cover object-center"
+    className="sm:hidden relative w-full h-[220px] object-cover object-center"
+  />
+  <img
+    src={
+      currentView === 'favorites'
+        ? '/hero-favorites.png'
+        : currentView === 'liked'
+          ? '/ads-I-loved.png'
+          : '/advertisements-I-published.png'
+    }
+    onError={(event) => {
+      if (!event.currentTarget.src.endsWith('/hero-favorites.png')) {
+        event.currentTarget.src = '/hero-favorites.png'
+      }
+    }}
+    alt=""
+    aria-hidden="true"
+    className="hidden sm:block absolute inset-0 w-full h-full object-cover object-center"
   />
 
   {/* גרדיאנט לבן חזק באזור הטקסט */}
   <div
-    className="absolute inset-0"
+    className="hidden sm:block absolute inset-0"
     style={{
       background:
         'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 30%, rgba(255,255,255,0.68) 45%, rgba(255,255,255,0.18) 62%, rgba(255,255,255,0) 76%)'
@@ -3816,10 +3833,10 @@ const advertiserPageCreatedAt =
   />
 
   {/* שכבת ריכוך עדינה בתחתית */}
-  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/35 to-transparent" />
+  <div className="hidden sm:block absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/35 to-transparent" />
 
   {/* תוכן */}
-  <div className="relative z-10 px-5 py-7 sm:px-8 sm:py-9 min-h-[240px] sm:min-h-[300px] lg:min-h-[360px] flex items-center">
+  <div className="relative z-10 bg-[#FFF8ED] px-5 py-5 sm:bg-transparent sm:px-8 sm:py-9 min-h-0 sm:min-h-[300px] lg:min-h-[360px] flex items-center">
 
   <div className="w-full md:w-[58%] text-right">
 
