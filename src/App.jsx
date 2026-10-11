@@ -22,6 +22,7 @@ function loadGoogleAnalytics() {
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { israeliLocations } from './data/israeliLocations'
 import { supabase } from './supabaseClient'
+import { PromotionalPagesAdmin, PromotionalPage } from './PromotionalPages'
 
 function App() {
 
@@ -210,6 +211,7 @@ const handleShareListing = (listing) => {
 }
 
   const [listings, setListings] = useState([])
+  const [promotionalPages, setPromotionalPages] = useState([])
 
   const [analyticsConsent, setAnalyticsConsent] = useState(() => {
     return localStorage.getItem('kesefkis-analytics-consent') || ''
@@ -477,6 +479,7 @@ const [showMobileCategories, setShowMobileCategories] = useState(false)
 
 
   const [selectedListing, setSelectedListing] = useState(null)
+  const [selectedPromotionalPage, setSelectedPromotionalPage] = useState(null)
   const [expandedListings, setExpandedListings] = useState({})
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false)
@@ -1445,6 +1448,33 @@ const listingsWithAdvertiser = (data || []).map((listing) => ({
 
   useEffect(() => {
     fetchListings()
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchPromotionalPages = async () => {
+      const { data, error } = await supabase
+        .from('promotional_pages')
+        .select('id, slug, title, description, image_url, category, location')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching promotional pages:', error)
+        return
+      }
+
+      if (!cancelled) {
+        setPromotionalPages(data || [])
+      }
+    }
+
+    fetchPromotionalPages()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
 
@@ -2739,6 +2769,7 @@ const matchesImage =
   return dateB - dateA
 })
 
+
 const advertiserPageProfile = advertiserFilter
   ? listings.find(
       item => String(item.user_id) === String(advertiserFilter)
@@ -3228,6 +3259,25 @@ const advertiserPageCreatedAt =
     </span>
   </button>
 )}
+
+{isAdmin && (
+  <a
+    href="/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A4%D7%A8%D7%A1%D7%95%D7%9E%D7%99%D7%9D"
+    onClick={(e) => {
+      e.currentTarget.closest('details')?.removeAttribute('open')
+    }}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-right text-purple-700 hover:bg-purple-50 transition"
+  >
+    <span className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-sm">
+      ??
+    </span>
+    <span className="flex-1">
+      {"\u05e0\u05d9\u05d4\u05d5\u05dc \u05e4\u05e8\u05e1\u05d5\u05de\u05d9\u05dd"}
+    </span>
+    <span className="text-purple-200">?</span>
+  </a>
+)}
+
 
 
 
@@ -5646,7 +5696,8 @@ const advertiserPageCreatedAt =
       טוען מודעות...
     </span>
   </div>
-) : displayedListings.length === 0 ? (
+) : displayedListings.length === 0 &&
+    !(currentView === 'home' && promotionalPages.length > 0) ? (
   <div className="relative overflow-hidden bg-white p-10 sm:p-14 text-center">
 
     <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-emerald-100/40 blur-3xl pointer-events-none" />
@@ -5712,9 +5763,75 @@ const advertiserPageCreatedAt =
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-1 sm:gap-4">
 
-  {displayedListings.map((item) => {
+  {currentView === 'home' && promotionalPages.map((page) => (
+    <div
+      key={"promo-" + page.id}
+      role="button"
+      tabIndex={0}
+      aria-label={page.title}
+      onClick={() => navigate(`/${encodeURIComponent('פרסום')}/${encodeURIComponent(page.slug)}`, { state: { backgroundLocation: location } })}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          navigate(`/${encodeURIComponent('פרסום')}/${encodeURIComponent(page.slug)}`, { state: { backgroundLocation: location } })
+        }
+      }}
+      className="group relative flex flex-row-reverse gap-3 min-w-0 min-h-[190px] overflow-hidden rounded-none border border-amber-200 bg-white cursor-pointer transition-all duration-200 hover:shadow-md"
+    >
+      <div className="absolute top-0 inset-x-0 h-1 bg-amber-400" />
+
+      <div className="w-24 sm:w-32 self-start m-3 aspect-[3/4] shrink-0 bg-amber-50 flex items-center justify-center overflow-hidden">
+        {page.image_url ? (
+          <img
+            src={page.image_url}
+            alt={page.title || ''}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <span className="text-3xl">?</span>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 flex flex-col py-4 px-3">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-2 py-1">
+            {"\u05e4\u05e8\u05e1\u05d5\u05dd"}
+          </span>
+          {page.category && (
+            <span className="text-xs text-slate-500 truncate">
+              {page.category}
+            </span>
+          )}
+        </div>
+
+        <h3 className="font-extrabold text-slate-900 text-sm sm:text-base mb-2 line-clamp-2">
+          {page.title}
+        </h3>
+
+        {page.description && (
+          <p className="text-sm text-slate-600 leading-5 line-clamp-3">
+            {page.description}
+          </p>
+        )}
+
+        {page.location && (
+          <p className="text-xs text-slate-500 mt-2">
+            ?? {page.location}
+          </p>
+        )}
+
+        <div className="mt-auto pt-3 text-sm font-bold text-amber-700">
+          {"\u05dc\u05e4\u05e8\u05d8\u05d9\u05dd \u05e0\u05d5\u05e1\u05e4\u05d9\u05dd \u2190"}
+        </div>
+      </div>
+    </div>
+  ))}
+
+  {displayedListings.map((item, index) => {
 
   return (
+    <div className="contents" key={item.id}>
     <div
       key={item.id}
       onClick={(e) => {
@@ -5983,9 +6100,11 @@ const advertiserPageCreatedAt =
 
       </div>
     </div>
+    </div>
   )
 
         })}
+
 
     </div>
   </div>
@@ -5996,6 +6115,135 @@ const advertiserPageCreatedAt =
 {/* =========================================================
     מודאל פרטי המודעה
 ========================================================= */}
+
+{selectedPromotionalPage && (
+  <div
+    className="fixed inset-0 z-[60] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
+    onClick={() => setSelectedPromotionalPage(null)}
+  >
+    <article
+      dir="rtl"
+      role="dialog"
+      aria-modal="true"
+      aria-label={selectedPromotionalPage.title}
+      className="bg-white w-full max-w-2xl max-h-[94vh] overflow-y-auto rounded-xl shadow-2xl"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 border-b bg-white/95 backdrop-blur">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg">?</span>
+          <span className="font-extrabold text-slate-900 truncate">
+            {"\u05e4\u05e8\u05e1\u05d5\u05dd \u05de\u05d9\u05d5\u05d7\u05d3"}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setSelectedPromotionalPage(null)}
+          className="w-10 h-10 shrink-0 rounded-full hover:bg-slate-100 text-xl"
+          aria-label={"\u05e1\u05d2\u05d9\u05e8\u05d4"}
+        >
+          ?
+        </button>
+      </div>
+
+      {selectedPromotionalPage.image_url && (
+        <img
+          src={selectedPromotionalPage.image_url}
+          alt={selectedPromotionalPage.title || ''}
+          className="w-full max-h-[360px] object-contain bg-slate-50"
+        />
+      )}
+
+      <div className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
+            {"\u05e4\u05e8\u05e1\u05d5\u05dd"}
+          </span>
+          {selectedPromotionalPage.category && (
+            <span className="text-sm text-slate-500">
+              {selectedPromotionalPage.category}
+            </span>
+          )}
+          {selectedPromotionalPage.location && (
+            <span className="text-sm text-slate-500">
+              ?? {selectedPromotionalPage.location}
+            </span>
+          )}
+        </div>
+
+        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-4">
+          {selectedPromotionalPage.title}
+        </h2>
+
+        {selectedPromotionalPage.description && (
+          <p className="whitespace-pre-wrap text-slate-700 leading-7">
+            {selectedPromotionalPage.description}
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+          {selectedPromotionalPage.target_url && (
+            <button
+              type="button"
+              onClick={() => {
+                const target = selectedPromotionalPage.target_url
+                setSelectedPromotionalPage(null)
+                if (target.startsWith('/')) {
+                  navigate(target)
+                } else {
+                  window.location.assign(target)
+                }
+              }}
+              className="flex items-center justify-center gap-2 w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 rounded-xl transition"
+            >
+              {"\u05dc\u05e4\u05e8\u05d8\u05d9\u05dd \u05e0\u05d5\u05e1\u05e4\u05d9\u05dd"}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={async () => {
+              const sharePath =
+                '/' +
+                decodeURIComponent('%D7%A4%D7%A8%D7%A1%D7%95%D7%9D') +
+                '/' +
+                selectedPromotionalPage.slug
+              const shareUrl = window.location.origin + sharePath
+
+              try {
+                if (navigator.share) {
+                  await navigator.share({
+                    title: selectedPromotionalPage.title,
+                    text: selectedPromotionalPage.description || selectedPromotionalPage.title,
+                    url: shareUrl
+                  })
+                } else {
+                  await navigator.clipboard.writeText(shareUrl)
+                  window.alert('\u05d4\u05e7\u05d9\u05e9\u05d5\u05e8 \u05d4\u05d5\u05e2\u05ea\u05e7.')
+                }
+              } catch (error) {
+                if (error.name !== 'AbortError') {
+                  window.prompt('\u05d4\u05e2\u05ea\u05e7 \u05d0\u05ea \u05d4\u05e7\u05d9\u05e9\u05d5\u05e8:', shareUrl)
+                }
+              }
+            }}
+            className="flex items-center justify-center gap-2 w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3.5 rounded-xl transition"
+          >
+            {"\u05e9\u05ea\u05e3 \u05d0\u05ea \u05d4\u05e4\u05e8\u05e1\u05d5\u05dd"}
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setSelectedPromotionalPage(null)}
+          className="w-full mt-4 py-3 text-sm font-semibold text-slate-500 hover:text-slate-800 transition"
+        >
+          {"\u05e1\u05d2\u05d5\u05e8"}
+        </button>
+      </div>
+    </article>
+  </div>
+)}
 
 {selectedListing && (
   <div
@@ -13075,6 +13323,8 @@ function AppRouterContent() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/why-kesef-kis" element={<WhyKesefKisPage />} />
+        <Route path="/ניהול-פרסומים" element={<PromotionalPagesAdmin />} />
+        <Route path="/פרסום/:slug" element={<PromotionalPage />} />
         <Route path="*" element={<App />} />
       </Routes>
 
@@ -13096,6 +13346,7 @@ function AppRouterContent() {
             path="/why-kesef-kis"
             element={<WhyKesefKisPageModal onClose={() => navigate(-1)} />}
           />
+          <Route path="/פרסום/:slug" element={<PromotionalPage isModal onClose={() => navigate(-1)} />} />
         </Routes>
       )}
     </>
