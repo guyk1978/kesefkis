@@ -22,6 +22,9 @@ export function PromotionalPagesAdmin() {
   const [form, setForm] = useState(blank)
   const [editing, setEditing] = useState(null)
   const [message, setMessage] = useState('')
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   async function loadPages() {
     const { data, error } = await supabase
@@ -61,6 +64,9 @@ export function PromotionalPagesAdmin() {
 
   function edit(page) {
     setEditing(page.id)
+    setImageFile(null)
+    setImagePreview(page.image_url || '')
+    setMessage('')
     setForm({
       slug: page.slug || '',
       title: page.title || '',
@@ -76,6 +82,7 @@ export function PromotionalPagesAdmin() {
 
   async function save(event) {
     event.preventDefault()
+    if (isSaving) return
     setMessage('')
 
     const slug = form.slug.trim().toLowerCase()
@@ -88,31 +95,64 @@ export function PromotionalPagesAdmin() {
       return
     }
 
-    const payload = {
-      ...form,
-      slug,
-      title: form.title.trim(),
-      image_url: form.image_url.trim() || null,
-      category: form.category.trim() || null,
-      location: form.location.trim() || null,
-      updated_at: new Date().toISOString(),
+    setIsSaving(true)
+    try {
+      let imageUrl = form.image_url.trim() || null
+
+      if (imageFile) {
+        const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '-')
+        const filePath = 'promotional-pages/' + Date.now() + '-' + safeName
+
+        const { error: uploadError } = await supabase
+          .storage
+          .from('listings-images')
+          .upload(filePath, imageFile, {
+            contentType: imageFile.type,
+            upsert: false
+          })
+
+        if (uploadError) throw uploadError
+
+        const { data: publicData } = supabase
+          .storage
+          .from('listings-images')
+          .getPublicUrl(filePath)
+
+        imageUrl = publicData.publicUrl
+      }
+
+      const payload = {
+        ...form,
+        slug,
+        title: form.title.trim(),
+        image_url: imageUrl,
+        category: form.category.trim() || null,
+        location: form.location.trim() || null,
+        updated_at: new Date().toISOString(),
+      }
+
+      const result = editing
+        ? await supabase.from('promotional_pages').update(payload).eq('id', editing)
+        : await supabase.from('promotional_pages').insert(payload)
+
+      if (result.error) {
+        setMessage(result.error.code === '23505'
+          ? 'הכתובת הזו כבר קיימת.'
+          : 'שגיאה בשמירה: ' + result.error.message)
+        return
+      }
+
+      setMessage('הפרסום נשמר בהצלחה.')
+      setForm(blank)
+      setImageFile(null)
+      setImagePreview('')
+      setEditing(null)
+      await loadPages()
+    } catch (error) {
+      setMessage('שגיאה בהעלאה או בשמירה: ' + (error.message || String(error)))
+    } finally {
+      setIsSaving(false)
     }
-
-    const result = editing
-      ? await supabase.from('promotional_pages').update(payload).eq('id', editing)
-      : await supabase.from('promotional_pages').insert(payload)
-
-    if (result.error) {
-      setMessage(result.error.code === '23505'
-        ? 'הכתובת הזו כבר קיימת.'
-        : `שגיאה בשמירה: ${result.error.message}`)
-      return
-    }
-
-    setMessage('הפרסום נשמר בהצלחה.')
-    setForm(blank)
-    setEditing(null)
-    await loadPages()
   }
 
   async function remove(page) {
@@ -160,9 +200,53 @@ export function PromotionalPagesAdmin() {
         <textarea className={field} rows={5} placeholder="תוכן הפרסום"
           value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })} />
-        <input className={field} placeholder="כתובת תמונה (URL)" dir="ltr"
-          value={form.image_url}
-          onChange={e => setForm({ ...form, image_url: e.target.value })} />
+        <div className="space-y-3">
+          <label className="block font-medium">בחירת תמונה מהמחשב</label>
+          <input
+            className={field}
+            type="file"
+            accept="image/*"
+            onChange={e => {
+              const selected = e.target.files && e.target.files[0]
+              if (!selected) return
+              if (!selected.type.startsWith('image/')) {
+                setMessage('יש לבחור קובץ תמונה תקין.')
+                e.target.value = ''
+                return
+              }
+              if (selected.size > 10 * 1024 * 1024) {
+                setMessage('גודל התמונה חייב להיות עד 10MB.')
+                e.target.value = ''
+                return
+              }
+              setImageFile(selected)
+              setImagePreview(URL.createObjectURL(selected))
+              setMessage('')
+            }}
+          />
+          {imageFile && <p className="text-sm">{imageFile.name}</p>}
+          <label className="block font-medium">או הזנת כתובת תמונה</label>
+          <input
+            className={field}
+            placeholder="כתובת תמונה"
+            dir="ltr"
+            value={form.image_url}
+            onChange={e => {
+              setForm({ ...form, image_url: e.target.value })
+              if (!imageFile) setImagePreview(e.target.value)
+            }}
+          />
+          {imagePreview && (
+            <img
+              src={imagePreview}
+              alt="תצוגה מקדימה של התמונה"
+              className="max-h-64 max-w-full rounded-xl border object-contain"
+              onError={() => {
+                if (!imageFile) setImagePreview('')
+              }}
+            />
+          )}
+        </div>
         <input className={field} placeholder="קטגוריה" value={form.category}
           onChange={e => setForm({ ...form, category: e.target.value })} />
         <input className={field} placeholder="אזור או יישוב" value={form.location}
@@ -179,7 +263,7 @@ export function PromotionalPagesAdmin() {
           {editing ? 'שמירת שינויים' : 'יצירת פרסום'}
         </button>
         {editing && <button type="button" className="mr-2 rounded-xl border px-4 py-3"
-          onClick={() => { setEditing(null); setForm(blank) }}>ביטול</button>}
+          onClick={() => { setEditing(null); setForm(blank); setImageFile(null); setImagePreview(''); setMessage('') }}>ביטול</button>}
         {message && <p role="status">{message}</p>}
       </form>
 
