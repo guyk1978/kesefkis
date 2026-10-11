@@ -6363,6 +6363,28 @@ const advertiserPageCreatedAt =
 
         <div className="flex items-center gap-2 shrink-0">
 
+          {/* לב — הצבעת אמון */}
+          <button
+            type="button"
+            onClick={() => toggleListingLike(selectedListing.id)}
+            disabled={!user || updatingLikeListingId === selectedListing.id}
+            aria-label={likedListingIds.includes(selectedListing.id) ? '\u05d4\u05e1\u05e8 \u05dc\u05d9\u05d9\u05e7' : '\u05d0\u05d4\u05d1\u05ea\u05d9 \u05d0\u05ea \u05d4\u05de\u05d5\u05d3\u05e2\u05d4'}
+            title={!user ? '\u05d9\u05e9 \u05dc\u05d4\u05ea\u05d7\u05d1\u05e8 \u05db\u05d3\u05d9 \u05dc\u05d4\u05e6\u05d1\u05d9\u05e2' : '\u05d4\u05e6\u05d1\u05e2\u05ea \u05d0\u05de\u05d5\u05df'}
+            className={`h-10 w-10 shrink-0 rounded-xl border flex items-center justify-center text-xl transition disabled:opacity-50 ${likedListingIds.includes(selectedListing.id) ? 'bg-red-50 border-red-200 text-red-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-red-50'}`}
+          >
+            {likedListingIds.includes(selectedListing.id) ? '\u2764\uFE0F' : '\u{1F90D}'}
+          </button>
+
+          {/* כוכב — מועדפים אישיים */}
+          <button
+            type="button"
+            onClick={() => toggleFavorite(selectedListing.id)}
+            aria-label={favoriteListings.includes(selectedListing.id) ? '\u05d4\u05e1\u05e8 \u05de\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd' : '\u05d4\u05d5\u05e1\u05e3 \u05dc\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd'}
+            title={favoriteListings.includes(selectedListing.id) ? '\u05d4\u05e1\u05e8 \u05de\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd' : '\u05de\u05d5\u05e2\u05d3\u05e4\u05d9\u05dd \u05d0\u05d9\u05e9\u05d9\u05d9\u05dd'}
+            className={`h-10 w-10 shrink-0 rounded-xl border flex items-center justify-center text-2xl transition ${favoriteListings.includes(selectedListing.id) ? 'bg-amber-50 border-amber-200 text-amber-500' : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-amber-50'}`}
+          >
+            {favoriteListings.includes(selectedListing.id) ? '\u2605' : '\u2606'}
+          </button>
           {/* שיתוף */}
           <button
             onClick={() => handleShareListing(selectedListing)}
