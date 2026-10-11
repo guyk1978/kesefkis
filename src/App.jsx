@@ -1456,7 +1456,7 @@ const listingsWithAdvertiser = (data || []).map((listing) => ({
     const fetchPromotionalPages = async () => {
       const { data, error } = await supabase
         .from('promotional_pages')
-        .select('id, slug, title, description, image_url, category, location')
+        .select('id, slug, title, description, image_url, category, location, created_at')
         .eq('is_published', true)
         .order('created_at', { ascending: false })
 
@@ -2769,6 +2769,65 @@ const matchesImage =
   return dateB - dateA
 })
 
+
+const homeCardOrder = (() => {
+  const order = new Map()
+  const now = Date.now()
+
+  const isActiveFeatured = (item) =>
+    item.is_featured === true &&
+    item.featured_until &&
+    new Date(item.featured_until).getTime() > now
+
+  const dateValue = (item) => {
+    const value = new Date(item.created_at || 0).getTime()
+    return Number.isFinite(value) ? value : 0
+  }
+
+  const featured = displayedListings.filter(isActiveFeatured)
+  let orderedCards
+
+  if (currentView !== 'home') {
+    orderedCards = displayedListings.map((item) => ({
+      key: String(item.id),
+      item,
+    }))
+  } else if (sortByDistance && userLocation) {
+    const regular = displayedListings.filter(
+      (item) => !isActiveFeatured(item)
+    )
+
+    orderedCards = [
+      ...featured.map((item) => ({ key: String(item.id), item })),
+      ...regular.map((item) => ({ key: String(item.id), item })),
+      ...promotionalPages.map((page) => ({
+        key: `promo-${page.id}`,
+        item: page,
+      })),
+    ]
+  } else {
+    const remaining = [
+      ...displayedListings
+        .filter((item) => !isActiveFeatured(item))
+        .map((item) => ({ key: String(item.id), item })),
+      ...promotionalPages.map((page) => ({
+        key: `promo-${page.id}`,
+        item: page,
+      })),
+    ].sort((a, b) => {
+      const difference = dateValue(a.item) - dateValue(b.item)
+      return listingSort === 'oldest' ? difference : -difference
+    })
+
+    orderedCards = [
+      ...featured.map((item) => ({ key: String(item.id), item })),
+      ...remaining,
+    ]
+  }
+
+  orderedCards.forEach((card, index) => order.set(card.key, index))
+  return order
+})()
 
 const advertiserPageProfile = advertiserFilter
   ? listings.find(
@@ -5766,6 +5825,7 @@ const advertiserPageCreatedAt =
   {currentView === 'home' && promotionalPages.map((page) => (
     <div
       key={"promo-" + page.id}
+      style={{ order: homeCardOrder.get(`promo-${page.id}`) ?? 0 }}
       role="button"
       tabIndex={0}
       aria-label={page.title}
@@ -5834,6 +5894,7 @@ const advertiserPageCreatedAt =
     <div className="contents" key={item.id}>
     <div
       key={item.id}
+      style={{ order: homeCardOrder.get(String(item.id)) ?? 0 }}
       onClick={(e) => {
   e.stopPropagation()
 
