@@ -3767,11 +3767,22 @@ const advertiserPageCreatedAt =
       /* =====================================================
          מצב רגיל: המודעות שלי / המודעות שאהבתי
          ===================================================== */
-      <div className="relative overflow-hidden min-h-[230px] sm:min-h-[250px]">
+      <div className="relative overflow-hidden min-h-[240px] sm:min-h-[300px] lg:min-h-[360px]">
 
   {/* תמונת Hero */}
   <img
-    src="/hero-favorites.png"
+    src={
+      currentView === 'favorites'
+        ? '/hero-favorites.png'
+        : currentView === 'liked'
+          ? '/ads-I-loved.png'
+          : '/advertisements-I-published.png'
+    }
+    onError={(event) => {
+      if (!event.currentTarget.src.endsWith('/hero-favorites.png')) {
+        event.currentTarget.src = '/hero-favorites.png'
+      }
+    }}
     alt=""
     aria-hidden="true"
     className="absolute inset-0 w-full h-full object-cover object-center"
@@ -3782,7 +3793,7 @@ const advertiserPageCreatedAt =
     className="absolute inset-0"
     style={{
       background:
-        'linear-gradient(to left, rgba(255,255,255,1) 0%, rgba(255,255,255,0.99) 34%, rgba(255,255,255,0.94) 48%, rgba(255,255,255,0.72) 60%, rgba(255,255,255,0.20) 76%, rgba(255,255,255,0) 88%)'
+        'linear-gradient(to left, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 30%, rgba(255,255,255,0.68) 45%, rgba(255,255,255,0.18) 62%, rgba(255,255,255,0) 76%)'
     }}
   />
 
@@ -3790,7 +3801,7 @@ const advertiserPageCreatedAt =
   <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/35 to-transparent" />
 
   {/* תוכן */}
-  <div className="relative z-10 px-5 py-7 sm:px-8 sm:py-9 min-h-[270px] sm:min-h-[250px] flex items-center">
+  <div className="relative z-10 px-5 py-7 sm:px-8 sm:py-9 min-h-[240px] sm:min-h-[300px] lg:min-h-[360px] flex items-center">
 
   <div className="w-full md:w-[58%] text-right">
 
