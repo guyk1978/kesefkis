@@ -547,6 +547,7 @@ const [updatingLikeListingId, setUpdatingLikeListingId] = useState(null)
   category: 'עבודות מזדמנות',
   categories: ['עבודות מזדמנות'],
   item_condition: '',
+  service_level: '',
   location: '',
   advertiser_latitude: null,
   advertiser_longitude: null,
@@ -677,6 +678,7 @@ useEffect(() => {
       category: 'עבודות מזדמנות',
       categories: ['עבודות מזדמנות'],
       item_condition: '',
+      service_level: '',
       location: '',
       advertiser_latitude: null,
       advertiser_longitude: null,
@@ -2163,6 +2165,7 @@ const handleOpenPublishModal = () => {
   category: 'עבודות מזדמנות',
   categories: ['עבודות מזדמנות'],
   item_condition: '',
+  service_level: '',
   location: '',
   advertiser_latitude: null,
   advertiser_longitude: null,
@@ -2239,6 +2242,7 @@ const handleSubmit = async (e) => {
       listing_type: formData.listing_type,
       category: formData.category,
       item_condition: formData.category === 'חפצים' ? (formData.item_condition || null) : null,
+      service_level: formData.listing_type === 'offer' ? (formData.service_level || null) : null,
 categories:
   Array.isArray(formData.categories) && formData.categories.length > 0
     ? formData.categories.slice(0, 3)
@@ -2287,6 +2291,7 @@ const handleOpenEditModal = (item) => {
     listing_type: item.listing_type || 'offer',
     category: item.category || 'עבודות מזדמנות',
     item_condition: item.item_condition || '',
+    service_level: item.service_level || '',
 categories:
   Array.isArray(item.categories) && item.categories.length > 0
     ? item.categories.slice(0, 3)
@@ -2387,6 +2392,7 @@ const handleUpdateListing = async (e) => {
 listing_type: formData.listing_type,
 category: formData.category,
 item_condition: formData.category === 'חפצים' ? (formData.item_condition || null) : null,
+service_level: formData.listing_type === 'offer' ? (formData.service_level || null) : null,
 categories:
   Array.isArray(formData.categories) && formData.categories.length > 0
     ? formData.categories.slice(0, 3)
@@ -6079,6 +6085,16 @@ const advertiserPageCreatedAt =
 <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-5">
   {item.title}
 </h3>
+{item.listing_type === 'offer' && item.service_level && (
+  <div className="mt-2 inline-flex items-center rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-semibold text-teal-800">
+    {({
+      beginner: 'מתחיל / לומד',
+      knowledgeable: 'בעל ידע ויכולת לעזור',
+      experienced: 'מנוסה',
+      professional: 'בעל מקצוע'
+    })[item.service_level] || item.service_level}
+  </div>
+)}
 
 {item.location && (
   <div className="flex items-center gap-1 mt-1 min-w-0">
@@ -6644,6 +6660,21 @@ const advertiserPageCreatedAt =
             })[selectedListing.item_condition] || selectedListing.item_condition}
           </span>
         )}
+{selectedListing.listing_type === 'offer' && selectedListing.service_level && (
+  <div className="mt-3 mb-4 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+    <div className="text-sm font-bold text-teal-900">
+      רמת ניסיון בשירות
+    </div>
+    <div className="mt-1 text-sm text-teal-800">
+      {({
+        beginner: 'מתחיל / לומד',
+        knowledgeable: 'בעל ידע ויכולת לעזור',
+        experienced: 'מנוסה',
+        professional: 'בעל מקצוע'
+      })[selectedListing.service_level] || selectedListing.service_level}
+    </div>
+  </div>
+)}
 
 
         {/* פרטי בסיס */}
@@ -9670,6 +9701,75 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     </div>
 
   )}
+{formData.listing_type === 'offer' && formData.category !== 'חפצים' && (
+  <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
+    <div className="mb-1 text-sm font-extrabold text-slate-800">
+      מה רמת הניסיון שלך בשירות הזה?
+    </div>
+    <p className="mb-3 text-xs text-slate-600">
+      בחר את האפשרות שמתארת אותך בצורה הטובה ביותר.
+    </p>
+    <div className="space-y-2">
+      {[
+        {
+          value: 'beginner',
+          title: 'מתחיל / לומד',
+          description: 'יש לי ידע בסיסי ואני מוכן לעזור ולצבור ניסיון.'
+        },
+        {
+          value: 'knowledgeable',
+          title: 'בעל ידע ויכולת לעזור',
+          description: 'אני יודע לבצע את העבודה, גם אם איני בעל מקצוע מוסמך.'
+        },
+        {
+          value: 'experienced',
+          title: 'מנוסה',
+          description: 'יש לי ניסיון מעשי ואני יודע לבצע את השירות באופן עצמאי.'
+        },
+        {
+          value: 'professional',
+          title: 'בעל מקצוע',
+          description: 'אני עוסק בתחום באופן מקצועי. הכשרה או הסמכה, ככל שישנן, אפשר לציין בתיאור.'
+        }
+      ].map((level) => (
+        <label
+          key={level.value}
+          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+            formData.service_level === level.value
+              ? 'border-teal-500 bg-white ring-1 ring-teal-300'
+              : 'border-slate-200 bg-white hover:border-teal-300'
+          }`}
+        >
+          <input
+            type="radio"
+            name="service_level"
+            value={level.value}
+            checked={formData.service_level === level.value}
+            onChange={handleChange}
+            className="mt-1 accent-teal-600"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-slate-800">
+              {level.title}
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-slate-600">
+              {level.description}
+            </span>
+          </span>
+        </label>
+      ))}
+      {formData.service_level && (
+        <button
+          type="button"
+          onClick={() => setFormData((prev) => ({ ...prev, service_level: '' }))}
+          className="text-xs font-semibold text-slate-500 underline"
+        >
+          הסרת הבחירה
+        </button>
+      )}
+    </div>
+  </div>
+)}
 
   {/* קטגוריות נוספות */}
   <div className="mt-3">
@@ -10724,6 +10824,75 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
 
 
             )}
+{formData.listing_type === 'offer' && formData.category !== 'חפצים' && (
+  <div className="mt-5 rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
+    <div className="mb-1 text-sm font-extrabold text-slate-800">
+      מה רמת הניסיון שלך בשירות הזה?
+    </div>
+    <p className="mb-3 text-xs text-slate-600">
+      בחר את האפשרות שמתארת אותך בצורה הטובה ביותר.
+    </p>
+    <div className="space-y-2">
+      {[
+        {
+          value: 'beginner',
+          title: 'מתחיל / לומד',
+          description: 'יש לי ידע בסיסי ואני מוכן לעזור ולצבור ניסיון.'
+        },
+        {
+          value: 'knowledgeable',
+          title: 'בעל ידע ויכולת לעזור',
+          description: 'אני יודע לבצע את העבודה, גם אם איני בעל מקצוע מוסמך.'
+        },
+        {
+          value: 'experienced',
+          title: 'מנוסה',
+          description: 'יש לי ניסיון מעשי ואני יודע לבצע את השירות באופן עצמאי.'
+        },
+        {
+          value: 'professional',
+          title: 'בעל מקצוע',
+          description: 'אני עוסק בתחום באופן מקצועי. הכשרה או הסמכה, ככל שישנן, אפשר לציין בתיאור.'
+        }
+      ].map((level) => (
+        <label
+          key={level.value}
+          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+            formData.service_level === level.value
+              ? 'border-teal-500 bg-white ring-1 ring-teal-300'
+              : 'border-slate-200 bg-white hover:border-teal-300'
+          }`}
+        >
+          <input
+            type="radio"
+            name="service_level"
+            value={level.value}
+            checked={formData.service_level === level.value}
+            onChange={handleChange}
+            className="mt-1 accent-teal-600"
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-slate-800">
+              {level.title}
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-slate-600">
+              {level.description}
+            </span>
+          </span>
+        </label>
+      ))}
+      {formData.service_level && (
+        <button
+          type="button"
+          onClick={() => setFormData((prev) => ({ ...prev, service_level: '' }))}
+          className="text-xs font-semibold text-slate-500 underline"
+        >
+          הסרת הבחירה
+        </button>
+      )}
+    </div>
+  </div>
+)}
 
 
             {/* קטגוריות נוספות */}
