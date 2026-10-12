@@ -343,6 +343,8 @@ const [allCountry, setAllCountry] = useState(false)
 const [sortByDistance, setSortByDistance] = useState(false)
 const [listingSort, setListingSort] = useState('newest')
 const [imageFilter, setImageFilter] = useState('all')
+const [serviceLevelFilter, setServiceLevelFilter] = useState('all')
+const [itemConditionFilter, setItemConditionFilter] = useState('all')
 const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 const [showMobileSearchFilters, setShowMobileSearchFilters] = useState(false)
 const [showMobileSearchPanel, setShowMobileSearchPanel] = useState(false)
@@ -2716,6 +2718,15 @@ const matchesCategory =
   categoryFilter === 'all' ||
   itemCategories.includes(categoryFilter)
 
+    const matchesServiceLevel =
+      listingTypeFilter !== 'offer' ||
+      serviceLevelFilter === 'all' ||
+      item.service_level === serviceLevelFilter
+
+    const matchesItemCondition =
+      categoryFilter !== 'חפצים' ||
+      itemConditionFilter === 'all' ||
+      item.item_condition === itemConditionFilter
     const matchesLocation =
   locationFilter === 'all' ||
   normalizeLocation(item.location) === normalizeLocation(locationFilter)
@@ -2746,6 +2757,8 @@ const matchesImage =
   matchesSearch &&
   matchesType &&
   matchesCategory &&
+  matchesServiceLevel &&
+  matchesItemCondition &&
   matchesLocation &&
   matchesNearby &&
   matchesImage
@@ -2816,6 +2829,22 @@ const homeCardOrder = (() => {
       item,
     }))
   } else if (sortByDistance && userLocation) {
+    const regular = displayedListings.filter(
+      (item) => !isActiveFeatured(item)
+    )
+
+    orderedCards = [
+      ...featured.map((item) => ({ key: String(item.id), item })),
+      ...regular.map((item) => ({ key: String(item.id), item })),
+      ...promotionalPages.map((page) => ({
+        key: `promo-${page.id}`,
+        item: page,
+      })),
+    ]
+  } else if (
+    (listingTypeFilter === 'offer' && serviceLevelFilter !== 'all') ||
+    (categoryFilter === 'חפצים' && itemConditionFilter !== 'all')
+  ) {
     const regular = displayedListings.filter(
       (item) => !isActiveFeatured(item)
     )
@@ -4435,6 +4464,43 @@ const advertiserPageCreatedAt =
           {/* אזור */}
           <div>
 
+{categoryFilter === 'חפצים' ? (
+  <div className="mb-3">
+    <label className="block text-xs font-bold text-slate-600 mb-1.5">
+      מצב המוצר
+    </label>
+    <select
+      value={itemConditionFilter}
+      onChange={(e) => setItemConditionFilter(e.target.value)}
+      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 text-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#D97706]"
+    >
+      <option value="all">כל המצבים</option>
+      <option value="new">חדש</option>
+      <option value="used">משומש</option>
+      <option value="defective">תקול או מקולקל</option>
+    </select>
+  </div>
+) : listingTypeFilter === 'offer' ? (
+  <div className="mb-3">
+    <label className="block text-xs font-bold text-slate-600 mb-1.5">
+      ניסיון ויכולת
+    </label>
+    <select
+      value={serviceLevelFilter}
+      onChange={(e) => setServiceLevelFilter(e.target.value)}
+      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 text-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#D97706]"
+    >
+      <option value="all">כל רמות הניסיון</option>
+      <option value="beginner">מתחיל / לומד</option>
+      <option value="knowledgeable">בעל ידע ויכולת לעזור</option>
+      <option value="experienced">מנוסה</option>
+      <option value="professional">בעל מקצוע</option>
+    </select>
+  </div>
+) : null}
+
+
+
             <label className="block text-xs font-bold text-slate-600 mb-1.5">
               אזור
             </label>
@@ -4557,6 +4623,8 @@ const advertiserPageCreatedAt =
           {(searchTerm ||
             listingTypeFilter !== 'all' ||
             categoryFilter !== 'all' ||
+            serviceLevelFilter !== 'all' ||
+            itemConditionFilter !== 'all' ||
             locationFilter !== 'all') && (
 
             <button
@@ -4564,6 +4632,8 @@ const advertiserPageCreatedAt =
                 setSearchTerm('')
                 setListingTypeFilter('all')
                 setCategoryFilter('all')
+                setServiceLevelFilter('all')
+                setItemConditionFilter('all')
                 setLocationFilter('all')
               }}
               className="self-start text-sm font-bold text-red-500 hover:text-red-600 transition"
@@ -5091,6 +5161,41 @@ const advertiserPageCreatedAt =
 
 
         {/* אזור */}
+{categoryFilter === 'חפצים' ? (
+  <div className="mb-3">
+    <label className="block text-xs font-bold text-slate-600 mb-1.5">
+      מצב המוצר
+    </label>
+    <select
+      value={itemConditionFilter}
+      onChange={(e) => setItemConditionFilter(e.target.value)}
+      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 text-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#D97706]"
+    >
+      <option value="all">כל המצבים</option>
+      <option value="new">חדש</option>
+      <option value="used">משומש</option>
+      <option value="defective">תקול או מקולקל</option>
+    </select>
+  </div>
+) : listingTypeFilter === 'offer' ? (
+  <div className="mb-3">
+    <label className="block text-xs font-bold text-slate-600 mb-1.5">
+      ניסיון ויכולת
+    </label>
+    <select
+      value={serviceLevelFilter}
+      onChange={(e) => setServiceLevelFilter(e.target.value)}
+      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 text-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#D97706]"
+    >
+      <option value="all">כל רמות הניסיון</option>
+      <option value="beginner">מתחיל / לומד</option>
+      <option value="knowledgeable">בעל ידע ויכולת לעזור</option>
+      <option value="experienced">מנוסה</option>
+      <option value="professional">בעל מקצוע</option>
+    </select>
+  </div>
+) : null}
+
         <div>
 
           <label className="block text-xs font-bold text-slate-600 mb-1.5">
@@ -5213,6 +5318,8 @@ const advertiserPageCreatedAt =
         {(searchTerm ||
           listingTypeFilter !== 'all' ||
           categoryFilter !== 'all' ||
+          serviceLevelFilter !== 'all' ||
+          itemConditionFilter !== 'all' ||
           locationFilter !== 'all') && (
 
           <button
@@ -5220,6 +5327,8 @@ const advertiserPageCreatedAt =
               setSearchTerm('')
               setListingTypeFilter('all')
               setCategoryFilter('all')
+              setServiceLevelFilter('all')
+              setItemConditionFilter('all')
               setLocationFilter('all')
             }}
             className="text-sm font-bold text-red-500 hover:text-red-600 transition"
@@ -5827,6 +5936,8 @@ const advertiserPageCreatedAt =
             setSearchTerm('')
             setListingTypeFilter('all')
             setCategoryFilter('all')
+            setServiceLevelFilter('all')
+            setItemConditionFilter('all')
             setLocationFilter('all')
           }}
           className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-[#FFF3E0] hover:text-[#B45309] hover:border-[#D97706] transition-all"
