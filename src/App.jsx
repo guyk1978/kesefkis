@@ -546,6 +546,7 @@ const [updatingLikeListingId, setUpdatingLikeListingId] = useState(null)
   listing_type: 'offer',
   category: 'עבודות מזדמנות',
   categories: ['עבודות מזדמנות'],
+  item_condition: '',
   location: '',
   advertiser_latitude: null,
   advertiser_longitude: null,
@@ -675,6 +676,7 @@ useEffect(() => {
       listing_type: 'offer',
       category: 'עבודות מזדמנות',
       categories: ['עבודות מזדמנות'],
+      item_condition: '',
       location: '',
       advertiser_latitude: null,
       advertiser_longitude: null,
@@ -2160,6 +2162,7 @@ const handleOpenPublishModal = () => {
   listing_type: 'offer',
   category: 'עבודות מזדמנות',
   categories: ['עבודות מזדמנות'],
+  item_condition: '',
   location: '',
   advertiser_latitude: null,
   advertiser_longitude: null,
@@ -2235,6 +2238,7 @@ const handleSubmit = async (e) => {
       payment_type: formData.payment_type,
       listing_type: formData.listing_type,
       category: formData.category,
+      item_condition: formData.category === 'חפצים' ? (formData.item_condition || null) : null,
 categories:
   Array.isArray(formData.categories) && formData.categories.length > 0
     ? formData.categories.slice(0, 3)
@@ -2282,6 +2286,7 @@ const handleOpenEditModal = (item) => {
     payment_type: item.payment_type || 'cash',
     listing_type: item.listing_type || 'offer',
     category: item.category || 'עבודות מזדמנות',
+    item_condition: item.item_condition || '',
 categories:
   Array.isArray(item.categories) && item.categories.length > 0
     ? item.categories.slice(0, 3)
@@ -2381,6 +2386,7 @@ const handleUpdateListing = async (e) => {
   payment_type: formData.payment_type || 'cash',
 listing_type: formData.listing_type,
 category: formData.category,
+item_condition: formData.category === 'חפצים' ? (formData.item_condition || null) : null,
 categories:
   Array.isArray(formData.categories) && formData.categories.length > 0
     ? formData.categories.slice(0, 3)
@@ -6629,6 +6635,15 @@ const advertiserPageCreatedAt =
         <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-5 leading-tight">
           {selectedListing.title}
         </h2>
+        {selectedListing.category === 'חפצים' && selectedListing.item_condition && (
+          <span className="inline-flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2 text-orange-800 font-semibold">
+            מצב המוצר: {({
+              new: 'חדש',
+              used: 'משומש',
+              defective: 'תקול או מקולקל'
+            })[selectedListing.item_condition] || selectedListing.item_condition}
+          </span>
+        )}
 
 
         {/* פרטי בסיס */}
@@ -9620,6 +9635,42 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     )}
   </div>
 
+  {formData.category === 'חפצים' && (
+
+    <div className="mt-4">
+
+      <label className="block text-sm font-bold text-slate-700 mb-2">
+
+        מצב המוצר
+
+      </label>
+
+      <select
+
+        name="item_condition"
+
+        value={formData.item_condition || ''}
+
+        onChange={handleChange}
+
+        className="w-full px-4 py-3.5 border border-orange-200 rounded-2xl bg-orange-50 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-200"
+
+      >
+
+        <option value="">בחרו את מצב המוצר</option>
+
+        <option value="new">חדש</option>
+
+        <option value="used">משומש</option>
+
+        <option value="defective">תקול או מקולקל</option>
+
+      </select>
+
+    </div>
+
+  )}
+
   {/* קטגוריות נוספות */}
   <div className="mt-3">
 
@@ -10619,6 +10670,60 @@ navigate(`/מפרסם/${selectedListing.user_id}`)
     </div>
   )}
 </div>
+
+
+            {formData.category === 'חפצים' && (
+
+
+              <div className="mt-4">
+
+
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+
+
+                  מצב המוצר
+
+
+                </label>
+
+
+                <select
+
+
+                  name="item_condition"
+
+
+                  value={formData.item_condition || ''}
+
+
+                  onChange={handleChange}
+
+
+                  className="w-full px-4 py-3.5 border border-orange-200 rounded-2xl bg-orange-50 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-200"
+
+
+                >
+
+
+                  <option value="">בחרו את מצב המוצר</option>
+
+
+                  <option value="new">חדש</option>
+
+
+                  <option value="used">משומש</option>
+
+
+                  <option value="defective">תקול או מקולקל</option>
+
+
+                </select>
+
+
+              </div>
+
+
+            )}
 
 
             {/* קטגוריות נוספות */}
